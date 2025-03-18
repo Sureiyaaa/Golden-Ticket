@@ -1,33 +1,32 @@
 using GoldenTicket.Entities;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
 
-namespace GoldenTicket.Database {
+namespace GoldenTicket.Database
+{
     /// <summary>
-    ///     Database Context for MySQL
+    /// Database Context for MySQL
     /// </summary>
     /// <param name="configuration">Configuraion JSON files</param>
-    
-    public class Configuration(IConfiguration configuration){
-        public static string? ConnectionString {get; private set;}
 
-    }
-    public class ApplicationDbContext() : DbContext{
-        public IConfiguration config = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory()).AddJsonFile("Config/secret.json", optional: false, reloadOnChange: true).Build();
-        public static string? ConnectionString {get; private set;}
+    public class ApplicationDbContext : DbContext
+    {
+        private readonly IConfiguration _config;
+
+        public ApplicationDbContext(IConfiguration configuration)
+        {
+            _config = configuration;
+        }
 
         public DbSet<User> Users { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            ConnectionString = config["ConnectionString"] ?? throw new Exception("Connection String is Invalid");
+            string? connectionString = _config["ConnectionString"] 
+                ?? throw new Exception("Connection String is Invalid");
 
-            optionsBuilder.UseMySql(ConnectionString, ServerVersion.Parse("8.0.37-mysql"),
-                options => options.EnableRetryOnFailure());                
-        
-        
+            optionsBuilder.UseMySql(connectionString, ServerVersion.Parse("8.0.37-mysql"),
+                options => options.EnableRetryOnFailure());
         }
-
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -36,12 +35,18 @@ namespace GoldenTicket.Database {
             modelBuilder.Entity<User>()
                 .Property(u => u.UserID)
                 .ValueGeneratedOnAdd();
-            // Run SQL command when migrating
-            modelBuilder.Entity<User>().HasData(
-                new User { UserID = 100000000, Username = config["AdminUsername"], Password = config["AdminUsername"], FirstName = "admin", MiddleInitial = 'a', LastName = "admin" }
-            );
 
+            modelBuilder.Entity<User>().HasData(
+                new User
+                {
+                    UserID = 100000000,
+                    Username = _config["AdminUsername"],
+                    Password = _config["AdminPassword"],
+                    FirstName = "admin",
+                    MiddleInitial = 'A',
+                    LastName = "admin"
+                }
+            );
         }
-        
     }
 }

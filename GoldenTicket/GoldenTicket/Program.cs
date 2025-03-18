@@ -1,8 +1,7 @@
 using GoldenTicket.Database;
-using GoldenTicket.Services;
-using GoldenTicket.Models;
+using GoldenTicket.Extensions;
 using GoldenTicket.Hubs;
-using OpenAIApp.Services;
+using GoldenTracker.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,15 +22,10 @@ builder.Services.AddSingleton<OpenAIService>();
 builder.Services.AddSingleton<ApiConfig>();
 
 builder.Services.AddControllersWithViews();
-builder.Services.AddSignalR();
-builder.Services.AddSignalR().AddHubOptions<GTHub>(options =>
-{
-    options.EnableDetailedErrors = true;
-    options.ClientTimeoutInterval = TimeSpan.FromSeconds(10);
-    options.KeepAliveInterval = TimeSpan.FromSeconds(5);
-});
+builder.Services.AddApplicationServices(builder.Configuration);
 
 var app = builder.Build();
+app.UseCors("GoldenTracker");
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
@@ -41,16 +35,16 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
-app.UseStaticFiles();
-
+// app.UseHttpsRedirection();
+//app.UseStaticFiles();
+app.MapControllers();
 app.UseRouting();
 
 app.MapHub<GTHub>("/GTHub");
 app.UseAuthorization();
 
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+// app.MapControllerRoute(
+//     name: "default",
+//     pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();

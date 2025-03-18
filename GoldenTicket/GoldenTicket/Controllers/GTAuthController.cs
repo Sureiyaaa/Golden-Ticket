@@ -32,7 +32,7 @@ namespace GoldenTicket.Controllers
             // Validate credentials (replace with your own authentication logic)
             if (user != null)
             {
-                if (user.Password.Equals(request.password))
+                if (user.Password!.Equals(request.password))
                 {
                     // Simulate token generation (in a real app, generate a JWT or similar token)
                     var token = Guid.NewGuid().ToString();

@@ -1,5 +1,7 @@
 using GoldenTicket.Hubs;
+using GoldenTicket.Services;
 using Microsoft.Extensions.FileProviders;
+using OpenAIApp.Services;
 namespace GoldenTicket.Extensions;
 
 public static class ApplicationServiceExtensions
@@ -8,13 +10,19 @@ public static class ApplicationServiceExtensions
     {
         services.AddControllers();
 
-        services.AddSignalR();
+        // Add services to the container.
+        
+        services.AddSingleton<ConfigService>();
+        services.AddSingleton<PromptService>();
+        services.AddSingleton<OpenAIService>();
+        services.AddSingleton<ApiConfig>();
         services.AddSignalR().AddHubOptions<GTHub>(options =>
         {
             options.EnableDetailedErrors = true;
             options.ClientTimeoutInterval = TimeSpan.FromSeconds(10);
             options.KeepAliveInterval = TimeSpan.FromSeconds(5);
         });
+        services.AddControllersWithViews();
 
         // Add Database Context HERE
         // services.AddDbContext<DataContext>(opt =>

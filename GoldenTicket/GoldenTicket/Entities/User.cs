@@ -23,7 +23,6 @@ namespace GoldenTicket.Entities
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         public DateTime? lastOnlineAt { get;set; }
 
-        
     }
     public class UserDTO { 
         public int UserID { get; set; }
@@ -35,6 +34,7 @@ namespace GoldenTicket.Entities
         
         public UserDTO(User user){
             this.UserID = user.UserID;
+            this.Username = user.Username;
             this.FirstName = user.FirstName;
             this.MiddleInitial = user.MiddleInitial;
             this.LastName = user.LastName;

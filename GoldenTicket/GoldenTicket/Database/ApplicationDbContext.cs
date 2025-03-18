@@ -7,36 +7,41 @@ namespace GoldenTicket.Database {
     ///     Database Context for MySQL
     /// </summary>
     /// <param name="configuration">Configuraion JSON files</param>
-    public class ApplicationDbContext(IConfiguration configuration) : DbContext{
+    
+    public class Configuration(IConfiguration configuration){
         public static string? ConnectionString {get; private set;}
 
+    }
+    public class ApplicationDbContext() : DbContext{
+        public IConfiguration config = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory()).AddJsonFile("Config/secret.json", optional: false, reloadOnChange: true).Build();
+        public static string? ConnectionString {get; private set;}
+
+        public DbSet<User> Users { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            ConnectionString = configuration["ConnectionString"] ?? throw new Exception("Connection String is Invalid");
+            ConnectionString = config["ConnectionString"] ?? throw new Exception("Connection String is Invalid");
 
             optionsBuilder.UseMySql(ConnectionString, ServerVersion.Parse("8.0.37-mysql"),
-                options => options.EnableRetryOnFailure());
-        }
+                options => options.EnableRetryOnFailure());                
         
+        
+        }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-
-            modelBuilder.Entity<User>().Property(u => u.UserID).HasAnnotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn);
-            modelBuilder.Entity<User>().HasData(new User { UserID = 1000000000});
-
             base.OnModelCreating(modelBuilder);
-            // modelBuilder.Entity<Message>()
-            // .Property(u => u.MessageID)
-            // .HasAnnotation("SqlServer:Identity", "1000000000, 1");
-            // modelBuilder.Entity<Chatroom>()
-            // .Property(u => u.ChatroomID)
-            // .HasAnnotation("SqlServer:Identity", "1000000000, 1");
-            // modelBuilder.Entity<Roles>()
-            // .Property(u => u.RoleID)
-            // .HasAnnotation("SqlServer:Identity", "1000000000, 1");
-        }
 
+            modelBuilder.Entity<User>()
+                .Property(u => u.UserID)
+                .ValueGeneratedOnAdd();
+            // Run SQL command when migrating
+            modelBuilder.Entity<User>().HasData(
+                new User { UserID = 100000000, Username = config["AdminUsername"], Password = config["AdminUsername"], FirstName = "admin", MiddleInitial = 'a', LastName = "admin" }
+            );
+
+        }
+        
     }
 }

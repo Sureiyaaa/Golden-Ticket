@@ -1,5 +1,8 @@
 using GoldenTicket.Database;
+using GoldenTicket.Services;
+using GoldenTicket.Models;
 using GoldenTicket.Hubs;
+using OpenAIApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,7 +16,12 @@ builder.Configuration
     .AddEnvironmentVariables();
 
 // Add services to the container.
-builder.Services.AddDbContext<ApplicationDbContext>();
+builder.Services.Configure<AppConfig>(builder.Configuration.GetSection("AppConfig"));
+builder.Services.AddSingleton<ConfigService>();
+builder.Services.AddSingleton<PromptService>();
+builder.Services.AddSingleton<OpenAIService>();
+builder.Services.AddSingleton<ApiConfig>();
+
 builder.Services.AddControllersWithViews();
 builder.Services.AddSignalR();
 builder.Services.AddSignalR().AddHubOptions<GTHub>(options =>

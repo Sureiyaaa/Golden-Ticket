@@ -1,3 +1,4 @@
+using GoldenTicket.Database;
 using GoldenTicket.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,6 +13,7 @@ builder.Configuration
     .AddEnvironmentVariables();
 
 // Add services to the container.
+builder.Services.AddDbContext<ApplicationDbContext>();
 builder.Services.AddControllersWithViews();
 builder.Services.AddSignalR();
 builder.Services.AddSignalR().AddHubOptions<GTHub>(options =>

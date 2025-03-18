@@ -3,8 +3,11 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
-#config
+# config
 secret.json
+
+# Database migrations
+Migrations/
 
 # Flutter/Dart
 .dart_tool/

@@ -1,0 +1,24 @@
+{
+  "AppConfig": {
+    "AppSettings": {
+      "UseDynamicIP": true,
+      "DirectIp": "172.30.30.229",
+      "Port": 3180,
+      "UseWebSocket": false,
+      "PromptConfigPath": "promptTypes.json"
+    },
+    "CorsSettings": {
+      "AllowedOrigins": "*"
+    },
+    "VoiceSettings": {
+      "UseTTS": false,
+      "VoiceID": "Hannah",
+      "Pitch": 1,
+      "Speed": 0.1,
+      "Bitrate": "320k"
+    },
+    "OpenAISettings": {
+      "BaseUrl": "https://models.inference.ai.azure.com/"
+    }
+  }
+}

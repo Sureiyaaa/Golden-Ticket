@@ -8,10 +8,6 @@ namespace GoldenTicket.Database {
     /// </summary>
     /// <param name="configuration">Configuraion JSON files</param>
     
-    public class Configuration(IConfiguration configuration){
-        public static string? ConnectionString {get; private set;}
-
-    }
     public class ApplicationDbContext() : DbContext{
         public IConfiguration config = new ConfigurationBuilder().SetBasePath(Directory.GetCurrentDirectory()).AddJsonFile("Config/secret.json", optional: false, reloadOnChange: true).Build();
         public static string? ConnectionString {get; private set;}
@@ -24,8 +20,6 @@ namespace GoldenTicket.Database {
 
             optionsBuilder.UseMySql(ConnectionString, ServerVersion.Parse("8.0.37-mysql"),
                 options => options.EnableRetryOnFailure());                
-        
-        
         }
 
 

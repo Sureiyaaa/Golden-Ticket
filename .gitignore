@@ -5,6 +5,7 @@
 
 # config
 secret.json
+secret.dart
 
 # Database migrations
 Migrations/

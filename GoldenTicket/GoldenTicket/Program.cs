@@ -5,7 +5,12 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 builder.Services.AddSignalR();
-
+builder.Services.AddSignalR().AddHubOptions<GTHub>(options =>
+{
+    options.EnableDetailedErrors = true;
+    options.ClientTimeoutInterval = TimeSpan.FromSeconds(10);
+    options.KeepAliveInterval = TimeSpan.FromSeconds(5);
+});
 
 var app = builder.Build();
 
@@ -22,12 +27,11 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+app.MapHub<GTHub>("/GTHub");
 app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
-app.MapHub<GTHub>("/GTHub");
-
 
 app.Run();

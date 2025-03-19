@@ -1,4 +1,5 @@
 using GoldenTicket.Entities;
+using GoldenTicket.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 
@@ -31,8 +32,10 @@ namespace GoldenTicket.Database {
                 .Property(u => u.UserID)
                 .ValueGeneratedOnAdd();
             // Run SQL command when migrating
+            
+            var hashedPassword = AuthUtils.HashPassword(config["AdminPassword"] ?? throw new Exception("AdminPassword does not exist in Config"), out string salt);
             modelBuilder.Entity<User>().HasData(
-                new User { UserID = 100000000, Username = config["AdminUsername"], Password = config["AdminUsername"], FirstName = "admin", MiddleInitial = 'a', LastName = "admin" }
+                new User { UserID = 100000000, Username = config["AdminUsername"], Password = $"{salt}:{hashedPassword}", FirstName = "admin", MiddleInitial = 'a', LastName = "admin" }
             );
 
         }

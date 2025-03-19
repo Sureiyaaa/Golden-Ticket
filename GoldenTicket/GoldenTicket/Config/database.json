@@ -1,0 +1,27 @@
+{
+    "Tags": {
+        "Status": ["Pending", "Open", "Assigned", "Re-assigned", "In Progress", "Postponed", "Closed", "Unresolved", "Re-opened"],
+        "Actions": ["Created", "Open", "Assigned", "Re-assigned", "In Progress", "Postponed", "Closed", "Unresolved","Re-opened"],
+        "Notification": ["New Ticket", "Replied", "Closed", "Opened", "Assigned", "In Progress", "Re-assigned", "Postponed"],
+        "Roles": ["Admin", "Staff", "Employee"],
+        "MainTags": ["MaxHub", "Printer"],
+        "SubTags": [
+            {
+                "Name": "Code not showing",
+                "Parent": 1
+            },
+            {
+                "Name": "Lagging",
+                "Parent": 1
+            },
+            {
+                "Name": "Not listed in computer",
+                "Parent": 2
+            },
+            {
+                "Name": "Not connected",
+                "Parent": 2
+            }
+        ]
+    }
+}

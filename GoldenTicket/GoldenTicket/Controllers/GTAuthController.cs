@@ -1,5 +1,6 @@
 using GoldenTicket.Entities;
 using GoldenTicket.Models;
+using GoldenTicket.Utilities;
 using GoldenTracker.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -32,7 +33,7 @@ namespace GoldenTicket.Controllers
             // Validate credentials (replace with your own authentication logic)
             if (user != null)
             {
-                if (user.Password!.Equals(request.password))
+                if (AuthUtils.VerifyPassword(request.password!, user.Password!))
                 {
                     // Simulate token generation (in a real app, generate a JWT or similar token)
                     var token = Guid.NewGuid().ToString();

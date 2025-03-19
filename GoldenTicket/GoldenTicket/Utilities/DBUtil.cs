@@ -1,5 +1,6 @@
 using GoldenTicket.Database;
 using GoldenTicket.Entities;
+using GoldenTicket.Utilities;
 
 namespace GoldenTracker.Models
 {
@@ -7,19 +8,20 @@ namespace GoldenTracker.Models
     {
         public static void RegisterAccount(string Username, string Password, string FirstName, char MiddleInitial, string LastName)
         {
-            var context = new ApplicationDbContext();
+            using(var Context = new ApplicationDbContext()){
+                var HashedPassword = AuthUtils.HashPassword(Password, out string salt);
+                var NewUser = new User
+                {
+                    Username = Username,
+                    Password = $"{salt}:{HashedPassword}",
+                    FirstName = FirstName,
+                    MiddleInitial = MiddleInitial,
+                    LastName = LastName
+                };
 
-            var newUser = new User
-            {
-                Username = Username,
-                Password = Password,
-                FirstName = FirstName,
-                MiddleInitial = MiddleInitial,
-                LastName = LastName
-            };
-
-            context.Add(newUser);
-            context.SaveChanges();
+                Context.Add(NewUser);
+                Context.SaveChanges();
+            }
         }
         public static bool IsUserExisting(string username)
         {

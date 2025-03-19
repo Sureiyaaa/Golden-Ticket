@@ -3,6 +3,7 @@ using OpenAI.Chat;
 using System.ClientModel;
 using TiktokenSharp;
 using GoldenTicket.Services;
+using GoldenTicket.Models;
 
 namespace OpenAIApp.Services;
 
@@ -163,5 +164,12 @@ public class OpenAIService
             string newPrompt = string.Join("\n", Prompt, summary);
             messages[0] = new SystemChatMessage(newPrompt);
         }
+    }
+
+    private async Task<AIResponse> GetFormattedResponse(string userInput, string prompt, bool isDirect = false)
+    {
+        string response = await GetAIResponse(userInput, prompt, isDirect);
+        AIResponse aIResponse = AIResponse.Parse(response);
+        return aIResponse;
     }
 }

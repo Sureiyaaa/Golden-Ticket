@@ -18,6 +18,10 @@ namespace GoldenTicket.Entities
         public char? MiddleInitial { get; set; }
         [Required]
         public string? LastName { get; set; }
+        [Required]
+        public int RoleID { get; set; }
+        [ForeignKey("RoleID")]
+        public Roles? Role { get; set; } = null;
         public string Email { get; set; } = "None Provided";
         public string PhoneNumber { get; set; } = "None Provided";
         public DateTime CreatedAt { get; set; } = DateTime.Now;

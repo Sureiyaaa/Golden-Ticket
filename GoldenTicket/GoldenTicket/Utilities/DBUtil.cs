@@ -1,12 +1,13 @@
 using GoldenTicket.Database;
 using GoldenTicket.Entities;
 using GoldenTicket.Utilities;
+using Microsoft.EntityFrameworkCore;
 
 namespace GoldenTracker.Models
 {
     public class DBUtil()
     {
-        public static void RegisterAccount(string Username, string Password, string FirstName, char MiddleInitial, string LastName)
+        public static void RegisterAccount(string Username, string Password, string FirstName, char? MiddleInitial, string LastName, int? RoleID)
         {
             using(var Context = new ApplicationDbContext()){
                 var HashedPassword = AuthUtils.HashPassword(Password, out string salt);
@@ -16,7 +17,8 @@ namespace GoldenTracker.Models
                     Password = $"{salt}:{HashedPassword}",
                     FirstName = FirstName,
                     MiddleInitial = MiddleInitial,
-                    LastName = LastName
+                    LastName = LastName,
+                    RoleID = RoleID ?? throw new Exception("Error")
                 };
 
                 Context.Add(NewUser);
@@ -40,7 +42,7 @@ namespace GoldenTracker.Models
         public static User FindUser(string Username)
         {
             using(var context = new ApplicationDbContext()){
-                var user = context.Users.FirstOrDefault(user => user.Username!.Equals(Username));
+                var user = context.Users.Include(u => u.Role).FirstOrDefault(user => user.Username!.Equals(Username));
 
                 return user!;
             }

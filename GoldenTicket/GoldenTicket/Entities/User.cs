@@ -34,15 +34,18 @@ namespace GoldenTicket.Entities
         public string? FirstName { get; set; }
         public char? MiddleInitial { get; set; }
         public string? LastName { get; set; }
+        public string? Role {get;set;}
         public DateTime? lastOnlineAt { get; set; }
-        
+        public DateTime createdAt {get;set;}
         public UserDTO(User user){
             this.UserID = user.UserID;
             this.Username = user.Username;
             this.FirstName = user.FirstName;
             this.MiddleInitial = user.MiddleInitial;
             this.LastName = user.LastName;
+            this.Role = user.Role!.RoleName;
             this.lastOnlineAt = user.lastOnlineAt;
+            this.createdAt = user.CreatedAt;
         }
     }
 }

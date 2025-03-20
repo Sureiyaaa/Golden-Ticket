@@ -24,13 +24,6 @@ namespace GoldenTicket.Entities
 
         [ForeignKey("AssignedID")]
         public User? Assigned { get; set; } = null;
-        [Required]
-        public int ChatroomID { get; set; }
-
-        [ForeignKey("ChatroomID")]
-        public Chatroom? Chatroom { get; set; } = null;
-        [Required]
-        public int StatusID { get; set; }
 
         [ForeignKey("StatusID")]
         public Status? Status { get; set; } = null;

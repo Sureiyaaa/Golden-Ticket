@@ -18,6 +18,10 @@ namespace GoldenTicket.Entities
 
         [ForeignKey("AuthorID")]
         public User? Author { get; set; } = null;
+        public int? TicketID { get; set; }
+
+        [ForeignKey("TicketID")]
+        public Tickets? Ticket { get; set; } = null;
         [Required]
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 

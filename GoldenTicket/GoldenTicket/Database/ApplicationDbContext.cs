@@ -1,6 +1,7 @@
 using GoldenTicket.Entities;
 using GoldenTicket.Utilities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace GoldenTicket.Database {
     /// <summary>
@@ -38,6 +39,11 @@ namespace GoldenTicket.Database {
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<User>().Property(e => e.UserID).HasAnnotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn);
+            modelBuilder.Entity<Tickets>().Property(e => e.TicketID).UseMySqlIdentityColumn();
+            modelBuilder.Entity<TicketHistory>().Property(e => e.TicketHistoryID).UseMySqlIdentityColumn();
+            modelBuilder.Entity<Chatroom>().Property(e => e.ChatroomID).UseMySqlIdentityColumn();
+
             modelBuilder.Entity<Tickets>()
             .HasOne(c => c.Author)
             .WithMany()  // No navigation property in User

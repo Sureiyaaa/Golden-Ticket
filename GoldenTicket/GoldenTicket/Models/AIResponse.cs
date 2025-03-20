@@ -32,4 +32,12 @@ public class AIResponse
     {
         return JsonConvert.SerializeObject(this, Formatting.Indented);
     }
+    public static AIResponse Unavailable() {
+        return new AIResponse() {
+            Message = "Sorry, Chatbot service is currently down at the moment. Sending a live agent...",
+            MainTag = "null",
+            SubTags = "null",
+            CallAgent = true
+        };
+    }
 }

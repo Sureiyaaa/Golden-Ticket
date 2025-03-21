@@ -64,7 +64,7 @@ namespace GoldenTicket.Database {
             
             // Initialize Admin
             modelBuilder.Entity<User>().HasData(
-                new User { UserID = 100000000, Username = config["AdminUsername"], Password = $"{salt}:{hashedPassword}", FirstName = "admin", MiddleInitial = 'a', LastName = "admin", RoleID = 1}
+                new User { UserID = 100000000, Username = config["AdminUsername"], Password = $"{salt}:{hashedPassword}", FirstName = "admin", MiddleName = "Admin", LastName = "admin", RoleID = 1}
             );
             List<string>? mainTags = config.GetSection("Tags:MainTags").Get<List<string>>();
             List<SubTagConfig>? subTags = config.GetSection("Tags:SubTags").Get<List<SubTagConfig>>();

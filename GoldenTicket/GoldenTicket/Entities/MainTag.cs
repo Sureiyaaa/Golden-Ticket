@@ -12,4 +12,12 @@ namespace GoldenTicket.Entities
         public string? TagName { get; set; }
         public ICollection<SubTag> ChildTags { get; set; } = new List<SubTag>();
     }
+
+    public class MainTagDTO
+    {
+        public int MainTagID { get; set; }
+        public string MainTagName { get; set; }
+        public List<SubTagDTO> SubTags { get; set; }
+    }
+
 }

@@ -17,4 +17,11 @@ namespace GoldenTicket.Entities
         [ForeignKey("MainTagID")]
         public MainTag? MainTag { get; set; } = null;
     }
+    public class SubTagDTO
+    {
+        public int SubTagID { get; set; }
+        public string SubTagName { get; set; }
+        public string MainTagName { get; set; }
+    }
+
 }

@@ -9,16 +9,23 @@ namespace GoldenTicket.Entities
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int FaqID { get; set; }
-        
         [Required]
         public string? TicketTitle { get; set; }
+        [Required]
         public string? Description { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public bool IsForced { get; set; }
-        public int? TicketID { get; set; }
+        [Required]
+        public string? Solution { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public bool IsArchived { get; set; }
+        [Required]
+        public int? MainTagID { get; set;}
+        [ForeignKey("MainTagID")]
+        public MainTag? MainTag { get; set; }
 
-        [ForeignKey("TicketID")]
-        public Tickets? ReferenceTicket { get; set; } = null;
-        
+        [Required]
+        public int? SubTagID { get; set;}
+        [ForeignKey("SubTagID")]
+        public SubTag? SubTag { get; set; }
+
     }
 }

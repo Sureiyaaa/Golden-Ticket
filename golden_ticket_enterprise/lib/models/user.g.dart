@@ -20,7 +20,7 @@ class UserAdapter extends TypeAdapter<User> {
       userID: fields[0] as int,
       username: fields[1] as String,
       firstName: fields[2] as String,
-      middleInitial: fields[3] as String,
+      middleName: fields[3] as String,
       lastName: fields[4] as String,
       role: fields[5] as String,
     );
@@ -37,7 +37,7 @@ class UserAdapter extends TypeAdapter<User> {
       ..writeByte(2)
       ..write(obj.firstName)
       ..writeByte(3)
-      ..write(obj.middleInitial)
+      ..write(obj.middleName)
       ..writeByte(4)
       ..write(obj.lastName)
       ..writeByte(5)

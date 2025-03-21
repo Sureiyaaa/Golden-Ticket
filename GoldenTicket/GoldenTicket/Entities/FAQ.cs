@@ -28,4 +28,17 @@ namespace GoldenTicket.Entities
         public SubTag? SubTag { get; set; }
 
     }
+
+    public class FAQDTO
+    {
+        public int FaqID { get; set; }
+        public string? Title { get; set; }
+        public string? Description { get; set; }
+        public string? Solution { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public bool IsArchived { get; set; }
+        public MainTagDTO? MainTag { get; set; }
+        public SubTagDTO? SubTag { get; set; }
+    }
+
 }

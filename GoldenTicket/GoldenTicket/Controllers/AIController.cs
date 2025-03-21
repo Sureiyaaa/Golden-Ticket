@@ -103,17 +103,6 @@ namespace GoldenTicket.Controllers
                 return Ok(result);
             }
         }
-        [HttpGet("GetFAQ")]
-        public async Task<IActionResult> GetFAQ()
-        {
-            using(var _context = new ApplicationDbContext())
-            {
-                var faqData = await _context.Faq.ToListAsync();
-                return Ok(faqData);
-            }
-        }
-
-        
         private string testFAQData(){
             string TagList = "";
             using(var context = new ApplicationDbContext())
@@ -131,7 +120,6 @@ namespace GoldenTicket.Controllers
 
                 // Fetch all FAQ data
                 var faqData = context.Faq.ToList();
-
             }
 
             return $"\n[FAQ DATA] \nTag List:\n{TagList}"+ @"

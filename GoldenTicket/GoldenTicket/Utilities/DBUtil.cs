@@ -9,10 +9,25 @@ namespace GoldenTracker.Models
     public class DBUtil()
     {
         #region FAQ
-        public static List<FAQ> GetFAQ()
+        public static List<FAQDTO> GetFAQ()
         {
             using(var context = new ApplicationDbContext()){
-                var faqs = context.Faq.ToList();
+                var faqs = context.Faq.Include(faq => faq.MainTag).Include(faq => faq.SubTag).Select(faq => new FAQDTO{
+                    FaqID = faq.FaqID,
+                    Title = faq.Title,
+                    Description = faq.Description,
+                    Solution = faq.Solution,
+                    CreatedAt = faq.CreatedAt,
+                    IsArchived = faq.IsArchived,
+                    MainTag = new MainTagDTO{
+                        MainTagID = faq.MainTag.TagID,
+                        MainTagName = faq.MainTag.TagName,
+                    },
+                    SubTag = new SubTagDTO{
+                        SubTagID = faq.SubTag.TagID,
+                        SubTagName = faq.SubTag.TagName
+                    }
+                }).ToList();
                 if(faqs.Count == 0 )
                     throw new Exception("No FAQs found");
                 return faqs;
@@ -39,23 +54,27 @@ namespace GoldenTracker.Models
         }
         #endregion
 
-        #region Tags
-        public static List<T> GetTags<T>() where T : class {
-            using(var context = new ApplicationDbContext()){
-            
-            var maintags = context.MainTag.Include(m => m.ChildTags).Select(m => new {
-                mainTagID = m.TagID,
-                mainTagName = m.TagName,
-                subTags = m.ChildTags.Select(c => new 
-                {
-                subTagID = c.TagID,
-                subTagName = c.TagName,
-                mainTagName = m.TagName
-                }).ToList()
-            }).ToList();
-            return maintags.Cast<T>().ToList();
+        public static List<MainTagDTO> GetTags()
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                return context.MainTag.Include(m => m.ChildTags)
+                    .Select(m => new MainTagDTO
+                    {
+                        MainTagID = m.TagID,
+                        MainTagName = m.TagName,
+                        SubTags = m.ChildTags.Select(c => new SubTagDTO
+                        {
+                            SubTagID = c.TagID,
+                            SubTagName = c.TagName,
+                            MainTagName = m.TagName
+                        }).ToList()
+                    })
+                    .ToList();
             }
-        } 
+        }  
+        
+
         public static void AddMainTag(string TagName)
         {
             using(var context = new ApplicationDbContext()){
@@ -103,6 +122,7 @@ namespace GoldenTracker.Models
                 Context.SaveChanges();
             }
         }
+      
         public static bool IsUserExisting(string username)
         {
             using(var context = new ApplicationDbContext()){

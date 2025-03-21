@@ -1,9 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:golden_ticket_enterprise/entities/faq.dart';
+import 'package:golden_ticket_enterprise/entities/main_tag.dart';
 import 'package:golden_ticket_enterprise/secret.dart';
 import 'package:signalr_core/signalr_core.dart';
 
 class SignalRService with ChangeNotifier {
   HubConnection? _hubConnection;
+  Function(List<MainTag>)? onTagUpdate;
+
+  Function(List<FAQ>)? onFAQUpdate;
+
+  Function(List<MainTag>)? onTicketUpdate;
+
+
   bool _isConnected = false;
 
   bool get isConnected => _isConnected;
@@ -36,9 +45,22 @@ class SignalRService with ChangeNotifier {
       notifyListeners(); // Notify UI to update if needed
     });
 
-    _hubConnection!.on('UserOnline', (arguments) {
-      print("User Online: ${arguments![0]}");
-      notifyListeners();
+    _hubConnection!.on('Online', (arguments) {
+      print(arguments);
+      if (arguments != null) {
+        List<MainTag> updatedTags =
+        (arguments[0]['tags'] as List).map((tag) => MainTag.fromJson(tag)).toList();
+
+        List<FAQ> updatedFAQ =
+        (arguments[0]['faq'] as List).map((faq) => FAQ.fromJson(faq)).toList();
+
+        if (onTagUpdate != null) {
+          onTagUpdate!(updatedTags); // Notify DataManager of the update
+        }
+        if(onFAQUpdate != null){
+          onFAQUpdate!(updatedFAQ);
+        }
+      }
     });
 
     await startConnection();
@@ -52,6 +74,7 @@ class SignalRService with ChangeNotifier {
       _hubConnection!.keepAliveIntervalInMilliseconds = 5000;
       print("SignalR Connected");
       _isConnected = true;
+      await _hubConnection!.invoke("Online", args: []);
       notifyListeners();
     } catch (e) {
       print("Error connecting to SignalR: $e");

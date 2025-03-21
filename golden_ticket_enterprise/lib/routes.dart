@@ -12,8 +12,19 @@ import 'package:provider/provider.dart';
 class AppRoutes {
   static GoRouter getRoutes() {
     return GoRouter(
-      initialLocation: '/login',
+        redirect: (context, state) {
+          var box = Hive.box<HiveSession>('sessionBox');
+          var userSession = box.get('user');
+
+          // Redirect to login if no session exists
+          if (userSession == null && state.fullPath != '/login') {
+            return '/login';
+          }
+
+          return null; // No redirect needed
+      },
       routes: [
+        GoRoute(path: '/', redirect: (context, state) => '/login'),
         GoRoute(path: '/login', builder: (context, state) => LoginPage()),
         GoRoute(
           path: '/hub',
@@ -33,7 +44,13 @@ class AppRoutes {
             }
           },
         ),
-        GoRoute(path: '/error', builder: (context, state) => ErrorPage()),
+        GoRoute(
+          path: '/error',
+          builder: (context, state) {
+            final errorMessage = state.extra as String? ?? 'An unknown error occurred';
+            return ErrorPage(errorMessage: errorMessage);
+          },
+        ),
       ],
     );
   }

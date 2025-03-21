@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
 import 'package:golden_ticket_enterprise/entities/user.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
@@ -20,16 +21,19 @@ class _LoginPage extends State<LoginPage> {
 
   @override
   void initState(){
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      var box = Hive.box<HiveSession>('sessionBox');
+      var userSession = box.get('user');
+      if (userSession != null) {
+        print("User session found: ${userSession.user.username}");
+        // Get the passed User data
+        final HiveSession? session = box.get('user')!;
+        User data = User.fromJson(session!.user.toJson());
+        context.go('/hub', extra: data);
+      }
+    });
     super.initState();
-    var box = Hive.box<HiveSession>('sessionBox');
-    var userSession = box.get('user');
-    if (userSession != null) {
-      print("User session found: ${userSession.user.username}");
-      // Get the passed User data
-      final HiveSession? session = box.get('user')!;
-      User data = User.fromJson(session!.user.toJson());
-      context.go('/hub', extra: data);
-    }
+
   }
   void _login() async {
     String username = usernameController.text;

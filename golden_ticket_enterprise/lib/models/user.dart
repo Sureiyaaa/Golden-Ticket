@@ -13,7 +13,7 @@ class User {
   @HiveField(2)
   final String firstName;
   @HiveField(3)
-  final String middleInitial;
+  final String middleName;
   @HiveField(4)
   final String lastName;
   @HiveField(5)
@@ -23,7 +23,7 @@ class User {
     required this.userID,
     required this.username,
     required this.firstName,
-    required this.middleInitial,
+    required this.middleName,
     required this.lastName,
     required this.role,
   });
@@ -33,7 +33,7 @@ class User {
       userID: json['userID'],
       username: json['username'],
       firstName: json['firstName'],
-      middleInitial: json['middleInitial'],
+      middleName: json['middleName'],
       lastName: json['lastName'],
       role: json['role']
     );
@@ -44,7 +44,7 @@ class User {
       'userID': userID,
       'username': username,
       'firstName': firstName,
-      'middleInitial': middleInitial,
+      'middleName': middleName,
       'lastName': lastName,
       'role': role
     };

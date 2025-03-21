@@ -10,7 +10,7 @@ namespace GoldenTicket.Entities
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int FaqID { get; set; }
         [Required]
-        public string? TicketTitle { get; set; }
+        public string? Title { get; set; }
         [Required]
         public string? Description { get; set; }
         [Required]

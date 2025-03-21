@@ -25,4 +25,29 @@ namespace GoldenTicket.Models
         public string? username {get;set;}
         public string? password {get;set;}
     }
+    public class AddFAQRequest {
+        [Required(ErrorMessage = "Ticket Title is required")]
+        public string? Title {get;set;}
+
+        [Required(ErrorMessage = "Description is required")]
+        public string? Description {get;set;}
+        [Required(ErrorMessage = "Solution is required")]
+        public string? Solution { get; set; }
+
+        [Required(ErrorMessage = "Main Tag is required")]
+        public int MainTagID {get;set;}
+
+        [Required(ErrorMessage = "Sub Tag is required")]
+        public int SubTagID {get;set;}
+    }
+    public class AddMainTagRequest {
+        [Required(ErrorMessage = "Tag Name is required")]
+        public string? TagName {get;set;}
+    }
+    public class AddSubTagRequest {
+        [Required(ErrorMessage = "Tag Name is required")]
+        public string? TagName {get;set;}
+        [Required(ErrorMessage = "Main Tag ID is required")]
+        public int MainTagID {get;set;}
+    }
 }

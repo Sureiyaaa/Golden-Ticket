@@ -32,8 +32,11 @@ void main() async {
   runApp(
    MultiProvider(
       providers: [
-       ChangeNotifierProvider(create: (_) => DataManager()),
-       ChangeNotifierProvider(create: (_) => SignalRService())
+       ChangeNotifierProvider(create: (_) => SignalRService()),
+       ChangeNotifierProvider(
+           create: (context) => DataManager(
+             signalRService: Provider.of<SignalRService>(context, listen: false)
+           ))
      ],
      child: MyApp()
    )

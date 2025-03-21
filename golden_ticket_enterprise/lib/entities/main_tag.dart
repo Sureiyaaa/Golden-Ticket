@@ -1,5 +1,5 @@
 
-import 'package:golden_ticket_enterprise/entities/subTag.dart';
+import 'package:golden_ticket_enterprise/entities/sub_tag.dart';
 
 class MainTag {
   final int tagID;
@@ -10,9 +10,10 @@ class MainTag {
 
   factory MainTag.fromJson(Map<String, dynamic> json) {
     List<SubTag> subTags = [];
-
-    for(var data in json['subTags']){
+    if(json['subTags'] != null) {
+      for (var data in json['subTags']) {
         subTags.add(SubTag.fromJson(data));
+      }
     }
     return MainTag(
         tagID: json['mainTagID'],

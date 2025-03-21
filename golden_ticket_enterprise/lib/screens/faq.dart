@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
+import 'package:golden_ticket_enterprise/entities/faq.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
+import 'package:provider/provider.dart';
 
 class FAQPage extends StatefulWidget {
   final HiveSession? session;
@@ -10,66 +11,167 @@ class FAQPage extends StatefulWidget {
   FAQPage({super.key, required this.session});
 
   @override
-  State<FAQPage> createState() => _FAQPage();
+  State<FAQPage> createState() => _FAQPageState();
 }
 
-class _FAQPage extends State<FAQPage> {
-  final List<Map<String, String>> faqs = [
-    {
-      'question': 'How do I reset my password?',
-      'answer': 'You can reset your password by going to the settings page and selecting "Reset Password".',
-      'ticket': '/ticket/reset-password'
-    },
-    {
-      'question': 'How do I contact support?',
-      'answer': 'You can contact support via the "Help" section in the app or by emailing support@example.com.',
-      'ticket': '/ticket/contact-support'
-    },
-    {
-      'question': 'Where can I find my tickets?',
-      'answer': 'Your tickets are available in the "My Tickets" section in the app.',
-      'ticket': '/ticket/my-tickets'
-    },
-  ];
+class _FAQPageState extends State<FAQPage> {
+  String searchQuery = "";
+  String? selectedMainTag = "All";
+  String? selectedSubTag;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        heroTag: "add_faq",
-        onPressed: () {
+    return Consumer<DataManager>(
+      builder: (context, dataManager, child) {
+        List<FAQ> filteredFAQs = dataManager.faqs.where((faq) {
+          bool matchesSearch = searchQuery.isEmpty || faq.title.toLowerCase().contains(searchQuery.toLowerCase());
+          bool matchesMainTag = selectedMainTag == "All" || faq.mainTag!.tagName == selectedMainTag;
+          bool matchesSubTag = selectedSubTag == null || faq.subTag?.subTagName == selectedSubTag;
+          return matchesSearch && matchesMainTag && matchesSubTag;
+        }).toList();
 
-        },
-        child: Icon(Icons.chat),
-        backgroundColor: Colors.blue,
-      ),
-      appBar: AppBar(title: Text('FAQ')),
-      body: ListView.builder(
-        itemCount: faqs.length,
-        itemBuilder: (context, index) {
-          return Card(
-            margin: EdgeInsets.all(8.0),
-            child: ExpansionTile(
-              title: Text(faqs[index]['question']!),
+        return Scaffold(
+          floatingActionButton: FloatingActionButton(
+            heroTag: "add_faq",
+            onPressed: () {},
+            child: Icon(Icons.chat),
+            backgroundColor: Colors.blue,
+          ),
+          body: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
               children: [
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Text(faqs[index]['answer']!),
+                // Search Bar
+                TextField(
+                  onChanged: (value) {
+                    setState(() {
+                      searchQuery = value;
+                    });
+                  },
+                  decoration: InputDecoration(
+                    hintText: "Search FAQs...",
+                    prefixIcon: Icon(Icons.search),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: ElevatedButton(
-                    onPressed: () {
-                      context.go(faqs[index]['ticket']!);
+                SizedBox(height: 10),
+                // Filters
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: selectedMainTag,
+                        items: ["All", ...dataManager.mainTags.map((tag) => tag.tagName)].map((tag) {
+                          return DropdownMenuItem(
+                            value: tag,
+                            child: Text(tag),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            selectedMainTag = value;
+                            selectedSubTag = null;
+                          });
+                        },
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: selectedSubTag,
+                        items: dataManager.mainTags
+                            .where((tag) => tag.tagName == selectedMainTag)
+                            .expand((tag) => tag.subTags.map((subTag) => subTag.subTagName))
+                            .map((subTag) => DropdownMenuItem(
+                          value: subTag,
+                          child: Text(subTag),
+                        ))
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            selectedSubTag = value;
+                          });
+                        },
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 10),
+                // FAQ List
+                Expanded(
+                  child: filteredFAQs.isEmpty
+                      ? Center(child: Text("No FAQs found"))
+                      : ListView.builder(
+                    itemCount: filteredFAQs.length,
+                    itemBuilder: (context, index) {
+                      var faq = filteredFAQs[index];
+                      return ExpansionTile(
+                        title: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                faq.title,
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            Row(
+                              children: [
+                                if(faq.mainTag != null) Chip(label: Text(faq.mainTag!.tagName)),
+                                SizedBox(width: 5),
+                                if(faq.subTag != null) Chip(label: Text(faq.subTag!.subTagName)),
+                              ],
+                            ),
+                          ],
+                        ),
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  faq.description,
+                                  style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                                ),
+                                SizedBox(height: 8),
+                                Text(
+                                  "Solution:",
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                Text(faq.solution),
+                                SizedBox(height: 8),
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: ElevatedButton(
+                                    onPressed: () {},
+                                    child: Text("View Ticket Related"),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
                     },
-                    child: Text('View Ticket Related'),
                   ),
                 ),
               ],
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }

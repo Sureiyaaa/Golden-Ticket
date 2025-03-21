@@ -8,24 +8,6 @@ namespace GoldenTracker.Models
 {
     public class DBUtil()
     {
-        public static void RegisterAccount(string Username, string Password, string FirstName, string? MiddleName, string LastName, int? RoleID)
-        {
-            using(var Context = new ApplicationDbContext()){
-                var HashedPassword = AuthUtils.HashPassword(Password, out string salt);
-                var NewUser = new User
-                {
-                    Username = Username,
-                    Password = $"{salt}:{HashedPassword}",
-                    FirstName = FirstName,
-                    MiddleName = MiddleName ?? "",
-                    LastName = LastName,
-                    RoleID = RoleID ?? throw new Exception("Error")
-                };
-
-                Context.Add(NewUser);
-                Context.SaveChanges();
-            }
-        }
         #region FAQ
         public static List<FAQ> GetFAQ()
         {
@@ -49,13 +31,15 @@ namespace GoldenTracker.Models
                     MainTagID = _mainTagID,
                     SubTagID = _subTagID,
                     MainTag = context.MainTag.Include(m => m.ChildTags).FirstOrDefault(tag => tag.TagID == _mainTagID),
-                    SubTag = context.SubTag.Include(m => m.MainTag).FirstOrDefault(tag => tag.TagID == _subTagID && tag.MainTagID == _mainTagID)
+                    SubTag = context.SubTag.FirstOrDefault(tag => tag.TagID == _subTagID && tag.MainTagID == _mainTagID)
                 };
                 context.Faq.Add(newFAQ);
                 context.SaveChanges();
             }
         }
         #endregion
+
+        #region Tags
         public static List<T> GetTags<T>() where T : class {
             using(var context = new ApplicationDbContext()){
             
@@ -72,7 +56,53 @@ namespace GoldenTracker.Models
             return maintags.Cast<T>().ToList();
             }
         } 
-        
+        public static void AddMainTag(string TagName)
+        {
+            using(var context = new ApplicationDbContext()){
+                if(context.MainTag.FirstOrDefault(tag => tag.TagName == TagName) != null)
+                    throw new Exception("Tag already exists");
+                var newTag = new MainTag
+                {
+                    TagName = TagName
+                };
+                context.MainTag.Add(newTag);
+                context.SaveChanges();
+            }
+        }
+        public static void AddSubTag(string TagName, int MainTagID)
+        {
+            using(var context = new ApplicationDbContext()){
+                var newTag = new SubTag
+                {
+                    TagName = TagName,
+                    MainTagID = MainTagID,
+                    MainTag = context.MainTag.FirstOrDefault(tag => tag.TagID == MainTagID)
+                };
+                context.SubTag.Add(newTag);
+                context.SaveChanges();
+            }
+        }
+        #endregion
+
+        #region User
+        public static void RegisterAccount(string Username, string Password, string FirstName, string? MiddleName, string LastName, int? RoleID)
+        {
+            using(var Context = new ApplicationDbContext()){
+                var HashedPassword = AuthUtils.HashPassword(Password, out string salt);
+                var NewUser = new User
+                {
+                    Username = Username,
+                    Password = $"{salt}:{HashedPassword}",
+                    FirstName = FirstName,
+                    MiddleName = MiddleName ?? "",
+                    LastName = LastName,
+                    RoleID = RoleID ?? throw new Exception("Error")
+                };
+
+                Context.Add(NewUser);
+                Context.SaveChanges();
+            }
+        }
         public static bool IsUserExisting(string username)
         {
             using(var context = new ApplicationDbContext()){
@@ -103,6 +133,6 @@ namespace GoldenTracker.Models
                 return user!;
             }
         }
-
+        #endregion
     }
 }

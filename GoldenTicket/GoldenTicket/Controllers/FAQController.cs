@@ -12,43 +12,36 @@ namespace GoldenTicket.Controllers
     public class FAQController : Controller
     {
         [HttpGet("GetFAQs")]
-        public IActionResult GetFAQs()
+        public async Task<IActionResult> GetFAQs()
         {
-            using(var context = new ApplicationDbContext()){
-                
-                var faqs = context.Faq.Include(f => f.MainTag).ThenInclude(m => m!.ChildTags).Select(f => new {
-                    faqID = f.FaqID,
-                    ticketTitle = f.TicketTitle,
-                    description = f.Description,
-                    createdAt = f.CreatedAt,
-                    isArchived = f.IsArchived,
-                    mainTag = f.MainTag,
-                    subTag = f.SubTag
-                }).ToList();
+            using(var _context = new ApplicationDbContext())
+            {
+                var faqs = await _context.Faq.ToListAsync();
+                if(faqs.Count == 0 )
+                    return NotFound(new {status = 404, message = "No FAQs found", errorType = "faq is empty" });
 
-                return Ok(new {status = 200, message = "Processed successfully.", body = new { faqs =  faqs}}); 
+                return Ok(new {status= 200, message = "Retrieved successfully!", body = new {faqs}});
             }
         }
         [HttpPost("AddFAQ")]
-        public async Task<IActionResult> AddFAQ([FromBody] FAQ faq)
+        public IActionResult AddFAQ([FromBody] AddFAQRequest faq)
         {
-            if (faq == null)
-                return BadRequest("Invalid JSON");
-            using(var _context = new ApplicationDbContext())
+            if (faq == null || !ModelState.IsValid)
             {
-                var newFAQ = new FAQ
-                {
-                    TicketTitle = faq.TicketTitle,
-                    Description = faq.Description,
-                    CreatedAt = DateTime.Now,
-                    IsArchived = false,
-                    MainTag = faq.MainTag,
-                    SubTag = faq.SubTag
-                };
-                _context.Faq.Add(newFAQ);
-                await _context.SaveChangesAsync();
-                return Ok("FAQ added successfully");
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                return BadRequest(new {status = 400, message = "Invalid request, check your body format.", errors });
             }
+            try
+            {
+                DBUtil.AddFAQ(faq.Title!, faq.Description!, faq.Solution!, faq.MainTagID!, faq.SubTagID!);
+                return Ok(new {status = 200, message = "FAQ added successfully!"});
+            }
+            catch (Exception err)
+            {
+                Console.WriteLine(err);
+                return BadRequest(new {status = 400, message = "Invalid request, check your body format.", errorType = "invalid" });
+            }
+
         }
     }
 }

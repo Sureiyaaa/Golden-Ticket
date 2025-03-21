@@ -19,12 +19,11 @@ namespace GoldenTicket.Entities
         [ForeignKey("AuthorID")]
         public User? Author { get; set; } = null;
         
-        [Required]
         public int AssignedID { get; set; }
 
         [ForeignKey("AssignedID")]
         public User? Assigned { get; set; } = null;
-
+        public int? StatusID { get; set; }
         [ForeignKey("StatusID")]
         public Status? Status { get; set; } = null;
         [Required]

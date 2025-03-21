@@ -13,7 +13,7 @@ namespace GoldenTicket.Models
         [Required(ErrorMessage = "First name is required")]
         public string? firstName { get; set; }
 
-        public char? middleInitial { get; set; } // Optional
+        public string? middleInitial { get; set; } = ""; // Optional
 
         [Required(ErrorMessage = "Last name is required")]
         public string? lastName { get; set; }

@@ -7,7 +7,7 @@ namespace GoldenTracker.Models
 {
     public class DBUtil()
     {
-        public static void RegisterAccount(string Username, string Password, string FirstName, char? MiddleInitial, string LastName, int? RoleID)
+        public static void RegisterAccount(string Username, string Password, string FirstName, string? MiddleName, string LastName, int? RoleID)
         {
             using(var Context = new ApplicationDbContext()){
                 var HashedPassword = AuthUtils.HashPassword(Password, out string salt);
@@ -16,7 +16,7 @@ namespace GoldenTracker.Models
                     Username = Username,
                     Password = $"{salt}:{HashedPassword}",
                     FirstName = FirstName,
-                    MiddleInitial = MiddleInitial,
+                    MiddleName = MiddleName ?? "",
                     LastName = LastName,
                     RoleID = RoleID ?? throw new Exception("Error")
                 };

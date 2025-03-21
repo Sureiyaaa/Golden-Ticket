@@ -25,6 +25,23 @@ namespace GoldenTracker.Models
                 Context.SaveChanges();
             }
         }
+        public static void AddFAQ(string TicketTitle, string Description, MainTag MainTag, SubTag SubTag)
+        {
+            using(var context = new ApplicationDbContext()){
+                var newFAQ = new FAQ
+                {
+                    TicketTitle = TicketTitle,
+                    Description = Description,
+                    CreatedAt = DateTime.Now,
+                    IsArchived = false,
+                    MainTag = MainTag,
+                    SubTag = SubTag
+                };
+                context.Faq.Add(newFAQ);
+                context.SaveChanges();
+            }
+
+        }
         public static bool IsUserExisting(string username)
         {
             using(var context = new ApplicationDbContext()){

@@ -1,11 +1,12 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
 import 'package:golden_ticket_enterprise/entities/user.dart';
-import 'package:golden_ticket_enterprise/screens/dashboard.dart';
+import 'package:golden_ticket_enterprise/models/hive_session.dart';
 import 'package:golden_ticket_enterprise/secret.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:golden_ticket_enterprise/models/http_request.dart' as http;
+import 'package:hive_flutter/hive_flutter.dart';
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -18,6 +19,22 @@ class _LoginPage extends State<LoginPage> {
   final TextEditingController passwordController = TextEditingController();
   // This widget is the root of your application.
 
+  @override
+  void initState(){
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      var box = Hive.box<HiveSession>('sessionBox');
+      var userSession = box.get('user');
+      if (userSession != null) {
+        print("User session found: ${userSession.user.username}");
+        // Get the passed User data
+        final HiveSession? session = box.get('user')!;
+        User data = User.fromJson(session!.user.toJson());
+        context.go('/hub', extra: data);
+      }
+    });
+    super.initState();
+
+  }
   void _login() async {
     String username = usernameController.text;
     String password = passwordController.text;
@@ -42,7 +59,9 @@ class _LoginPage extends State<LoginPage> {
 
     if (response['status'] == 200) {
       User data = User.fromJson(response['body']['user']);
-      context.go('/dashboard', extra: data);
+      var box = Hive.box<HiveSession>('sessionBox');
+      box.put('user', HiveSession.fromJson(response['body']));
+      context.go('/hub', extra: data);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Login failed: ${response['message']}")),
@@ -111,7 +130,7 @@ class _LoginPage extends State<LoginPage> {
                         padding:
                             EdgeInsets.symmetric(horizontal: 50, vertical: 12),
                       ),
-                      child: Text("Login", style: TextStyle(fontSize: 16)),
+                      child: Text("Login", style: TextStyle(fontSize: 16, color: kSurface)),
                     ),
                     SizedBox(height: 10),
                     TextButton(

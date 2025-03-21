@@ -1,5 +1,6 @@
 using GoldenTicket.Entities;
 using GoldenTicket.Models;
+using GoldenTicket.Utilities;
 using GoldenTracker.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,16 +12,26 @@ namespace GoldenTicket.Controllers
         [HttpPost("Register")]
         public IActionResult Register([FromBody] RegisterRequest request)
         {
-            if (request == null) return BadRequest(new { message = "Invalid client request" });
-                // Validate credentials (replace with your own authentication logic)
+            if (request == null || !ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                return BadRequest(new { status = "400", message = "Invalid client request", errors });
+            }
+
             if (DBUtil.IsUserExisting(request.username!))
             {
-                 return BadRequest(new { message = "Username taken" });
+                return BadRequest(new { status = "400", message = "Username taken", errorType = "userTaken" });
             }
-            else
+
+            try
             {
-                DBUtil.RegisterAccount(request.username!, request.password!, request.firstName!, request.middleInitial, request.lastName!);
-                return Ok(new {status = 200, message = "Registration is Successful!" });
+                DBUtil.RegisterAccount(request.username!, request.password!, request.firstName!, request.middleInitial, request.lastName!, request.roleID!);
+                return Ok(new { status = 200, message = "Registration is Successful!" });
+            }
+            catch (Exception err)
+            {
+                Console.WriteLine(err);
+                return BadRequest(new { status = "400", message = "Invalid request, check your body format.", errorType = "invalid" });
             }
         }
         [HttpPost("Login")]
@@ -32,14 +43,13 @@ namespace GoldenTicket.Controllers
             // Validate credentials (replace with your own authentication logic)
             if (user != null)
             {
-                if (user.Password!.Equals(request.password))
+                if (AuthUtils.VerifyPassword(request.password!, user.Password!))
                 {
                     // Simulate token generation (in a real app, generate a JWT or similar token)
-                    var token = Guid.NewGuid().ToString();
 
                     UserDTO User = new UserDTO(user);
-                    
-                    return Ok(new {status = 200, message = "Login Successfully", body = new { user = User } });
+                    DateTime sessionExpiry = DateTime.UtcNow.AddHours(24);
+                    return Ok(new {status = 200, message = "Login Successfully", body = new { user = User, sessionExpiry }});
                 }
                 else
                 {

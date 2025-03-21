@@ -15,9 +15,13 @@ namespace GoldenTicket.Entities
         [Required]
         public string? FirstName { get; set; }
         [Required]
-        public char? MiddleInitial { get; set; }
+        public string? MiddleName { get; set; }
         [Required]
         public string? LastName { get; set; }
+        [Required]
+        public int RoleID { get; set; }
+        [ForeignKey("RoleID")]
+        public Roles? Role { get; set; } = null;
         public string Email { get; set; } = "None Provided";
         public string PhoneNumber { get; set; } = "None Provided";
         public DateTime CreatedAt { get; set; } = DateTime.Now;
@@ -28,17 +32,20 @@ namespace GoldenTicket.Entities
         public int UserID { get; set; }
         public string? Username { get; set; }
         public string? FirstName { get; set; }
-        public char? MiddleInitial { get; set; }
+        public string? MiddleName { get; set; }
         public string? LastName { get; set; }
+        public string? Role {get;set;}
         public DateTime? lastOnlineAt { get; set; }
-        
+        public DateTime createdAt {get;set;}
         public UserDTO(User user){
             this.UserID = user.UserID;
             this.Username = user.Username;
             this.FirstName = user.FirstName;
-            this.MiddleInitial = user.MiddleInitial;
+            this.MiddleName = user.MiddleName;
             this.LastName = user.LastName;
+            this.Role = user.Role!.RoleName;
             this.lastOnlineAt = user.lastOnlineAt;
+            this.createdAt = user.CreatedAt;
         }
     }
 }

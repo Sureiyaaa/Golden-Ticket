@@ -101,7 +101,6 @@ namespace GoldenTracker.Models
                 context.SaveChanges();
             }
         }
-        #endregion
 
         #region User
         public static void RegisterAccount(string Username, string Password, string FirstName, string? MiddleName, string LastName, int? RoleID)

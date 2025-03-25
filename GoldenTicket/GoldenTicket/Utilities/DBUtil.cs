@@ -19,14 +19,8 @@ namespace GoldenTracker.Models
                     Solution = faq.Solution,
                     CreatedAt = faq.CreatedAt,
                     IsArchived = faq.IsArchived,
-                    MainTag = new MainTagDTO{
-                        MainTagID = faq.MainTag!.TagID,
-                        MainTagName = faq.MainTag.TagName!,
-                    },
-                    SubTag = new SubTagDTO{
-                        SubTagID = faq.SubTag!.TagID,
-                        SubTagName = faq.SubTag.TagName!
-                    }
+                    MainTag = new MainTagDTO(faq.MainTag!),
+                    SubTag = new SubTagDTO(faq.SubTag!)
                 }).ToList();
                 if(faqs.Count == 0 )
                     return [];
@@ -59,11 +53,11 @@ namespace GoldenTracker.Models
             using (var context = new ApplicationDbContext())
             {
                 return context.MainTag.Include(m => m.ChildTags)
-                    .Select(m => new MainTagDTO
+                    .Select(m => new MainTagDTO(m)
                     {
                         MainTagID = m.TagID,
                         MainTagName = m.TagName!,
-                        SubTags = m.ChildTags.Select(c => new SubTagDTO
+                        SubTags = m.ChildTags.Select(c => new SubTagDTO(c)
                         {
                             SubTagID = c.TagID,
                             SubTagName = c.TagName!,
@@ -197,7 +191,7 @@ namespace GoldenTracker.Models
                     },
                     new GroupMember {
                         ChatroomID = newChat.ChatroomID,
-                        MemberID = 2,
+                        MemberID = 100000001,
                     }
                 };
                 context.GroupMembers.AddRange(members);
@@ -205,20 +199,55 @@ namespace GoldenTracker.Models
                 return newChat;
             }
         }
-        public static List<Chatroom> GetChatrooms()
+        public static List<ChatroomDTO> GetChatrooms(int userID, bool isEmployee = false)
         {
             using(var context = new ApplicationDbContext())
             {
-                return context.Chatrooms.Include(c => c.Members).Include(c => c.Messages).ToList();
+                List<ChatroomDTO> dtos = new List<ChatroomDTO>();
+                List<Chatroom> chatrooms = context.Chatrooms.Include(c => c.Members)
+                        .ThenInclude(m => m.Member).ThenInclude(t => t.Role)
+                    .Include(c => c.Ticket)
+                        .ThenInclude(t => t.Author).ThenInclude(t => t.Role) // Ensure Ticket's Author is loaded
+                    .Include(c => c.Ticket)
+                        .ThenInclude(t => t.Assigned).ThenInclude(t => t.Role)
+                    .Include(c => c.Ticket)
+                        .ThenInclude(t => t.MainTag)
+                    .Include(c => c.Ticket)
+                        .ThenInclude(t => t.SubTag)
+                    .Include(c => c.Author).ThenInclude(t => t.Role).ToList();
+                if(isEmployee){   
+                    foreach(var chatroom in chatrooms.Where(c => c.AuthorID == userID)){
+                        dtos.Add(new ChatroomDTO(chatroom));
+                    }
+                }else{
+                    foreach(var chatroom in chatrooms){
+                        dtos.Add(new ChatroomDTO(chatroom));
+                    }
+                }
+                return dtos;
             }
         }
-        public static Chatroom GetChatroom(int ChatroomID)
+        public static Chatroom? GetChatroom(int ChatroomID)
         {
-            using(var context = new ApplicationDbContext())
+            using (var context = new ApplicationDbContext())
             {
-                return context.Chatrooms.Include(c => c.Members).Include(c => c.Messages).FirstOrDefault(c => c.ChatroomID == ChatroomID)!;
+                return context.Chatrooms
+                    .Include(c => c.Members)
+                        .ThenInclude(m => m.Member).ThenInclude(t => t.Role)
+                    .Include(c => c.Ticket)
+                        .ThenInclude(t => t.Author).ThenInclude(t => t.Role) // Ensure Ticket's Author is loaded
+                    .Include(c => c.Ticket)
+                        .ThenInclude(t => t.Assigned).ThenInclude(t => t.Role)
+                    .Include(c => c.Ticket)
+                        .ThenInclude(t => t.MainTag)
+                    .Include(c => c.Ticket)
+                        .ThenInclude(t => t.SubTag)
+                    .Include(c => c.Author).ThenInclude(t => t.Role)
+                    .FirstOrDefault(c => c.ChatroomID == ChatroomID);
             }
         }
+
+
         #endregion
     }
 }

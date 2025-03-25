@@ -14,7 +14,7 @@ namespace GoldenTicket.Database {
         public static string? ConnectionString {get; private set;}
 
         public DbSet<User> Users { get; set; }
-        public DbSet<User> Chatrooms { get; set; }
+        public DbSet<Chatroom> Chatrooms { get; set; }
         public DbSet<Message> Messages { get; set; }
         public DbSet<GroupMember> GroupMembers { get; set; }
         public DbSet<Tickets> Tickets { get; set; }
@@ -23,7 +23,6 @@ namespace GoldenTicket.Database {
         public DbSet<MainTag> MainTag { get; set; }
         public DbSet<SubTag> SubTag { get; set; }
         public DbSet<Status> Status { get; set; }
-        
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<NotificationType> NotificationTypes { get; set; }
         public DbSet<Roles> Roles { get; set; }
@@ -64,7 +63,8 @@ namespace GoldenTicket.Database {
             
             // Initialize Admin
             modelBuilder.Entity<User>().HasData(
-                new User { UserID = 100000000, Username = config["AdminUsername"], Password = $"{salt}:{hashedPassword}", FirstName = "admin", MiddleName = "Admin", LastName = "admin", RoleID = 1}
+                new User { UserID = 100000000, Username = config["AdminUsername"], Password = $"{salt}:{hashedPassword}", FirstName = "admin", MiddleName = "Admin", LastName = "admin", RoleID = 1},
+                new User { UserID = 100000001, Username = "Golden AI", Password = $"{salt}:{hashedPassword}", FirstName = "Golden", LastName = "AI", RoleID = 1}
             );
             List<string>? mainTags = config.GetSection("Tags:MainTags").Get<List<string>>();
             List<SubTagConfig>? subTags = config.GetSection("Tags:SubTags").Get<List<SubTagConfig>>();

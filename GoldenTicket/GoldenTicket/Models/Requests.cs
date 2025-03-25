@@ -48,6 +48,6 @@ namespace GoldenTicket.Models
         [Required(ErrorMessage = "Tag Name is required")]
         public string? TagName {get;set;}
         [Required(ErrorMessage = "Main Tag ID is required")]
-        public int MainTagID {get;set;}
+        public string? MainTagName {get;set;}
     }
 }

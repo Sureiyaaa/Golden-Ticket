@@ -36,7 +36,7 @@ namespace GoldenTicket.Controllers
             }
             try
             {
-                DBUtil.AddSubTag(subTag.TagName!, subTag.MainTagID!);
+                DBUtil.AddSubTag(subTag.TagName!, subTag.MainTagName!);
                 return Ok(new {status = 200, message = "Sub Tag added successfully!"});
             }
             catch (Exception err)

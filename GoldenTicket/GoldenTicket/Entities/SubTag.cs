@@ -20,8 +20,8 @@ namespace GoldenTicket.Entities
     public class SubTagDTO
     {
         public int SubTagID { get; set; }
-        public string SubTagName { get; set; }
-        public string MainTagName { get; set; }
+        public string? SubTagName { get; set; }
+        public string? MainTagName { get; set; }
     }
 
 }

@@ -12,7 +12,7 @@ namespace GoldenTicket.Entities
         public int ChatroomID { get; set; }
         
         [Required]
-        public string? ChatroomName { get; set; }
+        public string? ChatroomName { get; set; } = "New Chatroom";
         [Required]
         public int AuthorID { get; set; }
 

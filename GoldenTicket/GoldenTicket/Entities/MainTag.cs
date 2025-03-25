@@ -16,8 +16,8 @@ namespace GoldenTicket.Entities
     public class MainTagDTO
     {
         public int MainTagID { get; set; }
-        public string MainTagName { get; set; }
-        public List<SubTagDTO> SubTags { get; set; }
+        public string? MainTagName { get; set; }
+        public List<SubTagDTO>? SubTags { get; set; }
     }
 
 }

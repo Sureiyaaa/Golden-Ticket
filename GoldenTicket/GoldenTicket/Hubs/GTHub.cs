@@ -1,6 +1,10 @@
+using GoldenTicket.Database;
 using System.Collections.Concurrent;
 using GoldenTracker.Models;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
+using GoldenTicket.Entities;
+
 
 namespace GoldenTicket.Hubs
 {
@@ -17,6 +21,16 @@ namespace GoldenTicket.Hubs
             _connections.TryRemove(Context.ConnectionId, out int userId);
             return base.OnDisconnectedAsync(exception);
         }
+        public async Task AddMainTag(string TagName)
+        {
+            DBUtil.AddMainTag(TagName);
+            await Clients.All.SendAsync("TagUpdate", new {tags = DBUtil.GetTags()});
+        }
+        public async Task AddSubTag(string TagName, string MainTagName)
+        {
+            DBUtil.AddSubTag(TagName, MainTagName);
+            await Clients.All.SendAsync("TagUpdate", new {tags = DBUtil.GetTags()}); 
+        }
         
         public async Task Broadcast(string message)
         {
@@ -24,7 +38,7 @@ namespace GoldenTicket.Hubs
         }
 
         public async Task Online(){
-           await Clients.Caller.SendAsync("Online", new {tags = DBUtil.GetTags(), faq = DBUtil.GetFAQ()});
+           await Clients.Caller.SendAsync("Online", new {tags = DBUtil.GetTags(), faq = DBUtil.GetFAQ(), users = DBUtil.GetUsersByRole()});
         }
     }
 }

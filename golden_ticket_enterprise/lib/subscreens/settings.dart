@@ -23,6 +23,7 @@ class _SettingsPageState extends State<SettingsPage> {
     String tagName = _mainTagController.text.trim();
     if (tagName.isNotEmpty) {
       // dataManager.addMainTag(MainTag(tagID: DateTime.now().millisecondsSinceEpoch, tagName: tagName));
+      dataManager.signalRService.addMainTag(tagName);
       _mainTagController.clear();
     }
   }
@@ -33,6 +34,7 @@ class _SettingsPageState extends State<SettingsPage> {
       MainTag? mainTag = dataManager.mainTags.firstWhere((tag) => tag.tagName == selectedMainTag, orElse: () => MainTag(tagID: -1, tagName: '', subTags: []));
       if (mainTag.tagID != -1) {
         // dataManager.addSubTag(SubTag(subTagID: DateTime.now().millisecondsSinceEpoch, subTagName: subTagName, mainTag: mainTag));
+        dataManager.signalRService.addSubTag(subTagName, mainTag.tagName);
         _subTagController.clear();
       }
     }

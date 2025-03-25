@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:golden_ticket_enterprise/entities/faq.dart';
 import 'package:golden_ticket_enterprise/entities/main_tag.dart';
@@ -56,13 +58,40 @@ class SignalRService with ChangeNotifier {
     await startConnection();
   }
 
+  void addMainTag(String tagName){
+    try {
+      _hubConnection!.invoke('AddMainTag', args: [tagName]);
+    }catch(err){
+      log("There was an error caught while saving tag: $err");
+    }
+  }
+  void addSubTag(String tagName, String mainTagName){
+    try{
+    _hubConnection!.invoke('AddSubTag', args: [tagName, mainTagName]);
+    }catch(err){
+      log("There was an error caught while saving tag: $err");
+    }
+  }
+
   /// Sets up SignalR event handlers
   void _setupEventHandlers() {
     _hubConnection!.on('ReceiveMessage', (arguments) {
       print("📩 Message Received: ${arguments![0]}");
+
       notifyListeners();
     });
+    _hubConnection!.on('TagUpdate', (arguments){
+      print(arguments);
+      if(arguments != null) {
+        List<MainTag> updatedTags =
+        (arguments[0]['tags'] as List)
+            .map((tag) => MainTag.fromJson(tag))
+            .toList();
+        print("🔹 Updated Tags: ${updatedTags.length}");
 
+        onTagUpdate?.call(updatedTags);
+      }
+    });
     _hubConnection!.on('Online', (arguments) {
       print("🔔 SignalR Event: Online Received!");
       if (arguments != null) {
@@ -125,10 +154,13 @@ class SignalRService with ChangeNotifier {
 
   /// Stops the SignalR connection and prevents reconnection
   Future<void> stopConnection() async {
-    _shouldReconnect = false; // Prevent auto-reconnect
-    await _hubConnection?.stop();
-    print("❌ SignalR disconnected for this tab.");
+    if (_hubConnection != null) {
+      log("SignalR: Stopping connection...");
+      await _hubConnection!.stop();
+      _hubConnection = null; // Ensure it's fully cleared
+    }
   }
+
 
   /// Updates connection state and notifies listeners
   void _updateConnectionState(ConnectionType state) {

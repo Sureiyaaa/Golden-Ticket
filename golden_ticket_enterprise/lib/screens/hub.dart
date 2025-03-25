@@ -50,6 +50,10 @@ class _HubPageState extends State<HubPage> {
   @override
   void dispose() {
     log("HubPage: Stopping SignalR connection.");
+    if (!mounted) {
+      log("HubPage: Stopping SignalR connection.");
+      _dataManager.signalRService.stopConnection();
+    }
     super.dispose();
   }
 
@@ -57,7 +61,9 @@ class _HubPageState extends State<HubPage> {
   void reassemble() {
     super.reassemble();
     log("HubPage: Hot Reload detected, stopping SignalR connection...");
-    _dataManager.signalRService.stopConnection();
+    if (!_dataManager.signalRService.isConnected) {
+      _dataManager.signalRService.initializeConnection();
+    }
   }
   // void _getSessionsBox() async {
   //   // check if session is still valid

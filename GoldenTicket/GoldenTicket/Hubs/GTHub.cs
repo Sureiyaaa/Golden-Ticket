@@ -40,5 +40,21 @@ namespace GoldenTicket.Hubs
         public async Task Online(){
            await Clients.Caller.SendAsync("Online", new {tags = DBUtil.GetTags(), faq = DBUtil.GetFAQ(), users = DBUtil.GetUsersByRole()});
         }
+        public async Task RequestChat(int AuthorID) {
+            var chatroom = await DBUtil.AddChatroom(AuthorID);
+            var adminUser = DBUtil.GetAdminUsers();
+            
+            foreach(var user in adminUser){
+                if(user.Role == "Admin"){
+                    var receiverConnectionId = _connections.FirstOrDefault(x => x.Value == user.UserID).Key; 
+                    if(receiverConnectionId != null)
+                    {
+                        await Clients.Client(receiverConnectionId).SendAsync("ChatroomUpdate", new {chatroom = DBUtil.GetChatroom(chatroom.ChatroomID)});
+                    }
+                }
+            }
+            await Clients.Caller.SendAsync("ChatroomUpdate", new {chatroom = DBUtil.GetChatroom(chatroom.ChatroomID)});
+        }
+        
     }
 }

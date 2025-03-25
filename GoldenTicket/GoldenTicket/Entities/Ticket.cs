@@ -42,4 +42,25 @@ namespace GoldenTicket.Entities
 
         public ICollection<Message> Messages { get; set; } = new List<Message>();
     }
+    public class TicketDTO {
+        public int? TicketID { get; set; }
+        public string? TicketTitle { get; set; }
+        public UserDTO? author { get; set; }
+        public UserDTO? assigned { get; set; }
+        public MainTagDTO? MainTag { get; set; }
+        public SubTagDTO? SubTag { get; set; }
+        public DateTime? CreatedAt { get; set; }
+        public DateTime? DeadlineAt { get; set; }
+        public TicketDTO(Tickets ticket){
+            this.TicketID = ticket.TicketID;
+            
+            Console.WriteLine(ticket.Author.FirstName);
+            this.author = ticket.Author != null ? new UserDTO(ticket.Author) : null;
+            this.assigned = ticket.Assigned != null ? new UserDTO(ticket.Assigned) : null;
+
+            this.MainTag = ticket.MainTag != null ? new MainTagDTO(ticket.MainTag) : null;
+            this.SubTag = ticket.SubTag != null ? new SubTagDTO(ticket.SubTag) : null;
+        }
+
+    }
 }

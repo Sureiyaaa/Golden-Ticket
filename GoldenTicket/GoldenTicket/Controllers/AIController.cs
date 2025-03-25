@@ -103,8 +103,18 @@ namespace GoldenTicket.Controllers
                 return Ok(result);
             }
         }
+        [HttpGet("GetFAQ")]
+        public async Task<IActionResult> GetFAQ()
+        {
+            using(var _context = new ApplicationDbContext())
+            {
+                var faqData = await _context.Faq.ToListAsync();
+                return Ok(testFAQData());
+            }
+        }
         private string testFAQData(){
             string TagList = "";
+            string faqList = "";
             using(var context = new ApplicationDbContext())
             {
                 // Fetch all MainTags with their related SubTags
@@ -120,11 +130,20 @@ namespace GoldenTicket.Controllers
 
                 // Fetch all FAQ data
                 var faqData = context.Faq.ToList();
+                Console.WriteLine("FAQ DATA!!!!!!1:" + faqData);
+                foreach (var faq in faqData)
+                {
+                    faqList += "FAQ: "+faq.Title + "\n";
+                    faqList += "Description: "+faq.Description + "\n";
+                    faqList += "Solution: "+faq.Solution + "\n";
+                    faqList += "MainTag: "+faq.MainTag!.TagName + "\n";
+                    faqList += ">"+faq.SubTag!.TagName + "\n\n";
+                }
             }
-
-            return $"\n[FAQ DATA] \nTag List:\n{TagList}"+ @"
---------------------------------------------
-FAQ 1: The MaxHub Sharescreen code is not showing, how do i fix this?
+            return $"\n[FAQ DATA] \nTag List:\n{TagList}--------------------------------------------\n{ManualFAQData()}";
+        }
+        private string ManualFAQData() {
+            return @"FAQ 1: The MaxHub Sharescreen code is not showing, how do i fix this?
 Solution: Turn off Maxhub for 2 mins and restart.
 Tags: MaxHub
 >Code not showing

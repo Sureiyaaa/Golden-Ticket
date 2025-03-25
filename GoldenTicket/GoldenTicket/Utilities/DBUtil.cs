@@ -29,7 +29,7 @@ namespace GoldenTracker.Models
                     }
                 }).ToList();
                 if(faqs.Count == 0 )
-                    throw new Exception("No FAQs found");
+                    return [];
                 return faqs;
             }
         }
@@ -180,7 +180,7 @@ namespace GoldenTracker.Models
         }
         #endregion
         #region Chatroom
-        public async static Chatroom AddChatroom(int AuthorID)
+        public async static Task<Chatroom> AddChatroom(int AuthorID)
         {
             using(var context = new ApplicationDbContext())
             {

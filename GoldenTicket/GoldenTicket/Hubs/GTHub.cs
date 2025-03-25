@@ -43,7 +43,6 @@ namespace GoldenTicket.Hubs
         public async Task RequestChat(int AuthorID) {
             var chatroom = await DBUtil.AddChatroom(AuthorID);
             var adminUser = DBUtil.GetAdminUsers();
-            
             foreach(var user in adminUser){
                 if(user.Role == "Admin"){
                     var receiverConnectionId = _connections.FirstOrDefault(x => x.Value == user.UserID).Key; 

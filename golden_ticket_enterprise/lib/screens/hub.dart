@@ -39,7 +39,7 @@ class _HubPageState extends State<HubPage> {
 
       if (!_dataManager.signalRService.isConnected) {
         log("HubPage: Initializing SignalR Connection...");
-        _dataManager.signalRService.initializeConnection();
+        _dataManager.signalRService.initializeConnection(widget.session!.user);
       }
 
       _isInitialized = true;
@@ -50,21 +50,9 @@ class _HubPageState extends State<HubPage> {
   @override
   void dispose() {
     log("HubPage: Stopping SignalR connection.");
-    if (!mounted) {
-      log("HubPage: Stopping SignalR connection.");
-      _dataManager.signalRService.stopConnection();
-    }
     super.dispose();
   }
 
-  @override
-  void reassemble() {
-    super.reassemble();
-    log("HubPage: Hot Reload detected, stopping SignalR connection...");
-    if (!_dataManager.signalRService.isConnected) {
-      _dataManager.signalRService.initializeConnection();
-    }
-  }
   // void _getSessionsBox() async {
   //   // check if session is still valid
   //   if (Hive.isBoxOpen('sessionBox')) {

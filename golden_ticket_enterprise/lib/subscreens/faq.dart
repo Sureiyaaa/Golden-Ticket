@@ -35,7 +35,11 @@ class _FAQPageState extends State<FAQPage> {
         return Scaffold(
           floatingActionButton: FloatingActionButton(
             heroTag: "add_faq",
-            onPressed: () {},
+            onPressed: () =>
+            {
+              dataManager.signalRService.requestChat(
+                  widget.session!.user.userID),
+            },
             child: Icon(Icons.chat),
             backgroundColor: Colors.blue,
           ),

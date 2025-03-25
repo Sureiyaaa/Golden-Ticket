@@ -37,22 +37,24 @@ namespace GoldenTicket.Hubs
             await Clients.All.SendAsync("Announce", message);
         }
 
-        public async Task Online(){
-           await Clients.Caller.SendAsync("Online", new {tags = DBUtil.GetTags(), faq = DBUtil.GetFAQ(), users = DBUtil.GetUsersByRole()});
+        public async Task Online(int userID, string role){
+            bool isEmployee = role == "Employee"; 
+            await Clients.Caller.SendAsync("Online", new {tags = DBUtil.GetTags(), faq = DBUtil.GetFAQ(), users = DBUtil.GetUsersByRole(), chatrooms = DBUtil.GetChatrooms(userID, isEmployee)});
         }
         public async Task RequestChat(int AuthorID) {
             var chatroom = await DBUtil.AddChatroom(AuthorID);
             var adminUser = DBUtil.GetAdminUsers();
+            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(chatroom.ChatroomID)!);
             foreach(var user in adminUser){
                 if(user.Role == "Admin"){
                     var receiverConnectionId = _connections.FirstOrDefault(x => x.Value == user.UserID).Key; 
                     if(receiverConnectionId != null)
                     {
-                        await Clients.Client(receiverConnectionId).SendAsync("ChatroomUpdate", new {chatroom = DBUtil.GetChatroom(chatroom.ChatroomID)});
+                        await Clients.Client(receiverConnectionId).SendAsync("ChatroomUpdate", new {chatroom = chatroomDTO});
                     }
                 }
             }
-            await Clients.Caller.SendAsync("ChatroomUpdate", new {chatroom = DBUtil.GetChatroom(chatroom.ChatroomID)});
+            await Clients.Caller.SendAsync("ChatroomUpdate", new {chatroom =  chatroomDTO});
         }
         
     }

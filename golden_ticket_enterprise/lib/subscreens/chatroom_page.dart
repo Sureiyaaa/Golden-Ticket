@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:golden_ticket_enterprise/entities/chatroom.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
-import 'package:golden_ticket_enterprise/models/chatroom.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:provider/provider.dart';
 
@@ -15,11 +15,9 @@ class ChatroomListPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<DataManager>(
       builder: (context, dataManager, child) {
-        List<String> chatrooms = dataManager.chatrooms; // Replace with actual list
-
         return Scaffold(
           backgroundColor: kSurface,
-          body: chatrooms.isEmpty
+          body: dataManager.chatrooms.isEmpty
               ? Center(
             child: Text(
               "No chatrooms available",
@@ -27,15 +25,15 @@ class ChatroomListPage extends StatelessWidget {
             ),
           )
               : ListView.builder(
-            itemCount: chatrooms.length,
+            itemCount: dataManager.chatrooms.length,
             itemBuilder: (context, index) {
-              String chatroom = chatrooms[index];
+              Chatroom chatroom = dataManager.chatrooms[index];
               return Card(
                 margin: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 child: ListTile(
                   leading: CircleAvatar(child: Icon(Icons.chat_bubble_outline)),
-                  title: Text(chatroom, style: TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text("Opened by: Someone"),
+                  title: Text(chatroom.chatroomName, style: TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text("Opened by: ${chatroom.author.firstName} ${chatroom.author.lastName}"),
                   trailing: Icon(Icons.arrow_forward_ios, size: 18, color: Colors.grey),
                   onTap: () => context.go("/hub/chatroom/${1}"),
                 ),

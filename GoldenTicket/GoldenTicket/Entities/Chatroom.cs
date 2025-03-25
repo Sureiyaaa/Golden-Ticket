@@ -29,4 +29,28 @@ namespace GoldenTicket.Entities
 
         public ICollection<Message> Messages { get; set; } = new List<Message>();
     }
+    public class ChatroomDTO {
+        public int? ChatroomID { get; set; }
+        public string? ChatroomName { get; set; }
+        public UserDTO? Author { get; set; }
+        public TicketDTO? Ticket { get; set; }
+        public List<Message>? Messages { get; set; } = [];
+        public List<GroupMemberDTO> GroupMembers  { get; set; } = [];
+        public DateTime? CreatedAt  { get; set; }
+
+        public ChatroomDTO(Chatroom chatroom){
+            this.ChatroomID = chatroom.ChatroomID;
+            this.ChatroomName = chatroom.ChatroomName;
+            this.Author = chatroom.Author != null ? new UserDTO(chatroom.Author) : null;
+
+            this.Ticket = chatroom.Ticket != null ? new TicketDTO(chatroom.Ticket) : null;
+
+            this.Messages = [];
+            foreach(var member in chatroom.Members){
+                this.GroupMembers!.Add(new GroupMemberDTO(member));
+            }
+            this.CreatedAt = chatroom.CreatedAt;
+        }
+
+    }
 }

@@ -1,9 +1,13 @@
 import 'dart:developer';
 
 import 'package:flutter/material.dart';
+import 'package:golden_ticket_enterprise/entities/chatroom.dart';
 import 'package:golden_ticket_enterprise/entities/faq.dart';
 import 'package:golden_ticket_enterprise/entities/main_tag.dart';
+import 'package:golden_ticket_enterprise/models/hive_session.dart';
+import 'package:golden_ticket_enterprise/models/user.dart';
 import 'package:golden_ticket_enterprise/secret.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:signalr_core/signalr_core.dart';
 import 'package:golden_ticket_enterprise/models/class_enums.dart';
 
@@ -13,10 +17,12 @@ class SignalRService with ChangeNotifier {
 
   Function(List<MainTag>)? onTagUpdate;
   Function(List<FAQ>)? onFAQUpdate;
+  Function(Chatroom)? onChatroomUpdate;
   Function(List<MainTag>)? onTicketUpdate;
 
   ConnectionType _connectionState = ConnectionType.disconnected;
   ConnectionType get connectionState => _connectionState;
+
   bool get isConnected => _connectionState == ConnectionType.connected;
 
   final String serverUrl = "http://${kBaseURL}/${kGTHub}";
@@ -25,7 +31,7 @@ class SignalRService with ChangeNotifier {
 
 
   /// Initializes the SignalR connection
-  Future<void> initializeConnection() async {
+  Future<void> initializeConnection(User user) async {
     _hubConnection = HubConnectionBuilder()
         .withUrl(
       serverUrl,
@@ -47,10 +53,12 @@ class SignalRService with ChangeNotifier {
       _updateConnectionState(ConnectionType.reconnecting);
     });
 
-    _hubConnection!.onreconnected((connectionId) {
+    _hubConnection!.onreconnected((connectionId) async {
       print("✅ Reconnected: $connectionId");
       _retryCount = 0; // Reset retry count on successful reconnection
       _updateConnectionState(ConnectionType.connected);
+      var userSession = Hive.box<HiveSession>('sessionBox').get('user');
+      await _hubConnection!.invoke("Online", args: [userSession!.user.userID, userSession!.user.role]);
     });
 
     _setupEventHandlers();
@@ -58,6 +66,10 @@ class SignalRService with ChangeNotifier {
     await startConnection();
   }
 
+  void requestChat(int userID){
+    _hubConnection!.invoke('RequestChat', args:[userID]);
+  }
+  
   void addMainTag(String tagName){
     try {
       _hubConnection!.invoke('AddMainTag', args: [tagName]);
@@ -80,8 +92,17 @@ class SignalRService with ChangeNotifier {
 
       notifyListeners();
     });
+
+    _hubConnection!.on('ChatroomUpdate', (arguments) {
+      if(arguments != null){
+        print(arguments[0]['chatroom']);
+
+        onChatroomUpdate?.call(Chatroom.fromJson(arguments[0]['chatroom']));
+        notifyListeners();
+      }
+    });
     _hubConnection!.on('TagUpdate', (arguments){
-      print(arguments);
+
       if(arguments != null) {
         List<MainTag> updatedTags =
         (arguments[0]['tags'] as List)
@@ -100,10 +121,12 @@ class SignalRService with ChangeNotifier {
 
         List<FAQ> updatedFAQs =
         (arguments[0]['faq'] as List).map((faq) => FAQ.fromJson(faq)).toList();
+        List<Chatroom> chatrooms =
+        (arguments[0]['chatrooms'] as List).map((chatroom) => Chatroom.fromJson(chatroom)).toList();
 
         print("🔹 Updated Tags: ${updatedTags.length}");
         print("🔹 Updated FAQs: ${updatedFAQs.length}");
-
+        print("🔹 Updated Chatrooms: ${chatrooms.length}");
         onTagUpdate?.call(updatedTags);
         onFAQUpdate?.call(updatedFAQs);
       }
@@ -124,7 +147,9 @@ class SignalRService with ChangeNotifier {
       onConnected?.call();
 
       print("🔄 Invoking Online Event...");
-      await _hubConnection!.invoke("Online", args: []);
+
+      var userSession = Hive.box<HiveSession>('sessionBox').get('user');
+      await _hubConnection!.invoke("Online", args: [userSession!.user.userID, userSession!.user.role]);
     } catch (e) {
       print("❌ Error connecting to SignalR: $e");
       _updateConnectionState(ConnectionType.disconnected);
@@ -155,6 +180,7 @@ class SignalRService with ChangeNotifier {
   /// Stops the SignalR connection and prevents reconnection
   Future<void> stopConnection() async {
     if (_hubConnection != null) {
+      _shouldReconnect = false;
       log("SignalR: Stopping connection...");
       await _hubConnection!.stop();
       _hubConnection = null; // Ensure it's fully cleared

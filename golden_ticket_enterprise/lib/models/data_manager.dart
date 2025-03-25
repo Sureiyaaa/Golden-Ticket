@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:golden_ticket_enterprise/entities/chatroom.dart';
 import 'package:golden_ticket_enterprise/entities/faq.dart';
 import 'package:golden_ticket_enterprise/entities/main_tag.dart';
+import 'package:golden_ticket_enterprise/entities/ticket.dart';
+import 'package:golden_ticket_enterprise/entities/user.dart';
 import 'package:golden_ticket_enterprise/models/signalr_service.dart';
 
 class DataManager extends ChangeNotifier {
   final SignalRService signalRService;
   List<MainTag> mainTags = [];
   List<FAQ> faqs = [];
-  List<String> chatrooms = [];
-  List<String> tickets = [];
-  List<String> users = [];
+  List<Chatroom> chatrooms = [];
+  List<Ticket> tickets = [];
+  List<User> users = [];
 
   DataManager({required this.signalRService}) {
     _initializeSignalR();
@@ -21,6 +24,7 @@ class DataManager extends ChangeNotifier {
         print("SignalR Connected! Attaching Events...");
         attachSignalREvents();
       };
+
       signalRService.startConnection(); // Start connection
     } else {
       attachSignalREvents();

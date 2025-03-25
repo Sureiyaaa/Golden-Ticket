@@ -20,12 +20,12 @@ namespace GoldenTracker.Models
                     CreatedAt = faq.CreatedAt,
                     IsArchived = faq.IsArchived,
                     MainTag = new MainTagDTO{
-                        MainTagID = faq.MainTag.TagID,
-                        MainTagName = faq.MainTag.TagName,
+                        MainTagID = faq.MainTag!.TagID,
+                        MainTagName = faq.MainTag.TagName!,
                     },
                     SubTag = new SubTagDTO{
-                        SubTagID = faq.SubTag.TagID,
-                        SubTagName = faq.SubTag.TagName
+                        SubTagID = faq.SubTag!.TagID,
+                        SubTagName = faq.SubTag.TagName!
                     }
                 }).ToList();
                 if(faqs.Count == 0 )
@@ -62,12 +62,12 @@ namespace GoldenTracker.Models
                     .Select(m => new MainTagDTO
                     {
                         MainTagID = m.TagID,
-                        MainTagName = m.TagName,
+                        MainTagName = m.TagName!,
                         SubTags = m.ChildTags.Select(c => new SubTagDTO
                         {
                             SubTagID = c.TagID,
-                            SubTagName = c.TagName,
-                            MainTagName = m.TagName
+                            SubTagName = c.TagName!,
+                            MainTagName = m.TagName!
                         }).ToList()
                     })
                     .ToList();
@@ -88,14 +88,13 @@ namespace GoldenTracker.Models
                 context.SaveChanges();
             }
         }
-        public static void AddSubTag(string TagName, int MainTagID)
+        public static void AddSubTag(string TagName, string MainTagName)
         {
             using(var context = new ApplicationDbContext()){
                 var newTag = new SubTag
                 {
                     TagName = TagName,
-                    MainTagID = MainTagID,
-                    MainTag = context.MainTag.FirstOrDefault(tag => tag.TagID == MainTagID)
+                    MainTagID = context.MainTag.FirstOrDefault(tag => tag.TagName == MainTagName)!.TagID,
                 };
                 context.SubTag.Add(newTag);
                 context.SaveChanges();
@@ -150,6 +149,28 @@ namespace GoldenTracker.Models
                 var user = context.Users.FirstOrDefault(user => user.UserID == Id);
 
                 return user!;
+            }
+        }
+        public static Dictionary<string, List<UserDTO>> GetUsersByRole() 
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                var users = context.Users
+                    .Include(u => u.Role)
+                    .ToList()
+                    .Select(user => new UserDTO(user))
+                    .GroupBy(user => user.Role!)
+                    .ToDictionary(group => group.Key, group => group.ToList());
+
+                var requiredRoles = new[] { "Admin", "Staff", "Employee" };
+                foreach (var role in requiredRoles)
+                {
+                    if (!users.ContainsKey(role))
+                    {
+                        users[role] = new List<UserDTO>();
+                    }
+                }
+                return users;
             }
         }
         #endregion

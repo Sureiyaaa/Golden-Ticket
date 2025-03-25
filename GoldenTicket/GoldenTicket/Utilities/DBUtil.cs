@@ -29,7 +29,7 @@ namespace GoldenTracker.Models
                     }
                 }).ToList();
                 if(faqs.Count == 0 )
-                    throw new Exception("No FAQs found");
+                    return [];
                 return faqs;
             }
         }
@@ -171,6 +171,52 @@ namespace GoldenTracker.Models
                     }
                 }
                 return users;
+            }
+        }
+        public static List<UserDTO> GetAdminUsers() {
+            using(var context = new ApplicationDbContext()){
+                return context.Users.Include(u => u.Role).Where(user => user.Role!.RoleName == "Admin").Select(user => new UserDTO(user)).ToList();
+            }
+        }
+        #endregion
+        #region Chatroom
+        public async static Task<Chatroom> AddChatroom(int AuthorID)
+        {
+            using(var context = new ApplicationDbContext())
+            {
+                var newChat = new Chatroom{
+                    AuthorID = AuthorID,
+                };
+                context.Chatrooms.Add(newChat);
+                await context.SaveChangesAsync();
+
+                var members = new List<GroupMember>{
+                    new GroupMember {
+                        ChatroomID = newChat.ChatroomID,
+                        MemberID = AuthorID,
+                    },
+                    new GroupMember {
+                        ChatroomID = newChat.ChatroomID,
+                        MemberID = 2,
+                    }
+                };
+                context.GroupMembers.AddRange(members);
+                context.SaveChanges();
+                return newChat;
+            }
+        }
+        public static List<Chatroom> GetChatrooms()
+        {
+            using(var context = new ApplicationDbContext())
+            {
+                return context.Chatrooms.Include(c => c.Members).Include(c => c.Messages).ToList();
+            }
+        }
+        public static Chatroom GetChatroom(int ChatroomID)
+        {
+            using(var context = new ApplicationDbContext())
+            {
+                return context.Chatrooms.Include(c => c.Members).Include(c => c.Messages).FirstOrDefault(c => c.ChatroomID == ChatroomID)!;
             }
         }
         #endregion

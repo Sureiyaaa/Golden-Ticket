@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:golden_ticket_enterprise/entities/faq.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
+import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:provider/provider.dart';
 
 class FAQPage extends StatefulWidget {
@@ -23,6 +24,7 @@ class _FAQPageState extends State<FAQPage> {
   Widget build(BuildContext context) {
     return Consumer<DataManager>(
       builder: (context, dataManager, child) {
+        
         List<FAQ> filteredFAQs = dataManager.faqs.where((faq) {
           bool matchesSearch = searchQuery.isEmpty || faq.title.toLowerCase().contains(searchQuery.toLowerCase());
           bool matchesMainTag = selectedMainTag == "All" || faq.mainTag!.tagName == selectedMainTag;
@@ -61,6 +63,7 @@ class _FAQPageState extends State<FAQPage> {
                     Expanded(
                       child: DropdownButtonFormField<String>(
                         value: selectedMainTag,
+                        hint: Text("Main Tag"),
                         items: ["All", ...dataManager.mainTags.map((tag) => tag.tagName)].map((tag) {
                           return DropdownMenuItem(
                             value: tag,
@@ -83,6 +86,7 @@ class _FAQPageState extends State<FAQPage> {
                     Expanded(
                       child: DropdownButtonFormField<String>(
                         value: selectedSubTag,
+                        hint: selectedMainTag == 'All' ? Text('Select a main tag first...'): Text("Select a Sub tag..."),
                         items: dataManager.mainTags
                             .where((tag) => tag.tagName == selectedMainTag)
                             .expand((tag) => tag.subTags.map((subTag) => subTag.subTagName))
@@ -128,9 +132,9 @@ class _FAQPageState extends State<FAQPage> {
                             ),
                             Row(
                               children: [
-                                if(faq.mainTag != null) Chip(label: Text(faq.mainTag!.tagName)),
+                                if(faq.mainTag != null) Chip(backgroundColor: Colors.redAccent,label: Text(faq.mainTag!.tagName, style: TextStyle(fontWeight: FontWeight.bold, color: kSurface),)),
                                 SizedBox(width: 5),
-                                if(faq.subTag != null) Chip(label: Text(faq.subTag!.subTagName)),
+                                if(faq.subTag != null) Chip(backgroundColor: Colors.blueAccent,label: Text(faq.subTag!.subTagName, style: TextStyle(fontWeight: FontWeight.bold, color: kSurface))),
                               ],
                             ),
                           ],

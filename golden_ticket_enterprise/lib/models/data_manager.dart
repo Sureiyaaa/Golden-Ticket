@@ -1,47 +1,59 @@
 import 'package:flutter/material.dart';
 import 'package:golden_ticket_enterprise/entities/faq.dart';
 import 'package:golden_ticket_enterprise/entities/main_tag.dart';
-import 'package:golden_ticket_enterprise/models/gt_hub.dart';
-import 'package:golden_ticket_enterprise/secret.dart';
-import 'package:golden_ticket_enterprise/models/http_request.dart' as http;
+import 'package:golden_ticket_enterprise/models/signalr_service.dart';
 
 class DataManager extends ChangeNotifier {
   final SignalRService signalRService;
   List<MainTag> mainTags = [];
   List<FAQ> faqs = [];
+  List<String> chatrooms = [];
+  List<String> tickets = [];
+  List<String> users = [];
+
   DataManager({required this.signalRService}) {
-    initializeData();
-    signalRService.onTagUpdate = (List<MainTag> updatedTags) {
+    _initializeSignalR();
+  }
+
+  void _initializeSignalR() {
+    if (!signalRService.isConnected) {
+      signalRService.onConnected = () {
+        print("SignalR Connected! Attaching Events...");
+        attachSignalREvents();
+      };
+      signalRService.startConnection(); // Start connection
+    } else {
+      attachSignalREvents();
+    }
+    signalRService.addListener(() {
+      Future.microtask(() {
+        notifyListeners(); // Ensures this runs after the current build completes
+      });
+    });
+  }
+
+  void attachSignalREvents() {
+    signalRService.onTagUpdate = (updatedTags) {
       updateMainTags(updatedTags);
     };
-
-    signalRService.onFAQUpdate = (List<FAQ> updatedFAQs){
+    signalRService.onFAQUpdate = (updatedFAQs) {
       updateFAQs(updatedFAQs);
     };
   }
 
-  Future<void> initializeData() async {
-    var url = Uri.http(kBaseURL, kGetTags);
-
-    var response = await http.requestJson(
-      url,
-      method: http.RequestMethod.get,
-    );
-
-    if (response['status'] == 200) {
-      mainTags = (response['body']['tags'] as List)
-          .map((tag) => MainTag.fromJson(tag))
-          .toList();
-
-      notifyListeners(); // Notify UI that data has changed
-    }
-  }
   void updateMainTags(List<MainTag> updatedTags) {
     mainTags = updatedTags;
-    notifyListeners(); // Broadcast update to all listeners
+    notifyListeners();
   }
+
   void updateFAQs(List<FAQ> updatedFAQs) {
     faqs = updatedFAQs;
-    notifyListeners(); // Broadcast update to all listeners
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    signalRService.stopConnection(); // Ensure cleanup
+    super.dispose();
   }
 }

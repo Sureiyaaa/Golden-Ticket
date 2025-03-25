@@ -3,10 +3,12 @@ import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
 import 'package:golden_ticket_enterprise/entities/user.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
+import 'package:golden_ticket_enterprise/models/signalr_service.dart';
 import 'package:golden_ticket_enterprise/secret.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:golden_ticket_enterprise/models/http_request.dart' as http;
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:provider/provider.dart';
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -20,51 +22,56 @@ class _LoginPage extends State<LoginPage> {
   // This widget is the root of your application.
 
   @override
-  void initState(){
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      var box = Hive.box<HiveSession>('sessionBox');
-      var userSession = box.get('user');
-      if (userSession != null) {
-        print("User session found: ${userSession.user.username}");
-        // Get the passed User data
-        final HiveSession? session = box.get('user')!;
-        User data = User.fromJson(session!.user.toJson());
-        context.go('/hub', extra: data);
-      }
-    });
+  void initState() {
     super.initState();
 
-  }
-  void _login() async {
-    String username = usernameController.text;
-    String password = passwordController.text;
-
-    if (username.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("Please enter both fields")));
-      return;
-    }
-
-
-    var url = Uri.http(kBaseURL, kLogin);
-
-    var response = await http.requestJson(
-        url,
-        method: http.RequestMethod.post,
-        body: {
-          'username': usernameController.text,
-          'password': passwordController.text
-        }
-    );
-
-    if (response['status'] == 200) {
-      User data = User.fromJson(response['body']['user']);
+    SchedulerBinding.instance.addPostFrameCallback((_) async {
       var box = Hive.box<HiveSession>('sessionBox');
-      box.put('user', HiveSession.fromJson(response['body']));
-      context.go('/hub', extra: data);
-    } else {
+      var userSession = box.get('user');
+
+      if (userSession != null) {
+        print("User session found: ${userSession.user.username}");
+        context.go('/hub', extra: userSession.user);
+      }
+    });
+  }
+
+  void _login() async {
+    try {
+      String username = usernameController.text;
+      String password = passwordController.text;
+
+      if (username.isEmpty || password.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text("Please enter both fields")));
+        return;
+      }
+
+
+      var url = Uri.http(kBaseURL, kLogin);
+
+      var response = await http.requestJson(
+          url,
+          method: http.RequestMethod.post,
+          body: {
+            'username': usernameController.text,
+            'password': passwordController.text
+          }
+      );
+
+      if (response['status'] == 200) {
+        User data = User.fromJson(response['body']['user']);
+        var box = Hive.box<HiveSession>('sessionBox');
+        box.put('user', HiveSession.fromJson(response['body']));
+        context.go('/hub', extra: data);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Login failed: ${response['message']}")),
+        );
+      }
+    }catch(Exception){
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Login failed: ${response['message']}")),
+        SnackBar(content: Text("Login failed: Can't connect to webserver")),
       );
     }
   }

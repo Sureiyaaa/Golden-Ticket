@@ -18,6 +18,11 @@ namespace GoldenTicket.Entities
         public int MainTagID { get; set; }
         public string? MainTagName { get; set; }
         public List<SubTagDTO>? SubTags { get; set; }
+
+        public MainTagDTO(MainTag mainTag){
+            this.MainTagID = mainTag.TagID;
+            this.MainTagName = mainTag.TagName;
+        }
     }
 
 }

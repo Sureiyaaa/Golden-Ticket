@@ -38,6 +38,13 @@ namespace GoldenTicket.Hubs
             await Clients.Caller.SendAsync("Online", new {tags = DBUtil.GetTags(), faq = DBUtil.GetFAQ(), users = DBUtil.GetUsersByRole(), chatrooms = DBUtil.GetChatrooms(userID, isEmployee)});
         }
         public async Task RequestChat(int AuthorID) {
+            int openChatroomsCount = DBUtil.GetChatrooms(AuthorID).Count(c => c.Ticket == null);
+            if (openChatroomsCount >= 3)
+            {
+                await Clients.Caller.SendAsync("MaximumChatroom");
+                return;
+            }
+
             var chatroom = await DBUtil.AddChatroom(AuthorID);
             var adminUser = DBUtil.GetAdminUsers();
             var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(chatroom.ChatroomID)!);
@@ -52,11 +59,11 @@ namespace GoldenTicket.Hubs
             }
             await Clients.Caller.SendAsync("ReceiveSupport", new {chatroom =  chatroomDTO});
         }
-        public async Task OpenMessages(int UserID, int ChatroomID) 
+        public async Task OpenChatroom(int UserID, int ChatroomID) 
         {
-            var chatMessages = DBUtil.OpenMessages(ChatroomID);
+            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID)!, true);
             await UserSeen(UserID, ChatroomID);
-            await Clients.Caller.SendAsync("OpenMessages", new {messages = chatMessages});
+            await Clients.Caller.SendAsync("ReceiveMessages", new {chatroom = chatroomDTO});
         }
         public async Task UserSeen(int UserID, int ChatroomID) 
         {
@@ -70,5 +77,7 @@ namespace GoldenTicket.Hubs
                 }
             }
         }
+        //MaximumChatroom
+
     }
 }

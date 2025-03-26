@@ -11,11 +11,6 @@ namespace GoldenTicket.Hubs
     public class GTHub : Hub
     {
         private static readonly ConcurrentDictionary<string, int> _connections = new ConcurrentDictionary<string, int>();
-        public async Task Connect(int userId)
-        {
-            _connections[Context.ConnectionId] = userId;
-            await Clients.All.SendAsync("UserConnected", _connections.Keys);
-        }
         public override Task OnDisconnectedAsync(Exception? exception)
         {
             _connections.TryRemove(Context.ConnectionId, out int userId);
@@ -38,6 +33,7 @@ namespace GoldenTicket.Hubs
         }
 
         public async Task Online(int userID, string role){
+            _connections[Context.ConnectionId] = userID;
             bool isEmployee = role == "Employee"; 
             await Clients.Caller.SendAsync("Online", new {tags = DBUtil.GetTags(), faq = DBUtil.GetFAQ(), users = DBUtil.GetUsersByRole(), chatrooms = DBUtil.GetChatrooms(userID, isEmployee)});
         }
@@ -54,8 +50,25 @@ namespace GoldenTicket.Hubs
                     }
                 }
             }
-            await Clients.Caller.SendAsync("ChatroomUpdate", new {chatroom =  chatroomDTO});
+            await Clients.Caller.SendAsync("ReceiveSupport", new {chatroom =  chatroomDTO});
         }
-        
+        public async Task OpenMessages(int UserID, int ChatroomID) 
+        {
+            var chatMessages = DBUtil.OpenMessages(ChatroomID);
+            await UserSeen(UserID, ChatroomID);
+            await Clients.Caller.SendAsync("OpenMessages", new {messages = chatMessages});
+        }
+        public async Task UserSeen(int UserID, int ChatroomID) 
+        {
+            var chatroomDTO = DBUtil.GetChatroom(ChatroomID);
+            DBUtil.UpdateLastSeen(UserID, ChatroomID);
+            foreach(var member in chatroomDTO!.Members){
+                var receiverConnectionId = _connections.FirstOrDefault(x => x.Value == member.MemberID).Key; 
+                if(receiverConnectionId != null)
+                {
+                    await Clients.Client(receiverConnectionId).SendAsync("UserSeen", new {UserID = UserID, ChatroomID = ChatroomID});
+                }
+            }
+        }
     }
 }

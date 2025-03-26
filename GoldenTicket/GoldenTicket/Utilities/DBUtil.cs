@@ -277,21 +277,20 @@ namespace GoldenTicket.Utilities
                 }
             }
         }
-        public static void SendMessage(int SenderID, string Message)
+        public static Message SendMessage(int SenderID, int ChatroomID, string Message)
         {
             using(var context = new ApplicationDbContext())
             {
-                var chatroom = context.Chatrooms.FirstOrDefault(c => c.AuthorID == SenderID);
-                if(chatroom != null){
-                    var newMessage = new Message{
-                        ChatroomID = chatroom.ChatroomID,
-                        SenderID = SenderID,
-                        MessageContent = Message,
-                        CreatedAt = DateTime.Now
-                    };
-                    context.Messages.Add(newMessage);
-                    context.SaveChanges();
-                }
+                var message = new Message
+                {
+                    SenderID = SenderID,
+                    ChatroomID = ChatroomID,
+                    MessageContent = Message,
+                    CreatedAt = DateTime.Now
+                };
+                context.Messages.Add(message);
+                context.SaveChanges();
+                return message;
             }
         }
         

@@ -204,8 +204,13 @@ namespace GoldenTicket.Utilities
             using(var context = new ApplicationDbContext())
             {
                 List<ChatroomDTO> dtos = new List<ChatroomDTO>();
-                List<Chatroom> chatrooms = context.Chatrooms.Include(c => c.Members)
-                        .ThenInclude(m => m.Member).ThenInclude(t => t!.Role)
+                List<Chatroom> chatrooms = context.Chatrooms
+                    .Include(c => c.Members)
+                        .ThenInclude(m => m.Member)
+                            .ThenInclude(t => t!.Role)
+                    .Include(c => c.Messages)
+                        .ThenInclude(m => m.Sender)
+                            .ThenInclude(u => u!.Role)
                     .Include(c => c.Ticket)
                         .ThenInclude(t => t!.Author).ThenInclude(t => t!.Role) // Ensure Ticket's Author is loaded
                     .Include(c => c.Ticket)
@@ -214,7 +219,8 @@ namespace GoldenTicket.Utilities
                         .ThenInclude(t => t!.MainTag)
                     .Include(c => c.Ticket)
                         .ThenInclude(t => t!.SubTag)
-                    .Include(c => c.Author).ThenInclude(t => t!.Role).ToList();
+                    .Include(c => c.Author)
+                        .ThenInclude(t => t!.Role).ToList();
                 if(isEmployee){   
                     foreach(var chatroom in chatrooms.Where(c => c.AuthorID == userID)){
                         dtos.Add(new ChatroomDTO(chatroom));
@@ -242,7 +248,11 @@ namespace GoldenTicket.Utilities
                         .ThenInclude(t => t!.MainTag)
                     .Include(c => c.Ticket)
                         .ThenInclude(t => t!.SubTag)
-                    .Include(c => c.Author).ThenInclude(t => t!.Role)
+                    .Include(c => c.Messages)
+                        .ThenInclude(m => m.Sender)
+                            .ThenInclude(u => u!.Role)
+                    .Include(c => c.Author)
+                        .ThenInclude(t => t!.Role)
                     .FirstOrDefault(c => c.ChatroomID == ChatroomID);
             }
         }

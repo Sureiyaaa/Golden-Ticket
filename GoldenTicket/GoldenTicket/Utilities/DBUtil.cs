@@ -277,7 +277,7 @@ namespace GoldenTicket.Utilities
                 }
             }
         }
-        public static void SendMessage(int SenderID, int ChatroomID, string Message)
+        public static Message SendMessage(int SenderID, int ChatroomID, string Message)
         {
             using(var context = new ApplicationDbContext())
             {
@@ -290,6 +290,7 @@ namespace GoldenTicket.Utilities
                 };
                 context.Messages.Add(message);
                 context.SaveChanges();
+                return message;
             }
         }
         

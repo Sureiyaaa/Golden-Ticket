@@ -21,15 +21,18 @@ namespace GoldenTicket.Entities
 
         [ForeignKey("MemberID")]
         public User? Member { get; set; }
+        public DateTime JoinedAt {get;set;} = DateTime.Now;
         public DateTime? LastSeenAt { get; set; }
     }
 
     public class GroupMemberDTO { 
         public UserDTO User { get; set; }
-        public DateTime? lastSeenAt { get; set; }
+        public DateTime? JoinedAt { get; set; }
+        public DateTime? LastSeenAt { get; set; }
         public GroupMemberDTO(GroupMember groupMember){
             this.User = new UserDTO(groupMember.Member!);
-            this.lastSeenAt = groupMember.LastSeenAt ?? null;
+            this.JoinedAt = groupMember.JoinedAt;
+            this.LastSeenAt = groupMember.LastSeenAt ?? null;
         }
     }
 }

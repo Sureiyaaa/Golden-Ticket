@@ -54,7 +54,7 @@ namespace GoldenTicket.Entities
         public TicketDTO(Tickets ticket){
             this.TicketID = ticket.TicketID;
             
-            Console.WriteLine(ticket.Author.FirstName);
+            Console.WriteLine(ticket.Author!.FirstName);
             this.author = ticket.Author != null ? new UserDTO(ticket.Author) : null;
             this.assigned = ticket.Assigned != null ? new UserDTO(ticket.Assigned) : null;
 

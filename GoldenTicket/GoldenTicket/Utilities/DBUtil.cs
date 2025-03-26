@@ -205,16 +205,16 @@ namespace GoldenTicket.Utilities
             {
                 List<ChatroomDTO> dtos = new List<ChatroomDTO>();
                 List<Chatroom> chatrooms = context.Chatrooms.Include(c => c.Members)
-                        .ThenInclude(m => m.Member).ThenInclude(t => t.Role)
+                        .ThenInclude(m => m.Member).ThenInclude(t => t!.Role)
                     .Include(c => c.Ticket)
-                        .ThenInclude(t => t.Author).ThenInclude(t => t.Role) // Ensure Ticket's Author is loaded
+                        .ThenInclude(t => t!.Author).ThenInclude(t => t!.Role) // Ensure Ticket's Author is loaded
                     .Include(c => c.Ticket)
-                        .ThenInclude(t => t.Assigned).ThenInclude(t => t.Role)
+                        .ThenInclude(t => t!.Assigned).ThenInclude(t => t!.Role)
                     .Include(c => c.Ticket)
-                        .ThenInclude(t => t.MainTag)
+                        .ThenInclude(t => t!.MainTag)
                     .Include(c => c.Ticket)
-                        .ThenInclude(t => t.SubTag)
-                    .Include(c => c.Author).ThenInclude(t => t.Role).ToList();
+                        .ThenInclude(t => t!.SubTag)
+                    .Include(c => c.Author).ThenInclude(t => t!.Role).ToList();
                 if(isEmployee){   
                     foreach(var chatroom in chatrooms.Where(c => c.AuthorID == userID)){
                         dtos.Add(new ChatroomDTO(chatroom));
@@ -233,16 +233,16 @@ namespace GoldenTicket.Utilities
             {
                 return context.Chatrooms
                     .Include(c => c.Members)
-                        .ThenInclude(m => m.Member).ThenInclude(t => t.Role)
+                        .ThenInclude(m => m.Member).ThenInclude(t => t!.Role)
                     .Include(c => c.Ticket)
-                        .ThenInclude(t => t.Author).ThenInclude(t => t.Role) // Ensure Ticket's Author is loaded
+                        .ThenInclude(t => t!.Author).ThenInclude(t => t!.Role) // Ensure Ticket's Author is loaded
                     .Include(c => c.Ticket)
-                        .ThenInclude(t => t.Assigned).ThenInclude(t => t.Role)
+                        .ThenInclude(t => t!.Assigned).ThenInclude(t => t!.Role)
                     .Include(c => c.Ticket)
-                        .ThenInclude(t => t.MainTag)
+                        .ThenInclude(t => t!.MainTag)
                     .Include(c => c.Ticket)
-                        .ThenInclude(t => t.SubTag)
-                    .Include(c => c.Author).ThenInclude(t => t.Role)
+                        .ThenInclude(t => t!.SubTag)
+                    .Include(c => c.Author).ThenInclude(t => t!.Role)
                     .FirstOrDefault(c => c.ChatroomID == ChatroomID);
             }
         }

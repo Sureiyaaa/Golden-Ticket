@@ -277,7 +277,7 @@ namespace GoldenTicket.Utilities
                 }
             }
         }
-        public static Message SendMessage(int SenderID, int ChatroomID, string Message)
+        public async static Task<Message> SendMessage(int SenderID, int ChatroomID, string Message)
         {
             using(var context = new ApplicationDbContext())
             {
@@ -289,8 +289,18 @@ namespace GoldenTicket.Utilities
                     CreatedAt = DateTime.Now
                 };
                 context.Messages.Add(message);
-                context.SaveChanges();
+                await context.SaveChangesAsync();
                 return message;
+            }
+        }
+        public static Message? GetMessage(int MessageID)
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                return context.Messages
+                    .Include(m => m.Sender)
+                        .ThenInclude(s => s!.Role)
+                    .FirstOrDefault(m => m.MessageID == MessageID);
             }
         }
         

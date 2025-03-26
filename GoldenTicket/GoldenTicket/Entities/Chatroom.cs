@@ -34,23 +34,47 @@ namespace GoldenTicket.Entities
         public string? ChatroomName { get; set; }
         public UserDTO? Author { get; set; }
         public TicketDTO? Ticket { get; set; }
-        public List<Message>? Messages { get; set; } = [];
+        public List<MessageDTO>? Messages { get; set; } = [];
         public List<GroupMemberDTO> GroupMembers  { get; set; } = [];
+        public LastMessageDTO? LastMessage { get; set; } = null;
         public DateTime? CreatedAt  { get; set; }
 
-        public ChatroomDTO(Chatroom chatroom){
+        public ChatroomDTO(Chatroom chatroom, bool IncludeMessages = false)
+        {
             this.ChatroomID = chatroom.ChatroomID;
             this.ChatroomName = chatroom.ChatroomName;
             this.Author = chatroom.Author != null ? new UserDTO(chatroom.Author) : null;
 
             this.Ticket = chatroom.Ticket != null ? new TicketDTO(chatroom.Ticket) : null;
 
-            this.Messages = [];
-            foreach(var member in chatroom.Members){
-                this.GroupMembers!.Add(new GroupMemberDTO(member));
+            // Sort messages from latest to earliest
+            if(IncludeMessages){
+                this.Messages = chatroom.Messages
+                    .OrderByDescending(m => m.CreatedAt)
+                    .Select(m => new MessageDTO(m))
+                    .ToList();
             }
+            // Assign the last message if available
+            var lastMessage = chatroom.Messages.OrderByDescending(m => m.CreatedAt).FirstOrDefault();
+            this.LastMessage = lastMessage != null ? new LastMessageDTO(lastMessage) : null;
+
+            this.GroupMembers = chatroom.Members
+                .Select(member => new GroupMemberDTO(member))
+                .ToList();
+
             this.CreatedAt = chatroom.CreatedAt;
         }
+    }
 
+    public class LastMessageDTO{
+        public string? LastMessage { get; set; } = "";
+        public UserDTO? Sender { get; set; }
+        public DateTime CreatedAt { get; set;}
+
+        public LastMessageDTO(Message message){
+            this.LastMessage = message.MessageContent;
+            this.Sender = new UserDTO(message.Sender!);
+            this.CreatedAt = message.CreatedAt;
+        }
     }
 }

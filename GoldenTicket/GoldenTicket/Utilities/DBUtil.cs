@@ -196,6 +196,14 @@ namespace GoldenTicket.Utilities
                 };
                 context.GroupMembers.AddRange(members);
                 context.SaveChanges();
+
+                var aiMessage = new Message {
+                    ChatroomID = newChat.ChatroomID,
+                    SenderID = 100000001,
+                    MessageContent = "Hello! I'm AI, your virtual assistant. How can I help you today?",
+                };
+                context.Messages.Add(aiMessage);
+                context.SaveChanges();
                 return newChat;
             }
         }
@@ -256,8 +264,42 @@ namespace GoldenTicket.Utilities
                     .FirstOrDefault(c => c.ChatroomID == ChatroomID);
             }
         }
-
-
+        public static List<MessageDTO> OpenMessages(int ChatroomID) 
+        {
+            var chatroom = new ChatroomDTO(GetChatroom(ChatroomID)!, true);
+            return chatroom.Messages!;
+        }
+        public static void UpdateLastSeen(int UserID, int ChatroomID)
+        {
+            using(var context = new ApplicationDbContext())
+            {
+                var member = context.GroupMembers.FirstOrDefault(m => m.MemberID == UserID && m.ChatroomID == ChatroomID);
+                if(member != null){
+                    member.LastSeenAt = DateTime.Now;
+                    context.SaveChanges();
+                } else {
+                    Console.WriteLine("Member not found");
+                }
+            }
+        }
+        public static void SendMessage(int SenderID, string Message)
+        {
+            using(var context = new ApplicationDbContext())
+            {
+                var chatroom = context.Chatrooms.FirstOrDefault(c => c.AuthorID == SenderID);
+                if(chatroom != null){
+                    var newMessage = new Message{
+                        ChatroomID = chatroom.ChatroomID,
+                        SenderID = SenderID,
+                        MessageContent = Message,
+                        CreatedAt = DateTime.Now
+                    };
+                    context.Messages.Add(newMessage);
+                    context.SaveChanges();
+                }
+            }
+        }
+        
         #endregion
     }
 }

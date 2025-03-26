@@ -82,12 +82,13 @@ namespace GoldenTicket.Hubs
         public async Task SendMessage(int SenderID, int ChatroomID, string Message) 
         {
             var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID)!);
-            var messageDTO = new MessageDTO(DBUtil.SendMessage(SenderID, ChatroomID, Message));
+            var message = await DBUtil.SendMessage(SenderID, ChatroomID, Message);
+            var messageDTO = new MessageDTO(message);
             foreach(var member in chatroomDTO.GroupMembers){
                 var receiverConnectionId = _connections.FirstOrDefault(x => x.Value == member.User.UserID).Key; 
                 if(receiverConnectionId != null)
                 {
-                    await Clients.Client(receiverConnectionId).SendAsync("SentMessage", new {chatroom = chatroomDTO, message = messageDTO});
+                    await Clients.Client(receiverConnectionId).SendAsync("ReceiveMessage", new {chatroom = chatroomDTO, message = messageDTO});
                 }
             }
             await UserSeen(SenderID, ChatroomID);

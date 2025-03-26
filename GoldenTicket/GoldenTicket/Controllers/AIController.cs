@@ -2,9 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using GoldenTicket.Services;
 using GoldenTicket.Models;
 using OpenAIApp.Services;
-using GoldenTicket.Database;
-using GoldenTicket.Entities;
-using Microsoft.EntityFrameworkCore;
+using GoldenTicket.Utilities;
 
 namespace GoldenTicket.Controllers
 {
@@ -57,7 +55,7 @@ namespace GoldenTicket.Controllers
             var unavailableResponse = AIResponse.Unavailable();
             try
             {
-                string FAQList = testFAQData();
+                string FAQList = FAQData();
                 if (requestData?.Message == null || requestData.PromptType == null )
                 {
                     return BadRequest(new {status = 400, message = "Invalid JSON", errorType = "message and/or promptType not found."});
@@ -82,65 +80,34 @@ namespace GoldenTicket.Controllers
                 return BadRequest(new {status = 400, message = "Error in ProcessJsonResponseAsync", body = new {unavailableResponse}});
             }
         }
-
         // [ CODE BELOW CURRENTLY FOR DEVELOPMENT ONLY ]
-
-        [HttpGet("GetMainTag")] 
-        public async Task<IActionResult> GetMainTag()
+        private string FAQData()
         {
-            using(var _context = new ApplicationDbContext())
-            {
-                var mainTags = await _context.MainTag
-                .Include(mt => mt.ChildTags) // Load sub-tags
-                .ToListAsync();
-
-                var result = mainTags.Select(mt => new
-                {
-                    MainTag = mt.TagName,
-                    SubTags = mt.ChildTags.Select(st => st.TagName).ToList()
-                });
-
-                return Ok(result);
-            }
-        }
-        [HttpGet("GetFAQ")]
-        public async Task<IActionResult> GetFAQ()
-        {
-            using(var _context = new ApplicationDbContext())
-            {
-                var faqData = await _context.Faq.ToListAsync();
-                return Ok(testFAQData());
-            }
-        }
-        private string testFAQData(){
             string TagList = "";
             string faqList = "";
-            using(var context = new ApplicationDbContext())
-            {
-                // Fetch all MainTags with their related SubTags
-                var mainTags = context.MainTag.Include(mt => mt.ChildTags).ToList();
-                foreach (var mainTag in mainTags)
-                {
-                    TagList += "MainTag: "+mainTag.TagName + "\n";
-                    foreach (var subTag in mainTag.ChildTags)
-                    {
-                        TagList += "    - SubTab: "+subTag.TagName + "\n";
-                    }
-                }
 
-                // Fetch all FAQ data
-                var faqData = context.Faq.ToList();
-                Console.WriteLine("FAQ DATA!!!!!!1:" + faqData);
-                foreach (var faq in faqData)
+            // Fetch all MainTags with their related SubTags
+            var mainTags = DBUtil.GetTags();
+            foreach (var mainTag in mainTags)
+            {
+                TagList += "MainTag: "+mainTag.MainTagName + "\n";
+                foreach (var subTag in mainTag.SubTags!)
                 {
-                    faqList += "FAQ: "+faq.Title + "\n";
-                    faqList += "Description: "+faq.Description + "\n";
-                    faqList += "Solution: "+faq.Solution + "\n";
-                    faqList += "MainTag: "+faq.MainTag!.TagName + "\n";
-                    faqList += ">"+faq.SubTag!.TagName + "\n\n";
+                    TagList += "    - SubTab: "+subTag.SubTagName + "\n";
                 }
             }
-            return $"\n[FAQ DATA] \nTag List:\n{TagList}--------------------------------------------\n{ManualFAQData()}";
+            // Fetch all FAQ data
+            var faqData = DBUtil.GetFAQ();
+            Console.WriteLine("FAQ DATA!!!!!!1:" + faqData);
+            foreach (var faq in faqData)
+            {
+                faqList += "FAQ: "+faq.Title + "\n";
+                faqList += "Description: "+faq.Description + "\n";
+                faqList += "Solution: "+faq.Solution + "\n";
+                faqList += "MainTag: "+faq.MainTag!.MainTagID + "\n";
+                faqList += ">"+faq.SubTag!.SubTagName + "\n\n";
+            }
+            return $"\n[FAQ DATA] \nTag List:\n{TagList}--------------------------------------------\n{faqList}";
         }
         private string ManualFAQData() {
             return @"FAQ 1: The MaxHub Sharescreen code is not showing, how do i fix this?

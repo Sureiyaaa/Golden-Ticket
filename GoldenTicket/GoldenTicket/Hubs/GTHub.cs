@@ -1,6 +1,6 @@
 using GoldenTicket.Database;
 using System.Collections.Concurrent;
-using GoldenTracker.Models;
+using GoldenTicket.Utilities;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using GoldenTicket.Entities;

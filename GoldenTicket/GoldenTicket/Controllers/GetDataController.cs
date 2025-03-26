@@ -1,5 +1,5 @@
 using GoldenTicket.Models;
-using GoldenTracker.Models;
+using GoldenTicket.Utilities;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GoldenTicket.Controllers

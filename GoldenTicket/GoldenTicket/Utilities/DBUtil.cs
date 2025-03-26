@@ -4,7 +4,7 @@ using GoldenTicket.Utilities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace GoldenTracker.Models
+namespace GoldenTicket.Utilities
 {
     public class DBUtil()
     {

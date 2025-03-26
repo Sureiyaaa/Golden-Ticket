@@ -264,11 +264,6 @@ namespace GoldenTicket.Utilities
                     .FirstOrDefault(c => c.ChatroomID == ChatroomID);
             }
         }
-        public static List<MessageDTO> OpenMessages(int ChatroomID) 
-        {
-            var chatroom = new ChatroomDTO(GetChatroom(ChatroomID)!, true);
-            return chatroom.Messages!;
-        }
         public static void UpdateLastSeen(int UserID, int ChatroomID)
         {
             using(var context = new ApplicationDbContext())

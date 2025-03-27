@@ -79,7 +79,7 @@ namespace GoldenTicket.Utilities
                 }
             }
 
-            var faqData = DBUtil.GetFAQ();
+            var faqData = DBUtil.GetFAQs();
             foreach (var faq in faqData)
             {
                 faqList += $"FAQ: {faq.Title}\nDescription: {faq.Description}\nSolution: {faq.Solution}\nMainTag: {faq.MainTag!.MainTagID}\n>{faq.SubTag!.SubTagName}\n\n";

@@ -9,7 +9,7 @@ namespace GoldenTicket.Utilities
     public class DBUtil()
     {
         #region FAQ
-        public static List<FAQDTO> GetFAQ()
+        public static List<FAQDTO> GetFAQs()
         {
             using(var context = new ApplicationDbContext()){
                 var faqs = context.Faq.Include(faq => faq.MainTag).Include(faq => faq.SubTag).Select(faq => new FAQDTO{
@@ -27,7 +27,7 @@ namespace GoldenTicket.Utilities
                 return faqs;
             }
         }
-        public static void AddFAQ(string _title, string _description, string _solution, int _mainTagID, int _subTagID)
+        public static FAQ AddFAQ(string _title, string _description, string _solution, int _mainTagID, int _subTagID)
         {
             using(var context = new ApplicationDbContext()){
                 var newFAQ = new FAQ
@@ -44,6 +44,7 @@ namespace GoldenTicket.Utilities
                 };
                 context.Faq.Add(newFAQ);
                 context.SaveChanges();
+                return newFAQ;
             }
         }
         #endregion
@@ -180,58 +181,53 @@ namespace GoldenTicket.Utilities
 
 
         #region Ticket
-        public async static Task<Tickets> AddTicket(string TicketTitle, int AuthorID, int MainTagID, int SubTagID,  int ChatroomID)
-        {
-            using(var context = new ApplicationDbContext()){
-                // Creates Ticket
-                var newTicket = new Tickets
-                {
-                    TicketTitle = TicketTitle,
-                    AuthorID = AuthorID,
-                    MainTagID = MainTagID,
-                    SubTagID = SubTagID,
-                    StatusID = 1,
-                };
-                context.Tickets.Add(newTicket);
-                await context.SaveChangesAsync();
-
-                // Creates Ticket History
-                var ticketHistory = new TicketHistory 
-                {
-                    TicketID = newTicket.TicketID,
-                    ActionID = 1,
-                    ActionMessage = "Ticket Created",
-                };
-                context.TicketHistory.Add(ticketHistory);
-                await context.SaveChangesAsync();
-
-                // Updates the Chatroom with the TicketID
-                var chatroom = GetChatroom(ChatroomID);
-                chatroom!.TicketID = newTicket.TicketID;
-                context.SaveChanges();
-                return newTicket;
-            }
-        }
         public async static Task<Tickets> AddTicket(string TicketTitle, int AuthorID, string MainTagName, string SubTagName, int ChatroomID)
         {
-            int mainTagID = GetTags().FirstOrDefault(x => x.MainTagName == MainTagName)!.MainTagID;
-            int subTagID = GetTags().FirstOrDefault(x => x.MainTagID == mainTagID)!.SubTags!.FirstOrDefault(x => x.SubTagName == SubTagName)!.SubTagID;
+            int? mainTagID = null;
+            int? subTagID = null;
 
-            using(var context = new ApplicationDbContext()){
+            if (MainTagName != "null")
+            {
+                var mainTag = GetTags().FirstOrDefault(x => x.MainTagName == MainTagName);
+                if (mainTag != null)
+                {
+                    mainTagID = mainTag.MainTagID;
+                    if (SubTagName != "null")
+                    {
+                        var subTag = mainTag.SubTags?.FirstOrDefault(x => x.SubTagName == SubTagName);
+                        if (subTag != null)
+                        {
+                            subTagID = subTag.SubTagID;
+                        }
+                    }
+                }
+            }
+
+            using (var context = new ApplicationDbContext())
+            {
                 // Creates Ticket
                 var newTicket = new Tickets
                 {
                     TicketTitle = TicketTitle,
                     AuthorID = AuthorID,
-                    MainTagID = mainTagID,
-                    SubTagID = subTagID,
-                    StatusID = 1,
+                    StatusID = 1
                 };
+
+                // Only assign MainTagID and SubTagID if they are not null
+                if (mainTagID.HasValue)
+                {
+                    newTicket.MainTagID = mainTagID.Value;
+                }
+                if (subTagID.HasValue)
+                {
+                    newTicket.SubTagID = subTagID.Value;
+                }
+
                 context.Tickets.Add(newTicket);
                 await context.SaveChangesAsync();
 
                 // Creates Ticket History
-                var ticketHistory = new TicketHistory 
+                var ticketHistory = new TicketHistory
                 {
                     TicketID = newTicket.TicketID,
                     ActionID = 1,
@@ -242,11 +238,16 @@ namespace GoldenTicket.Utilities
 
                 // Updates the Chatroom with the TicketID
                 var chatroom = GetChatroom(ChatroomID);
-                chatroom!.TicketID = newTicket.TicketID;
-                context.SaveChanges();
+                if (chatroom != null)
+                {
+                    chatroom.TicketID = newTicket.TicketID;
+                    context.SaveChanges();
+                }
+
                 return newTicket;
             }
         }
+
         public static List<Tickets> GetTickets(int userID, bool isEmployee)
         {
             using(var context = new ApplicationDbContext())

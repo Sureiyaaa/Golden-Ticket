@@ -4,6 +4,7 @@ import 'package:golden_ticket_enterprise/models/hive_session.dart';
 import 'package:golden_ticket_enterprise/screens/hub.dart';
 import 'package:golden_ticket_enterprise/screens/error.dart';
 import 'package:golden_ticket_enterprise/screens/login.dart';
+import 'package:golden_ticket_enterprise/screens/chatroom_page.dart';
 import 'package:hive/hive.dart';
 
 class AppRoutes {
@@ -25,6 +26,17 @@ class AppRoutes {
           builder: (context, state) {
             final errorMessage = state.extra as String? ?? 'An unknown error occurred';
             return ErrorPage(errorMessage: errorMessage);
+          },
+        ),
+        GoRoute(
+          path: '/hub/chatroom/:chatroomID',
+          redirect: (context, state) => Hive.box<HiveSession>('sessionBox').get('user') == null ? '/login' : null, // ✅ Redirect before building
+          builder: (context, state) {
+            final chatroomID = int.tryParse(state.pathParameters['chatroomID']!);
+            if (chatroomID == null) {
+              return ErrorPage(errorMessage: 'Invalid chatroom ID');
+            }
+            return ChatroomPage(chatroomID: chatroomID);
           },
         ),
       ],

@@ -1,9 +1,4 @@
-using GoldenTicket.Database;
-using GoldenTicket.Entities;
-using GoldenTicket.Utilities;
 using GoldenTicket.Services;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using GoldenTicket.Models;
 using OpenAIApp.Services;
 using GoldenTicket.Controllers;
@@ -12,64 +7,55 @@ namespace GoldenTicket.Utilities
 {
     public class AIUtil
     {
-        
         private static OpenAIService? _openAIService;
         private static PromptService? _promptService;
-        private static ILogger<AIController>? _logger;
-        //private readonly UnrealSpeechService _unrealSpeechService;
+        private static ILogger<AIUtil>? _logger;
 
-        public AIUtil(OpenAIService openAIService, PromptService promptService, ILogger<AIController> logger)
+        public static void Initialize(OpenAIService openAIService, PromptService promptService, ILogger<AIUtil> logger)
         {
-            _openAIService = openAIService;
-            _promptService = promptService;
-            _logger = logger;
-            //_unrealSpeechService = unrealSpeechService;
+            _openAIService = openAIService ?? throw new ArgumentNullException(nameof(openAIService));
+            _promptService = promptService ?? throw new ArgumentNullException(nameof(promptService));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
-        public static async Task<string> GetAIResponseAsync(AIRequest requestData)
+
+        public static async Task<string> GetAIResponseAsync(string _id, string _message, string _promptType, string _additional = "")
         {
-            if (requestData?.Message == null || requestData.PromptType == null || requestData.id == null)
+            if (_openAIService == null || _promptService == null || _logger == null)
+                throw new InvalidOperationException("AIUtil is not initialized.");
+
+            if (_message == null || _promptType == null || _id == null)
                 return "";
-            string additional = requestData.Additional ?? "";
 
-            //if (!string.IsNullOrEmpty(additional)) _logger.LogInformation($"Additional: {additional}");
+            string additional = _additional ?? "";
+            string requestPrompt = _promptService.GetPrompt(_promptType, additional);
+            string aiResponse = await _openAIService.GetAIResponse(_id, _message, requestPrompt);
 
-            string requestPrompt = _promptService!.GetPrompt(requestData.PromptType, additional);
-            // _logger.LogInformation($"[PromptConfigService] Prompt Type: {requestData.PromptType}");
-            // _logger.LogInformation($"[AI-AR] POST RECEIVED");
-
-            string aiResponse = await _openAIService!.GetAIResponse(requestData.id, requestData.Message, requestPrompt);
-            // _logger.LogInformation($"[AI-AR] RESPONSE RECEIVED");
-
-            _logger!.LogInformation($"\n[AI-AR Input]: {requestData.Message}");
-            _logger!.LogInformation($"[AI-AR Response]: {aiResponse}");
-
-            //await _unrealSpeechService.GenerateSpeech(aiResponse);
+            _logger.LogInformation($"\n[AI-AR Input]: {_message}");
+            _logger.LogInformation($"[AI-AR Response]: {aiResponse}");
 
             return aiResponse;
         }
-        public static async Task<AIResponse?> GetJsonResponseAsync(AIRequest requestData) 
+
+        public static async Task<AIResponse?> GetJsonResponseAsync(string _id, string _message, string _promptType, string _additional = "")
         {
-            var unavailableResponse = AIResponse.Unavailable();
             try
             {
-                string FAQList = FAQData();
-                if (requestData?.Message == null || requestData.PromptType == null )
-                {
+                if (_openAIService == null || _promptService == null || _logger == null)
+                    throw new InvalidOperationException("AIUtil is not initialized.");
+
+                if (_message == null || _promptType == null)
                     return null;
-                }
 
-                string additional = requestData.Additional+FAQList ?? "";
-                string requestPrompt = _promptService!.GetPrompt(requestData.PromptType, additional);
+                string additional = _additional + FAQData() ?? "";
+                string requestPrompt = _promptService.GetPrompt(_promptType, additional);
 
-                string aiResponse = await _openAIService!.GetAIResponse(requestData.id, requestData.Message, requestPrompt);
+                string aiResponse = await _openAIService.GetAIResponse(_id, _message, requestPrompt);
                 var parsedResponse = AIResponse.Parse(aiResponse);
-                _logger!.LogInformation($"\n[AI-AR Input]: {requestData.Message}");
-                _logger!.LogInformation($"[AI-AR Response]: {aiResponse}");
-                
-                if (!string.IsNullOrWhiteSpace(parsedResponse.Message))
-                    return parsedResponse; 
-                else
-                    return null;
+
+                _logger.LogInformation($"\n[AI-AR Input]: {_message}");
+                _logger.LogInformation($"[AI-AR Response]: {aiResponse}");
+
+                return !string.IsNullOrWhiteSpace(parsedResponse.Message) ? parsedResponse : null;
             }
             catch (Exception ex)
             {
@@ -77,34 +63,31 @@ namespace GoldenTicket.Utilities
                 return null;
             }
         }
+
         private static string FAQData()
         {
-            string TagList = "";
+            string tagList = "";
             string faqList = "";
 
-            // Fetch all MainTags with their related SubTags
             var mainTags = DBUtil.GetTags();
             foreach (var mainTag in mainTags)
             {
-                TagList += "MainTag: "+mainTag.MainTagName + "\n";
+                tagList += $"MainTag: {mainTag.MainTagName}\n";
                 foreach (var subTag in mainTag.SubTags!)
                 {
-                    TagList += "    - SubTab: "+subTag.SubTagName + "\n";
+                    tagList += $"    - SubTag: {subTag.SubTagName}\n";
                 }
             }
-            // Fetch all FAQ data
+
             var faqData = DBUtil.GetFAQ();
-            Console.WriteLine("FAQ DATA!!!!!!1:" + faqData);
             foreach (var faq in faqData)
             {
-                faqList += "FAQ: "+faq.Title + "\n";
-                faqList += "Description: "+faq.Description + "\n";
-                faqList += "Solution: "+faq.Solution + "\n";
-                faqList += "MainTag: "+faq.MainTag!.MainTagID + "\n";
-                faqList += ">"+faq.SubTag!.SubTagName + "\n\n";
+                faqList += $"FAQ: {faq.Title}\nDescription: {faq.Description}\nSolution: {faq.Solution}\nMainTag: {faq.MainTag!.MainTagID}\n>{faq.SubTag!.SubTagName}\n\n";
             }
-            return $"\n[FAQ DATA] \nTag List:\n{TagList}--------------------------------------------\n{faqList}";
+
+            return $"\n[FAQ DATA] \nTag List:\n{tagList}--------------------------------------------\n{faqList}";
         }
+
         private string ManualFAQData() {
             return @"FAQ 1: The MaxHub Sharescreen code is not showing, how do i fix this?
 Solution: Turn off Maxhub for 2 mins and restart.

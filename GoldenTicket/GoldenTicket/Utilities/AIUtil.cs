@@ -18,7 +18,7 @@ namespace GoldenTicket.Utilities
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public static async Task<string> GetAIResponseAsync(string _id, string _message, string _promptType, string _additional = "")
+        public static async Task<string> GetAIResponseAsync(string _id, string _message, string _promptType = "GoldenTicket", string _additional = "")
         {
             if (_openAIService == null || _promptService == null || _logger == null)
                 throw new InvalidOperationException("AIUtil is not initialized.");
@@ -36,7 +36,7 @@ namespace GoldenTicket.Utilities
             return aiResponse;
         }
 
-        public static async Task<AIResponse?> GetJsonResponseAsync(string _id, string _message, string _promptType, string _additional = "")
+        public static async Task<AIResponse?> GetJsonResponseAsync(string _id, string _message, string _promptType = "GoldenTicket", string _additional = "")
         {
             try
             {

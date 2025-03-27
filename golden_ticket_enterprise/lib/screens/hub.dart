@@ -6,11 +6,11 @@ import 'package:golden_ticket_enterprise/entities/main_tag.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
 import 'package:golden_ticket_enterprise/screens/connectionstate.dart';
-import 'package:golden_ticket_enterprise/subscreens/chatroom_page.dart';
-import 'package:golden_ticket_enterprise/subscreens/dashboard.dart';
-import 'package:golden_ticket_enterprise/subscreens/faq.dart';
-import 'package:golden_ticket_enterprise/subscreens/settings.dart';
-import 'package:golden_ticket_enterprise/subscreens/tickets.dart';
+import 'package:golden_ticket_enterprise/subscreens/chatroom_list_page.dart';
+import 'package:golden_ticket_enterprise/subscreens/dashboard_page.dart';
+import 'package:golden_ticket_enterprise/subscreens/faq_page.dart';
+import 'package:golden_ticket_enterprise/subscreens/settings_page.dart';
+import 'package:golden_ticket_enterprise/subscreens/tickets_page.dart';
 import 'package:golden_ticket_enterprise/subscreens/user_management.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -106,12 +106,13 @@ class _HubPageState extends State<HubPage> {
                   UserAccountsDrawerHeader(
                     accountName: Text(widget.session!.user.username),
                     accountEmail: Text("Dummy Email"),
+                    decoration: BoxDecoration(color: kPrimary),
                     currentAccountPicture: CircleAvatar(
                       child: Icon(Icons.person, size: 40),
                     ),
                   ),
                   _buildDrawerItem(Icons.dashboard, "Dashboard", 0),
-                  if(widget.session?.user.role == "Admin" || widget.session?.user.role == "Staff") _buildDrawerItem(Icons.message_outlined, "Chatrooms", 1),
+                  _buildDrawerItem(Icons.message_outlined, "Chatrooms", 1),
                   if(widget.session?.user.role == "Admin" || widget.session?.user.role == "Staff") _buildDrawerItem(Icons.list, "Tickets", 2),
                   _buildDrawerItem(Icons.question_mark, "FAQ", 3),
                   if(widget.session?.user.role == "Admin") _buildDrawerItem(Icons.person_outline, "User Management", 4),

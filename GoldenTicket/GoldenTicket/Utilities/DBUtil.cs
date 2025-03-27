@@ -254,8 +254,12 @@ namespace GoldenTicket.Utilities
                 if (isEmployee)
                 {
                     return context.Tickets
+                        .Include(t => t.ticketHistories)
+                            .ThenInclude(t => t.Action)
                         .Include(t => t.Author)
+                            .ThenInclude(a => a!.Role)
                         .Include(t => t.Assigned)
+                            .ThenInclude(a => a!.Role)
                         .Include(t => t.MainTag)
                         .Include(t => t.SubTag)
                         .Include(t => t.Status)
@@ -264,8 +268,12 @@ namespace GoldenTicket.Utilities
                 else
                 {
                     return context.Tickets
+                        .Include(t => t.ticketHistories)
+                            .ThenInclude(t => t.Action)
                         .Include(t => t.Author)
+                            .ThenInclude(a => a!.Role)
                         .Include(t => t.Assigned)
+                            .ThenInclude(a => a!.Role)
                         .Include(t => t.MainTag)
                         .Include(t => t.SubTag)
                         .Include(t => t.Status)
@@ -279,10 +287,15 @@ namespace GoldenTicket.Utilities
             using(var context = new ApplicationDbContext())
             {
                 return context.Tickets
+                    .Include(t => t.ticketHistories)
+                        .ThenInclude(t => t.Action)
                     .Include(t => t.Author)
+                        .ThenInclude(a => a!.Role)
                     .Include(t => t.Assigned)
+                        .ThenInclude(a => a!.Role)
                     .Include(t => t.MainTag)
                     .Include(t => t.SubTag)
+                    .Include(t => t.Status)
                     .FirstOrDefault(t => t.TicketID == ticketID);
             }
         }

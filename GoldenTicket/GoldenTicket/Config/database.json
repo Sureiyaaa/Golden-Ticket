@@ -1,10 +1,10 @@
 {
     "Tags": {
-        "Status": ["Pending", "Open", "Assigned", "Re-assigned", "In Progress", "Postponed", "Closed", "Unresolved", "Re-opened"],
-        "Actions": ["Created", "Open", "Assigned", "Re-assigned", "In Progress", "Postponed", "Closed", "Unresolved","Re-opened"],
+        "Status": ["Pending", "Assigned", "In Progress", "Postponed", "Closed", "Unresolved"],
+        "Actions": ["Created", "Open", "Assigned", "In Progress", "Postponed", "Closed", "Unresolved","Re-opened"],
         "Notification": ["New Ticket", "Replied", "Closed", "Opened", "Assigned", "In Progress", "Re-assigned", "Postponed"],
         "Roles": ["Admin", "Staff", "Employee"],
-        "MainTags": ["MaxHub", "Printer"],
+        "MainTags": ["MaxHub", "Printer", "NOAH"],
         "SubTags": [
             {
                 "Name": "Code not showing",
@@ -21,6 +21,10 @@
             {
                 "Name": "Not connected",
                 "Parent": 2
+            },
+            {
+                "Name": "Transaction",
+                "Parent": 3
             }
         ]
     }

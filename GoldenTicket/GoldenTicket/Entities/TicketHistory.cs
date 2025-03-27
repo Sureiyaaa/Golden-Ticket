@@ -25,4 +25,16 @@ namespace GoldenTicket.Entities
         [Required]
         public DateTime? ActionDate { get; set; } = DateTime.Now;
     }
+
+    public class TicketHistoryDTO {
+        public string? Action { get; set;} = "";
+        public string? ActionMessage { get; set;} = "";
+        public DateTime? ActionDate { get; set;}
+        
+        public TicketHistoryDTO (TicketHistory ticketHistory){
+            this.Action = ticketHistory.Action!.ActionName;
+            this.ActionMessage = ticketHistory.ActionMessage;
+            this.ActionDate = ticketHistory.ActionDate;
+        }
+    }
 }

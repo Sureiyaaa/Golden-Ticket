@@ -55,12 +55,12 @@ namespace GoldenTicket.Utilities
                 // _logger.LogInformation($"\n[AI-AR Input]: {_message}");
                 // _logger.LogInformation($"[AI-AR Response]: {aiResponse}");
 
-                return !string.IsNullOrWhiteSpace(parsedResponse.Message) ? parsedResponse : AIResponse.Unavailable();
+                return !string.IsNullOrWhiteSpace(parsedResponse.Message) ? parsedResponse : null;
             }
             catch (Exception ex)
             {
                 _logger!.LogError(ex, "Error in ProcessJsonResponseAsync");
-                return AIResponse.Unavailable();
+                return null;
             }
         }
 

@@ -286,7 +286,6 @@ namespace GoldenTicket.Utilities
                     SenderID = SenderID,
                     ChatroomID = ChatroomID,
                     MessageContent = Message,
-                    CreatedAt = DateTime.Now
                 };
                 context.Messages.Add(message);
                 await context.SaveChangesAsync();

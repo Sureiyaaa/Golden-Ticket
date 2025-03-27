@@ -247,8 +247,53 @@ namespace GoldenTicket.Utilities
                 return newTicket;
             }
         }
-        public static Tickets? GetTicket(int ticketID) {
-            return null;
+        public static List<Tickets> GetTickets(int userID, bool isEmployee)
+        {
+            using(var context = new ApplicationDbContext())
+            {
+                if (isEmployee)
+                {
+                    return context.Tickets
+                        .Include(t => t.Author)
+                        .Include(t => t.Assigned)
+                        .Include(t => t.MainTag)
+                        .Include(t => t.SubTag)
+                        .Include(t => t.Status)
+                        .ToList();
+                }
+                else
+                {
+                    return context.Tickets
+                        .Include(t => t.Author)
+                        .Include(t => t.Assigned)
+                        .Include(t => t.MainTag)
+                        .Include(t => t.SubTag)
+                        .Include(t => t.Status)
+                        .Where(t => t.AuthorID == userID)
+                        .ToList();
+                }
+            }
+        }
+        public static Tickets? GetTicket(int ticketID) 
+        {
+            using(var context = new ApplicationDbContext())
+            {
+                return context.Tickets
+                    .Include(t => t.Author)
+                    .Include(t => t.Assigned)
+                    .Include(t => t.MainTag)
+                    .Include(t => t.SubTag)
+                    .FirstOrDefault(t => t.TicketID == ticketID);
+            }
+        }
+        public static List<string> GetStatuses()
+        {
+            using(var context = new ApplicationDbContext())
+            {
+                return context.Status
+                    .Select(s => s.StatusName)
+                    .ToList()!;
+            }
         }
         #endregion
 

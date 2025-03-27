@@ -48,6 +48,8 @@ namespace GoldenTicket.Utilities
         }
         #endregion
 
+
+        #region Tags
         public static List<MainTagDTO> GetTags()
         {
             using (var context = new ApplicationDbContext())
@@ -94,6 +96,8 @@ namespace GoldenTicket.Utilities
                 context.SaveChanges();
             }
         }
+        #endregion
+
 
         #region User
         public static void RegisterAccount(string Username, string Password, string FirstName, string? MiddleName, string LastName, int? RoleID)
@@ -173,6 +177,82 @@ namespace GoldenTicket.Utilities
             }
         }
         #endregion
+
+
+        #region Ticket
+        public async static Task<Tickets> AddTicket(string TicketTitle, int AuthorID, int MainTagID, int SubTagID,  int ChatroomID)
+        {
+            using(var context = new ApplicationDbContext()){
+                // Creates Ticket
+                var newTicket = new Tickets
+                {
+                    TicketTitle = TicketTitle,
+                    AuthorID = AuthorID,
+                    MainTagID = MainTagID,
+                    SubTagID = SubTagID,
+                    StatusID = 1,
+                };
+                context.Tickets.Add(newTicket);
+                await context.SaveChangesAsync();
+
+                // Creates Ticket History
+                var ticketHistory = new TicketHistory 
+                {
+                    TicketID = newTicket.TicketID,
+                    ActionID = 1,
+                    ActionMessage = "Ticket Created",
+                };
+                context.TicketHistory.Add(ticketHistory);
+                await context.SaveChangesAsync();
+
+                // Updates the Chatroom with the TicketID
+                var chatroom = GetChatroom(ChatroomID);
+                chatroom!.TicketID = newTicket.TicketID;
+                context.SaveChanges();
+                return newTicket;
+            }
+        }
+        public async static Task<Tickets> AddTicket(string TicketTitle, int AuthorID, string MainTagName, string SubTagName, int ChatroomID)
+        {
+            int mainTagID = GetTags().FirstOrDefault(x => x.MainTagName == MainTagName)!.MainTagID;
+            int subTagID = GetTags().FirstOrDefault(x => x.MainTagID == mainTagID)!.SubTags!.FirstOrDefault(x => x.SubTagName == SubTagName)!.SubTagID;
+
+            using(var context = new ApplicationDbContext()){
+                // Creates Ticket
+                var newTicket = new Tickets
+                {
+                    TicketTitle = TicketTitle,
+                    AuthorID = AuthorID,
+                    MainTagID = mainTagID,
+                    SubTagID = subTagID,
+                    StatusID = 1,
+                };
+                context.Tickets.Add(newTicket);
+                await context.SaveChangesAsync();
+
+                // Creates Ticket History
+                var ticketHistory = new TicketHistory 
+                {
+                    TicketID = newTicket.TicketID,
+                    ActionID = 1,
+                    ActionMessage = "Ticket Created",
+                };
+                context.TicketHistory.Add(ticketHistory);
+                await context.SaveChangesAsync();
+
+                // Updates the Chatroom with the TicketID
+                var chatroom = GetChatroom(ChatroomID);
+                chatroom!.TicketID = newTicket.TicketID;
+                context.SaveChanges();
+                return newTicket;
+            }
+        }
+        public static Tickets? GetTicket(int ticketID) {
+            return null;
+        }
+        #endregion
+
+
         #region Chatroom
         public async static Task<Chatroom> AddChatroom(int AuthorID)
         {

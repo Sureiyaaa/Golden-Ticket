@@ -23,6 +23,6 @@ namespace GoldenTicket.Entities
         [Required]
         public string? ActionMessage { get; set; } = "";
         [Required]
-        public DateTime? ActionDate { get; set; }
+        public DateTime? ActionDate { get; set; } = DateTime.Now;
     }
 }

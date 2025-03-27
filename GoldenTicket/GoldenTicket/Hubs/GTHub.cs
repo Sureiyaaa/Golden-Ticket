@@ -88,7 +88,7 @@ namespace GoldenTicket.Hubs
                 }
             }
             await UserSeen(SenderID, ChatroomID);
-            if(chatroomDTO.Ticket != null)
+            if(chatroomDTO.Ticket == null)
             {
                 await AISendMessage(ChatroomID, Message, SenderID);
             }
@@ -97,10 +97,10 @@ namespace GoldenTicket.Hubs
         {
             int SenderID = 100000001;
             var response = await AIUtil.GetJsonResponseAsync(chatroomID.ToString(), userMessage);
-
+          
             var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(chatroomID)!);
             var message = await DBUtil.SendMessage(SenderID, chatroomID, response!.Message);
-            if(chatroomDTO.Ticket != null)
+            if(chatroomDTO.Ticket == null)
             {
                 if(response.CallAgent)
                 {
@@ -114,6 +114,7 @@ namespace GoldenTicket.Hubs
                     var receiverConnectionId = _connections.Where(x => x.Value == member.User.UserID).ToList(); 
                     foreach(var connection in receiverConnectionId){
                         await Clients.Client(connection.Key).SendAsync("ReceiveMessage", new {chatroom = chatroomDTO, message = messageDTO});
+                        await Clients.Client(connection.Key).SendAsync("AllowMessage");
                     }
                 }
             }

@@ -15,6 +15,7 @@ class ChatroomListPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<DataManager>(
       builder: (context, dataManager, child) {
+
         return Scaffold(
           backgroundColor: kSurface,
           body: dataManager.chatrooms.isEmpty
@@ -32,10 +33,13 @@ class ChatroomListPage extends StatelessWidget {
                 margin: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 child: ListTile(
                   leading: CircleAvatar(child: Icon(Icons.chat_bubble_outline)),
-                  title: Text(chatroom.chatroomName, style: TextStyle(fontWeight: FontWeight.bold)),
+                  title: Text(chatroom.ticket != null ? chatroom.ticket!.ticketTitle : "No title provided", style: TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Text("Opened by: ${chatroom.author.firstName} ${chatroom.author.lastName}"),
                   trailing: Icon(Icons.arrow_forward_ios, size: 18, color: Colors.grey),
-                  onTap: () => context.go("/hub/chatroom/${1}"),
+                  onTap: () {
+                    context.push('/hub/chatroom/${chatroom.chatroomID}');
+                    dataManager.signalRService.openChatroom(session!.user.userID, chatroom.chatroomID);
+                  },
                 ),
               );
             },

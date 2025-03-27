@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:golden_ticket_enterprise/entities/chatroom.dart';
 import 'package:golden_ticket_enterprise/entities/faq.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
@@ -24,7 +25,19 @@ class _FAQPageState extends State<FAQPage> {
   Widget build(BuildContext context) {
     return Consumer<DataManager>(
       builder: (context, dataManager, child) {
-        
+
+        dataManager.signalRService.onReceiveSupport = (chatroom){
+          print(chatroom.chatroomID);
+          context.push('/hub/chatroom/${chatroom.chatroomID}');
+        };
+        dataManager.signalRService.onMaximumChatroom = (){
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("You can only have a maximum of 3 chatrooms with no tickets!"),
+              backgroundColor: Colors.red,
+            ),
+          );
+        };
         List<FAQ> filteredFAQs = dataManager.faqs.where((faq) {
           bool matchesSearch = searchQuery.isEmpty || faq.title.toLowerCase().contains(searchQuery.toLowerCase());
           bool matchesMainTag = selectedMainTag == "All" || faq.mainTag!.tagName == selectedMainTag;
@@ -35,13 +48,17 @@ class _FAQPageState extends State<FAQPage> {
         return Scaffold(
           floatingActionButton: FloatingActionButton(
             heroTag: "add_faq",
-            onPressed: () =>
-            {
-              dataManager.signalRService.requestChat(
-                  widget.session!.user.userID),
+            onPressed: () {
+              if (widget.session!.user.role == "Employee") {
+              // Request Chat Support
+                 dataManager.signalRService.requestChat(widget.session!.user.userID);
+              } else {
+              // Navigate to Add FAQ Page
+                context.push('/faq/add');
+              }
             },
-            child: Icon(Icons.chat),
-            backgroundColor: Colors.blue,
+            child: Icon(widget.session!.user.role == "Employee" ? Icons.chat : Icons.add),
+            backgroundColor: widget.session!.user.role == "Employee" ? Colors.blueAccent : kPrimary,
           ),
           body: Padding(
             padding: const EdgeInsets.all(16.0),

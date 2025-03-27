@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:golden_ticket_enterprise/entities/chatroom.dart';
 import 'package:golden_ticket_enterprise/entities/faq.dart';
 import 'package:golden_ticket_enterprise/entities/main_tag.dart';
+import 'package:golden_ticket_enterprise/entities/message.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
 import 'package:golden_ticket_enterprise/models/user.dart';
 import 'package:golden_ticket_enterprise/secret.dart';
@@ -16,10 +17,15 @@ class SignalRService with ChangeNotifier {
   VoidCallback? onConnected;
 
   Function(List<MainTag>)? onTagUpdate;
+  Function(Message, Chatroom)? onReceiveMessage;
   Function(List<FAQ>)? onFAQUpdate;
   Function(Chatroom)? onChatroomUpdate;
+  Function(List<Chatroom>)? onChatroomsUpdate;
   Function(List<MainTag>)? onTicketUpdate;
-
+  Function(Chatroom)? onReceiveSupport;
+  Function(int, int)? onSeenUpdate;
+  Function()? onAllowMessage;
+  Function()? onMaximumChatroom;
   ConnectionType _connectionState = ConnectionType.disconnected;
   ConnectionType get connectionState => _connectionState;
 
@@ -67,9 +73,19 @@ class SignalRService with ChangeNotifier {
   }
 
   void requestChat(int userID){
-    _hubConnection!.invoke('RequestChat', args:[userID]);
+    try {
+      _hubConnection!.invoke('RequestChat', args: [userID]);
+    }catch(err){
+      log("There was an error caught while requesting support: $err");
+    }
   }
-  
+  void openChatroom(int userID, int chatroomID){
+    try {
+      _hubConnection!.invoke('OpenChatroom', args: [userID, chatroomID]);
+    }catch(err){
+      log("There was an error caught while opening chatroom: $err");
+    }
+  }
   void addMainTag(String tagName){
     try {
       _hubConnection!.invoke('AddMainTag', args: [tagName]);
@@ -79,20 +95,72 @@ class SignalRService with ChangeNotifier {
   }
   void addSubTag(String tagName, String mainTagName){
     try{
-    _hubConnection!.invoke('AddSubTag', args: [tagName, mainTagName]);
+      _hubConnection!.invoke('AddSubTag', args: [tagName, mainTagName]);
     }catch(err){
       log("There was an error caught while saving tag: $err");
     }
   }
-
+  void sendMessage(int userID, int chatroomID, String messageContent) {
+    try{
+      _hubConnection!.invoke('SendMessage', args: [userID, chatroomID, messageContent]);
+    }catch(err){
+      log("There was an error caught while sending message: $err");
+    }
+  }
+  void sendSeen(int userID, int chatroomID){
+    try{
+      _hubConnection!.invoke('UserSeen', args: [userID, chatroomID]);
+    }catch(err){
+      log("There was an error caught while sending message: $err");
+    }
+  }
   /// Sets up SignalR event handlers
   void _setupEventHandlers() {
-    _hubConnection!.on('ReceiveMessage', (arguments) {
-      print("📩 Message Received: ${arguments![0]}");
 
+    _hubConnection!.on('MaximumChatroom', (arguments){
+      onMaximumChatroom?.call();
       notifyListeners();
     });
 
+    _hubConnection!.on('UserSeen', (arguments){
+        if(arguments != null){
+          int chatroomID = arguments[0]['chatroomID'];
+          int userID = arguments[0]['userID'];
+
+
+          onSeenUpdate?.call(userID, chatroomID);
+          notifyListeners();
+        }
+    });
+    _hubConnection!.on('AllowMessage', (arguments){
+      onAllowMessage?.call();
+      notifyListeners();
+    });
+    _hubConnection!.on('ReceiveMessages', (arguments){
+
+      if(arguments != null){
+        var chatroomData = arguments[0]['chatroom'];
+          Chatroom chatroom = Chatroom.fromJson(chatroomData);
+          print(chatroom.messages!.length);
+          onChatroomUpdate?.call(chatroom);
+      }
+      notifyListeners();
+    });
+
+    _hubConnection!.on('ReceiveMessage', (arguments){
+      if(arguments != null) {
+
+        onReceiveMessage?.call(Message.fromJson(arguments[0]['message']), Chatroom.fromJson(arguments[0]['chatroom']));
+      }
+    });
+
+    _hubConnection!.on('ReceiveSupport', (arguments) {
+      if(arguments != null){
+        onChatroomUpdate?.call(Chatroom.fromJson(arguments[0]['chatroom']));
+        onReceiveSupport?.call(Chatroom.fromJson(arguments[0]['chatroom']));
+        notifyListeners();
+      }
+    });
     _hubConnection!.on('ChatroomUpdate', (arguments) {
       if(arguments != null){
         print(arguments[0]['chatroom']);
@@ -121,14 +189,15 @@ class SignalRService with ChangeNotifier {
 
         List<FAQ> updatedFAQs =
         (arguments[0]['faq'] as List).map((faq) => FAQ.fromJson(faq)).toList();
-        List<Chatroom> chatrooms =
+        List<Chatroom> updatedChatrooms =
         (arguments[0]['chatrooms'] as List).map((chatroom) => Chatroom.fromJson(chatroom)).toList();
 
         print("🔹 Updated Tags: ${updatedTags.length}");
         print("🔹 Updated FAQs: ${updatedFAQs.length}");
-        print("🔹 Updated Chatrooms: ${chatrooms.length}");
+        print("🔹 Updated Chatrooms: ${updatedChatrooms.length}");
         onTagUpdate?.call(updatedTags);
         onFAQUpdate?.call(updatedFAQs);
+        onChatroomsUpdate?.call(updatedChatrooms);
       }
     });
   }

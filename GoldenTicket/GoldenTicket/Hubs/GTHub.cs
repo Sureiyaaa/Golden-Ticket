@@ -4,6 +4,7 @@ using GoldenTicket.Utilities;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using GoldenTicket.Entities;
+using GoldenTicket.Models;
 
 
 namespace GoldenTicket.Hubs
@@ -97,6 +98,10 @@ namespace GoldenTicket.Hubs
         {
             int SenderID = 100000001;
             var response = await AIUtil.GetJsonResponseAsync(chatroomID.ToString(), userMessage);
+            if (response == null)
+            {
+                response = AIResponse.Unavailable();
+            }
           
             var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(chatroomID)!);
             var message = await DBUtil.SendMessage(SenderID, chatroomID, response!.Message);

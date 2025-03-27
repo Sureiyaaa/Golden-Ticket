@@ -28,7 +28,7 @@ namespace GoldenTicket.Hubs
             bool isEmployee = role == "Employee"; 
             await Clients.Caller.SendAsync("Online", new 
             {
-                tags = DBUtil.GetTags(), faq = DBUtil.GetFAQ(), 
+                tags = DBUtil.GetTags(), faq = DBUtil.GetFAQs(), 
                 users = DBUtil.GetUsersByRole(), 
                 chatrooms = DBUtil.GetChatrooms(userID, isEmployee), 
                 tickets = DBUtil.GetTickets(userID, isEmployee),
@@ -39,6 +39,11 @@ namespace GoldenTicket.Hubs
         
 
         #region FAQ
+        public async Task AddFAQ(string Title, string Description, string Solution, int MainTagID, int SubTagID) 
+        {
+            var newFAQ = DBUtil.AddFAQ(Title, Description, Solution, MainTagID, SubTagID);
+            await Clients.All.SendAsync("FAQUpdate", new {faq = newFAQ});
+        }
         #endregion
 
 

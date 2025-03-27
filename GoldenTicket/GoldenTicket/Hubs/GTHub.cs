@@ -83,7 +83,8 @@ namespace GoldenTicket.Hubs
         {
             var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID)!);
             var message = await DBUtil.SendMessage(SenderID, ChatroomID, Message);
-            var messageDTO = new MessageDTO(message);
+    
+            var messageDTO = new MessageDTO(DBUtil.GetMessage(message.MessageID)!);
             foreach(var member in chatroomDTO.GroupMembers){
                 var receiverConnectionId = _connections.FirstOrDefault(x => x.Value == member.User.UserID).Key; 
                 if(receiverConnectionId != null)

@@ -26,12 +26,10 @@ namespace GoldenTicket.Entities
         public int? StatusID { get; set; }
         [ForeignKey("StatusID")]
         public Status? Status { get; set; } = null;
-        [Required]
         public int MainTagID { get; set; }
 
         [ForeignKey("MainTagID")]
         public MainTag? MainTag { get; set; } = null;
-        [Required]
         public int SubTagID { get; set; }
 
         [ForeignKey("SubTagID")]
@@ -45,6 +43,7 @@ namespace GoldenTicket.Entities
     public class TicketDTO {
         public int? TicketID { get; set; }
         public string? TicketTitle { get; set; }
+        public string? Status { get; set; }
         public UserDTO? author { get; set; }
         public UserDTO? assigned { get; set; }
         public MainTagDTO? MainTag { get; set; }
@@ -61,6 +60,7 @@ namespace GoldenTicket.Entities
             foreach(var history in ticket.ticketHistories){
                 TicketHistory.Add(new TicketHistoryDTO(history));
             }
+            this.Status = ticket.Status!.StatusName;
             this.MainTag = ticket.MainTag != null ? new MainTagDTO(ticket.MainTag) : null;
             this.SubTag = ticket.SubTag != null ? new SubTagDTO(ticket.SubTag) : null;
         }

@@ -50,11 +50,10 @@ namespace GoldenTicket.Hubs
 
             foreach(var user in adminUser){
                 if(user.Role == "Admin" || user.Role == "Staff"){
-                    var receiverConnectionId = _connections.FirstOrDefault(x => x.Value == user.UserID).Key; 
-                    if(receiverConnectionId != null)
-                    {
-                        await Clients.Client(receiverConnectionId).SendAsync("ChatroomUpdate", new {chatroom = chatroomDTOAdmin});
-                    }
+                    var receiverConnectionId = _connections.Where(x => x.Value == user.UserID).ToList();
+                    foreach(var connection in receiverConnectionId){
+                        await Clients.Client(connection.Key).SendAsync("ChatroomUpdate", new {chatroom = chatroomDTOAdmin});
+                    } 
                 }
             }
             await Clients.Caller.SendAsync("ReceiveSupport", new {chatroom =  chatroomDTO});
@@ -70,10 +69,9 @@ namespace GoldenTicket.Hubs
             var chatroomDTO = DBUtil.GetChatroom(ChatroomID);
             DBUtil.UpdateLastSeen(UserID, ChatroomID);
             foreach(var member in chatroomDTO!.Members){
-                var receiverConnectionId = _connections.FirstOrDefault(x => x.Value == member.MemberID).Key; 
-                if(receiverConnectionId != null)
-                {
-                    await Clients.Client(receiverConnectionId).SendAsync("UserSeen", new {userID = UserID, chatroomID = ChatroomID});
+                var receiverConnectionId = _connections.Where(x => x.Value == member.MemberID).ToList(); 
+                foreach(var connection in receiverConnectionId){
+                    await Clients.Client(connection.Key).SendAsync("UserSeen", new {userID = UserID, chatroomID = ChatroomID});
                 }
             }
         }
@@ -81,16 +79,45 @@ namespace GoldenTicket.Hubs
         {
             var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID)!);
             var message = await DBUtil.SendMessage(SenderID, ChatroomID, Message);
-    
+            
             var messageDTO = new MessageDTO(DBUtil.GetMessage(message.MessageID)!);
             foreach(var member in chatroomDTO.GroupMembers){
-                var receiverConnectionId = _connections.FirstOrDefault(x => x.Value == member.User.UserID).Key; 
-                if(receiverConnectionId != null)
-                {
-                    await Clients.Client(receiverConnectionId).SendAsync("ReceiveMessage", new {chatroom = chatroomDTO, message = messageDTO});
+                var receiverConnectionId = _connections.Where(x => x.Value == member.User.UserID).ToList(); 
+                foreach(var connection in receiverConnectionId){
+                    await Clients.Client(connection.Key).SendAsync("ReceiveMessage", new {chatroom = chatroomDTO, message = messageDTO});
                 }
             }
             await UserSeen(SenderID, ChatroomID);
+            if(chatroomDTO.Ticket != null)
+            {
+                await AISendMessage(ChatroomID, Message, SenderID);
+            }
+        }
+        public async Task AISendMessage(int chatroomID, string userMessage, int userID) 
+        {
+            int SenderID = 100000001;
+            var response = await AIUtil.GetJsonResponseAsync(chatroomID.ToString(), userMessage);
+
+            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(chatroomID)!);
+            var message = await DBUtil.SendMessage(SenderID, chatroomID, response!.Message);
+            if(chatroomDTO.Ticket != null)
+            {
+                if(response.CallAgent)
+                {
+                    var receiverConnectionId = _connections.FirstOrDefault(x => x.Value == userID).Key; 
+                    await Clients.Client(receiverConnectionId).SendAsync("AllowMessage");
+                }
+            }
+            var messageDTO = new MessageDTO(DBUtil.GetMessage(message.MessageID)!);
+            foreach(var member in chatroomDTO.GroupMembers){
+                if(member.User.UserID == userID){
+                    var receiverConnectionId = _connections.Where(x => x.Value == member.User.UserID).ToList(); 
+                    foreach(var connection in receiverConnectionId){
+                        await Clients.Client(connection.Key).SendAsync("ReceiveMessage", new {chatroom = chatroomDTO, message = messageDTO});
+                    }
+                }
+            }
+            await UserSeen(SenderID, chatroomID);
         }
         #endregion
 

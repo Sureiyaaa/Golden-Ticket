@@ -32,7 +32,7 @@ namespace GoldenTicket.Hubs
                 users = DBUtil.GetUsersByRole(), 
                 chatrooms = DBUtil.GetChatrooms(userID, isEmployee), 
                 tickets = DBUtil.GetTickets(userID, isEmployee),
-                statuc = DBUtil.GetStatuses(),
+                status = DBUtil.GetStatuses(),
             });
         }
         #endregion

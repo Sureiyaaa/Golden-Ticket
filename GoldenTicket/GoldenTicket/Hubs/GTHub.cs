@@ -10,23 +10,13 @@ namespace GoldenTicket.Hubs
 {
     public class GTHub : Hub
     {
+        #region General
         private static readonly ConcurrentDictionary<string, int> _connections = new ConcurrentDictionary<string, int>();
         public override Task OnDisconnectedAsync(Exception? exception)
         {
             _connections.TryRemove(Context.ConnectionId, out int userId);
             return base.OnDisconnectedAsync(exception);
         }
-        public async Task AddMainTag(string TagName)
-        {
-            DBUtil.AddMainTag(TagName);
-            await Clients.All.SendAsync("TagUpdate", new {tags = DBUtil.GetTags()});
-        }
-        public async Task AddSubTag(string TagName, string MainTagName)
-        {
-            DBUtil.AddSubTag(TagName, MainTagName);
-            await Clients.All.SendAsync("TagUpdate", new {tags = DBUtil.GetTags()}); 
-        }
-        
         public async Task Broadcast(string message)
         {
             await Clients.All.SendAsync("Announce", message);
@@ -37,6 +27,14 @@ namespace GoldenTicket.Hubs
             bool isEmployee = role == "Employee"; 
             await Clients.Caller.SendAsync("Online", new {tags = DBUtil.GetTags(), faq = DBUtil.GetFAQ(), users = DBUtil.GetUsersByRole(), chatrooms = DBUtil.GetChatrooms(userID, isEmployee)});
         }
+        #endregion
+        
+
+        #region FAQ
+        #endregion
+
+
+        #region Chatroom
         public async Task RequestChat(int AuthorID) {
             int openChatroomsCount = DBUtil.GetChatrooms(AuthorID, true).Count(c => c.Ticket == null);
             if (openChatroomsCount >= 3)
@@ -75,7 +73,7 @@ namespace GoldenTicket.Hubs
                 var receiverConnectionId = _connections.FirstOrDefault(x => x.Value == member.MemberID).Key; 
                 if(receiverConnectionId != null)
                 {
-                    await Clients.Client(receiverConnectionId).SendAsync("UserSeen", new {UserID = UserID, ChatroomID = ChatroomID});
+                    await Clients.Client(receiverConnectionId).SendAsync("UserSeen", new {userID = UserID, chatroomID = ChatroomID});
                 }
             }
         }
@@ -94,6 +92,20 @@ namespace GoldenTicket.Hubs
             }
             await UserSeen(SenderID, ChatroomID);
         }
-        //MaximumChatroom
+        #endregion
+
+
+        #region Tags
+        public async Task AddMainTag(string TagName)
+        {
+            DBUtil.AddMainTag(TagName);
+            await Clients.All.SendAsync("TagUpdate", new {tags = DBUtil.GetTags()});
+        }
+        public async Task AddSubTag(string TagName, string MainTagName)
+        {
+            DBUtil.AddSubTag(TagName, MainTagName);
+            await Clients.All.SendAsync("TagUpdate", new {tags = DBUtil.GetTags()}); 
+        }
+        #endregion
     }
 }

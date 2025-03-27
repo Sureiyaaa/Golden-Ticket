@@ -52,8 +52,8 @@ namespace GoldenTicket.Utilities
                 string aiResponse = await _openAIService.GetAIResponse(_id, _message, requestPrompt);
                 var parsedResponse = AIResponse.Parse(aiResponse);
 
-                _logger.LogInformation($"\n[AI-AR Input]: {_message}");
-                _logger.LogInformation($"[AI-AR Response]: {aiResponse}");
+                // _logger.LogInformation($"\n[AI-AR Input]: {_message}");
+                // _logger.LogInformation($"[AI-AR Response]: {aiResponse}");
 
                 return !string.IsNullOrWhiteSpace(parsedResponse.Message) ? parsedResponse : null;
             }

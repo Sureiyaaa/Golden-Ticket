@@ -15,18 +15,32 @@ namespace GoldenTicket.Controllers
         {
             if (requestData?.Message == null || requestData.PromptType == null || requestData.id == null)
                 return BadRequest(new {status = 400, message = "Invalid JSON", errorType = "message and/or promptType not found."});
-            string aiResponse = await AIUtil.GetAIResponseAsync(requestData);
+            
+            string id = requestData.id;
+            string message = requestData.Message;
+            string promptType = requestData.PromptType;
+            string additional = requestData.Additional ?? "";
+
+            string aiResponse = await AIUtil.GetAIResponseAsync(id, message, promptType, additional);
             return Ok(new { response = aiResponse });
         }
         [HttpPost("JsonResponse")]
         public async Task<IActionResult> ProcessJsonResponseAsync([FromBody] AIRequest requestData)
         {
             var unavailableResponse = AIResponse.Unavailable();
-            var parsedResponse = await AIUtil.GetJsonResponseAsync(requestData);
-            if (requestData?.Message == null || requestData.PromptType == null )
+
+            string id = requestData.id;
+            string message = requestData.Message;
+            string promptType = requestData.PromptType;
+            string additional = requestData.Additional ?? "";
+
+            if (requestData?.Message == null || requestData.PromptType == null || requestData.id == null)
             {
                 return BadRequest(new {status = 400, message = "Invalid JSON", errorType = "message and/or promptType not found."});
             }
+
+            var parsedResponse = await AIUtil.GetJsonResponseAsync(id, message, promptType, additional);
+
             if (!string.IsNullOrWhiteSpace(parsedResponse!.Message))
                 return Ok(new {status = 200, message = "Request Response successfully", body = new {parsedResponse}}); 
             else

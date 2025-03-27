@@ -2,6 +2,7 @@ using GoldenTicket.Extensions;
 using GoldenTicket.Hubs;
 using GoldenTicket.Models;
 using GoldenTicket.Services;
+using GoldenTicket.Utilities;
 using OpenAIApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,6 +23,13 @@ builder.Services.AddApplicationServices(builder.Configuration);
 
 var app = builder.Build();
 app.UseCors("GoldenTracker");
+
+var serviceProvider = app.Services;
+var openAIService = serviceProvider.GetRequiredService<OpenAIService>();
+var promptService = serviceProvider.GetRequiredService<PromptService>();
+var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+
+AIUtil.Initialize(openAIService, promptService, loggerFactory.CreateLogger<AIUtil>());
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

@@ -234,7 +234,7 @@ namespace GoldenTicket.Utilities
                         dtos.Add(new ChatroomDTO(chatroom));
                     }
                 }else{
-                    foreach(var chatroom in chatrooms){
+                    foreach(var chatroom in chatrooms.Where(c => c.TicketID != null)){
                         dtos.Add(new ChatroomDTO(chatroom));
                     }
                 }

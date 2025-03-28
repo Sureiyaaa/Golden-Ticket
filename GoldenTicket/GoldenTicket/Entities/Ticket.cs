@@ -53,7 +53,6 @@ namespace GoldenTicket.Entities
         public TicketDTO(Tickets ticket){
             this.TicketID = ticket.TicketID;
             this.TicketTitle = ticket.TicketTitle;
-            Console.WriteLine(ticket.Author!.FirstName);
             this.Author = ticket.Author != null ? new UserDTO(ticket.Author) : null;
             this.Assigned = ticket.Assigned != null ? new UserDTO(ticket.Assigned) : null;
             foreach(var history in ticket.ticketHistories){

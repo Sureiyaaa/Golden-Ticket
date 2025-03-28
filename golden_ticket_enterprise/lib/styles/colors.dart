@@ -26,3 +26,21 @@ const Color kOnTertiaryContainer = Color(0xFF1A1742);
 
 const Color kOutline = Color(0xFF838383);
 const Color kOutlineVariant = Color(0xFFD9D9D9);
+
+Color getStatusColor(String status){
+  switch(status){
+    case 'Pending':
+      return Colors.yellowAccent;
+    case 'Assigned':
+      return Colors.blueAccent;
+    case 'In Progress':
+      return Colors.lightBlueAccent;
+    case 'Postponed':
+      return Colors.orangeAccent;
+    case 'Closed':
+      return Colors.red;
+    case 'Unresolved':
+      return Colors.redAccent;
+  }
+  return Colors.black;
+}

@@ -32,7 +32,7 @@ namespace GoldenTicket.Controllers
             }
             try
             {
-                DBUtil.AddFAQ(faq.Title!, faq.Description!, faq.Solution!, faq.MainTagID!, faq.SubTagID!);
+                // DBUtil.AddFAQ(faq.Title!, faq.Description!, faq.Solution!, faq.MainTagID!, faq.SubTagID!);
                 return Ok(new {status = 200, message = "FAQ added successfully!"});
             }
             catch (Exception err)

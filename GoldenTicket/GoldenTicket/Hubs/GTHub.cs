@@ -103,10 +103,9 @@ namespace GoldenTicket.Hubs
         }
         public async Task SendMessage(int SenderID, int ChatroomID, string Message) 
         {
-            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID)!);
             var message = await DBUtil.SendMessage(SenderID, ChatroomID, Message);
-            
             var messageDTO = new MessageDTO(DBUtil.GetMessage(message.MessageID)!);
+            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID)!);
             foreach(var member in chatroomDTO.GroupMembers){
                 var receiverConnectionId = _connections.Where(x => x.Value == member.User.UserID).ToList(); 
                 foreach(var connection in receiverConnectionId){
@@ -129,8 +128,9 @@ namespace GoldenTicket.Hubs
                 response = AIResponse.Unavailable();
             }
           
-            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(chatroomID)!);
             var message = await DBUtil.SendMessage(SenderID, chatroomID, response!.Message);
+            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(chatroomID)!);
+
             if(chatroomDTO.Ticket == null)
             {
                 if(response.CallAgent)

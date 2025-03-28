@@ -39,9 +39,9 @@ namespace GoldenTicket.Hubs
         
 
         #region FAQ
-        public async Task AddFAQ(string Title, string Description, string Solution, int MainTagID, int SubTagID) 
+        public async Task AddFAQ(string Title, string Description, string Solution, string MainTagName, string SubTagName) 
         {
-            var newFAQ = DBUtil.AddFAQ(Title, Description, Solution, MainTagID, SubTagID);
+            var newFAQ = DBUtil.AddFAQ(Title, Description, Solution, MainTagName, SubTagName);
             await Clients.All.SendAsync("FAQUpdate", new {faq = DBUtil.GetFAQs()});
         }
         #endregion

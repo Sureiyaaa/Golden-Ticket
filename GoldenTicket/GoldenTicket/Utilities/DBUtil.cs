@@ -344,6 +344,7 @@ namespace GoldenTicket.Utilities
                 return newChat;
             }
         }
+        #region -   JoinChatroom
         public static void JoinChatroom(int UserID, int ChatroomID)
         {
             using(var context = new ApplicationDbContext()) 
@@ -354,9 +355,13 @@ namespace GoldenTicket.Utilities
                     ChatroomID = ChatroomID,
                     ChatMemberID = UserID,
                 };
-                
+                chatroom!.Members.Add(newMember);
+                context.Chatrooms.Attach(chatroom!);
+                context.SaveChanges();
             }
         }
+        #endregion
+        #region -   GetChatrooms
         public static List<ChatroomDTO> GetChatrooms(int userID, bool isEmployee = false)
         {
             using(var context = new ApplicationDbContext())
@@ -376,6 +381,9 @@ namespace GoldenTicket.Utilities
                         .ThenInclude(t => t!.Assigned)
                             .ThenInclude(t => t!.Role)
                     .Include(c => c.Ticket)
+                        .ThenInclude(t => t!.ticketHistories)
+                            .ThenInclude(t => t!.Action)
+                    .Include(c => c.Ticket)
                         .ThenInclude(t => t!.MainTag)
                     .Include(c => c.Ticket)
                         .ThenInclude(t => t!.SubTag)
@@ -393,6 +401,9 @@ namespace GoldenTicket.Utilities
                 return dtos;
             }
         }
+        #endregion
+
+        #region -   GetChatroom
         public static Chatroom? GetChatroom(int ChatroomID)
         {
             using (var context = new ApplicationDbContext())
@@ -411,6 +422,9 @@ namespace GoldenTicket.Utilities
                         .ThenInclude(t => t!.MainTag)
                     .Include(c => c.Ticket)
                         .ThenInclude(t => t!.SubTag)
+                    .Include(c => c.Ticket)
+                        .ThenInclude(t => t!.ticketHistories)
+                            .ThenInclude(t => t!.Action)
                     .Include(c => c.Messages)
                         .ThenInclude(m => m.Sender)
                             .ThenInclude(u => u!.Role)
@@ -419,6 +433,7 @@ namespace GoldenTicket.Utilities
                     .FirstOrDefault(c => c.ChatroomID == ChatroomID);
             }
         }
+        #endregion
         public static void UpdateLastSeen(int UserID, int ChatroomID)
         {
             using(var context = new ApplicationDbContext())

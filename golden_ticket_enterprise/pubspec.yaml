@@ -30,6 +30,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_markdown: ^0.7.6+2
   go_router: ^14.8.1
   hive_flutter: ^1.1.0
   http: ^1.3.0

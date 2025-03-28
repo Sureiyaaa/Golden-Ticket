@@ -58,7 +58,7 @@ class SignalRService with ChangeNotifier {
           case LogLevel.warning:
             logger.w(message);
           case LogLevel.error:
-            logger.e(message);
+            logger.e(message, error: "None Provided");
           case LogLevel.critical:
             logger.f(message);
           case LogLevel.none:
@@ -180,7 +180,9 @@ class SignalRService with ChangeNotifier {
       if(arguments != null){
         var chatroomData = arguments[0]['chatroom'];
           Chatroom chatroom = Chatroom.fromJson(chatroomData);
-          onChatroomUpdate?.call(chatroom);
+        chatroom.messages!.sort((a, b) => b.createdAt.compareTo(a.createdAt!));
+
+        onChatroomUpdate?.call(chatroom);
       }
       notifyListeners();
     });
@@ -204,16 +206,12 @@ class SignalRService with ChangeNotifier {
       }
     });
 
-    _hubConnection!.on('JoinChatroom', (arguments) {
-      if(arguments != null){
-
-      }
-    });
-
     _hubConnection!.on('ReceiveMessage', (arguments){
       if(arguments != null) {
 
         onReceiveMessage?.call(Message.fromJson(arguments[0]['message']), Chatroom.fromJson(arguments[0]['chatroom']));
+
+        notifyListeners();
       }
     });
 
@@ -255,8 +253,8 @@ class SignalRService with ChangeNotifier {
     });
     _hubConnection!.on('Online', (arguments) {
       logger.i("🔔 SignalR Event: Online Received!");
+
       if (arguments != null) {
-        logger.i(arguments[0]);
         List<MainTag> updatedTags =
         (arguments[0]['tags'] as List).map((tag) => MainTag.fromJson(tag)).toList();
 
@@ -278,7 +276,6 @@ class SignalRService with ChangeNotifier {
             "🔹 Updated Tickets: ${updatedTickets.length}\n"
             "🔹 Updated Status: ${updatedStatus.length}"
         );
-
         onTagUpdate?.call(updatedTags);
         onFAQUpdate?.call(updatedFAQs);
         onTicketsUpdate?.call(updatedTickets);

@@ -2,7 +2,6 @@ using GoldenTicket.Database;
 using GoldenTicket.Entities;
 using GoldenTicket.Models;
 using GoldenTicket.Utilities;
-using GoldenTracker.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -33,7 +32,7 @@ namespace GoldenTicket.Controllers
             }
             try
             {
-                DBUtil.AddFAQ(faq.Title!, faq.Description!, faq.Solution!, faq.MainTagID!, faq.SubTagID!);
+                // DBUtil.AddFAQ(faq.Title!, faq.Description!, faq.Solution!, faq.MainTagID!, faq.SubTagID!);
                 return Ok(new {status = 200, message = "FAQ added successfully!"});
             }
             catch (Exception err)

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:golden_ticket_enterprise/styles/colors.dart';
+import 'package:golden_ticket_enterprise/widgets/add_user_widget.dart';
+import 'package:golden_ticket_enterprise/widgets/user_edit_widget.dart';
 import 'package:provider/provider.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
@@ -20,6 +23,42 @@ class _UserManagementPageState extends State<UserManagementPage> {
     {'name': 'Mike Johnson', 'email': 'mike.johnson@example.com', 'role': 'Support'},
   ];
 
+  void _openAdminPopup({String? name, String? email, String? role, int? index}) {
+    showDialog(
+      context: context,
+      builder: (context) => AddUserWidget(
+        adminName: name,
+        adminEmail: email,
+        adminRole: role,
+        onSave: (newName, newEmail, newRole) {
+          setState(() {
+            if (index != null) {
+              users[index] = {"name": newName, "email": newEmail, "role": newRole};
+            } else {
+              users.add({"name": newName, "email": newEmail, "role": newRole});
+            }
+          });
+        },
+      ),
+    );
+  }
+
+  void _openEditAdminPopup(int index) {
+    var user = users[index];
+    showDialog(
+      context: context,
+      builder: (context) => EditUserPopup(
+        adminName: user["name"]!,
+        adminEmail: user["email"]!,
+        adminRole: user["role"]!,
+        onSave: (newName, newEmail, newRole) {
+          setState(() {
+            users[index] = {"name": newName, "email": newEmail, "role": newRole};
+          });
+        },
+      ),
+    );
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -45,7 +84,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                         children: [
                           ElevatedButton(
                             onPressed: () {
-                              context.go('/edit-user/${users[index]['email']}');
+                              _openEditAdminPopup(index);
                             },
                             child: Text('Edit'),
                           ),
@@ -70,10 +109,10 @@ class _UserManagementPageState extends State<UserManagementPage> {
       ),
       floatingActionButton: FloatingActionButton(
         heroTag: "add_user",
-        onPressed: () {
-        },
+        onPressed: () => _openAdminPopup(),
         child: Icon(Icons.person_add),
-        backgroundColor: Colors.green,
+        foregroundColor: kTertiary,
+        backgroundColor: kPrimary,
       ),
     );
   }

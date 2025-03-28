@@ -1,6 +1,6 @@
 using GoldenTicket.Hubs;
 using GoldenTicket.Services;
-using Microsoft.Extensions.FileProviders;
+using GoldenTicket.Utilities;
 using OpenAIApp.Services;
 namespace GoldenTicket.Extensions;
 
@@ -15,6 +15,7 @@ public static class ApplicationServiceExtensions
         services.AddSingleton<ConfigService>();
         services.AddSingleton<PromptService>();
         services.AddSingleton<OpenAIService>();
+        services.AddSingleton<AIUtil>();
         services.AddSingleton<ApiConfig>();
         services.AddSignalR().AddHubOptions<GTHub>(options =>
         {

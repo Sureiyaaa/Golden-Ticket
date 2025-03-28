@@ -1,7 +1,6 @@
 using GoldenTicket.Entities;
 using GoldenTicket.Models;
 using GoldenTicket.Utilities;
-using GoldenTracker.Models;
 using Microsoft.AspNetCore.Mvc;
 
 namespace GoldenTicket.Controllers

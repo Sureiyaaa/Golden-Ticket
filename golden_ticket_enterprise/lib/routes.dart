@@ -1,47 +1,24 @@
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:golden_ticket_enterprise/entities/user.dart';
-import 'package:golden_ticket_enterprise/models/gt_hub.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
 import 'package:golden_ticket_enterprise/screens/hub.dart';
 import 'package:golden_ticket_enterprise/screens/error.dart';
 import 'package:golden_ticket_enterprise/screens/login.dart';
-import 'package:golden_ticket_enterprise/screens/tickets.dart';
+import 'package:golden_ticket_enterprise/screens/chatroom_page.dart';
 import 'package:hive/hive.dart';
-import 'package:provider/provider.dart';
 
 class AppRoutes {
   static GoRouter getRoutes() {
     return GoRouter(
-        redirect: (context, state) {
-          var box = Hive.box<HiveSession>('sessionBox');
-          var userSession = box.get('user');
-
-          // Redirect to login if no session exists
-          if (userSession == null && state.fullPath != '/login') {
-            return '/login';
-          }
-
-          return null; // No redirect needed
-      },
+      initialLocation: Hive.box<HiveSession>('sessionBox').get('user') == null ? '/login' : '/hub',
       routes: [
-        GoRoute(path: '/', redirect: (context, state) => '/login'),
         GoRoute(path: '/login', builder: (context, state) => LoginPage()),
         GoRoute(
           path: '/hub',
+          redirect: (context, state) => Hive.box<HiveSession>('sessionBox').get('user') == null ? '/login' : null, // ✅ Redirect before building
           builder: (context, state) {
-
-            var box = Hive.box<HiveSession>('sessionBox');
-            var userSession = box.get('user');
-            if (userSession == null) {
-              print("No user session found in Hive!");
-              return ErrorPage(errorMessage: "Unauthorized Access!");
-            } else {
-              print("User session found: ${userSession.user.username}");
-              final signalRService =Provider.of<SignalRService>(context, listen: true);
-              // Get the passed User data
-              final HiveSession? session = box.get('user')!;
-              return HubPage(session: session!, signalRService: signalRService);
-            }
+            var userSession = Hive.box<HiveSession>('sessionBox').get('user');
+            return HubPage(session: userSession);
           },
         ),
         GoRoute(
@@ -49,6 +26,17 @@ class AppRoutes {
           builder: (context, state) {
             final errorMessage = state.extra as String? ?? 'An unknown error occurred';
             return ErrorPage(errorMessage: errorMessage);
+          },
+        ),
+        GoRoute(
+          path: '/hub/chatroom/:chatroomID',
+          redirect: (context, state) => Hive.box<HiveSession>('sessionBox').get('user') == null ? '/login' : null, // ✅ Redirect before building
+          builder: (context, state) {
+            final chatroomID = int.tryParse(state.pathParameters['chatroomID']!);
+            if (chatroomID == null) {
+              return ErrorPage(errorMessage: 'Invalid chatroom ID');
+            }
+            return ChatroomPage(chatroomID: chatroomID);
           },
         ),
       ],

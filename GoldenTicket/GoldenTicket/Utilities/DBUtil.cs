@@ -1,6 +1,5 @@
 using GoldenTicket.Database;
 using GoldenTicket.Entities;
-using GoldenTicket.Utilities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,6 +8,10 @@ namespace GoldenTicket.Utilities
     public class DBUtil()
     {
         #region FAQ
+
+
+
+        #region -   GetFAQs
         public static List<FAQDTO> GetFAQs()
         {
             using(var context = new ApplicationDbContext()){
@@ -27,6 +30,8 @@ namespace GoldenTicket.Utilities
                 return faqs;
             }
         }
+        #endregion
+        #region -   AddFAQ
         public static FAQ AddFAQ(string _title, string _description, string _solution, int _mainTagID, int _subTagID)
         {
             using(var context = new ApplicationDbContext()){
@@ -48,9 +53,13 @@ namespace GoldenTicket.Utilities
             }
         }
         #endregion
-
+        #endregion
 
         #region Tags
+
+
+
+        #region -   GetTags
         public static List<MainTagDTO> GetTags()
         {
             using (var context = new ApplicationDbContext())
@@ -70,8 +79,8 @@ namespace GoldenTicket.Utilities
                     .ToList();
             }
         }  
-        
-
+        #endregion
+        #region -   AddMainTag
         public static void AddMainTag(string TagName)
         {
             using(var context = new ApplicationDbContext()){
@@ -85,6 +94,8 @@ namespace GoldenTicket.Utilities
                 context.SaveChanges();
             }
         }
+        #endregion
+        #region -   AddSubTag
         public static void AddSubTag(string TagName, string MainTagName)
         {
             using(var context = new ApplicationDbContext()){
@@ -98,9 +109,13 @@ namespace GoldenTicket.Utilities
             }
         }
         #endregion
-
-
+        #endregion
         #region User
+
+
+
+
+        #region -   RegisterAccount
         public static void RegisterAccount(string Username, string Password, string FirstName, string? MiddleName, string LastName, int? RoleID)
         {
             using(var Context = new ApplicationDbContext()){
@@ -119,7 +134,8 @@ namespace GoldenTicket.Utilities
                 Context.SaveChanges();
             }
         }
-      
+        #endregion
+        #region -   IsUserExisting
         public static bool IsUserExisting(string username)
         {
             using(var context = new ApplicationDbContext()){
@@ -134,6 +150,8 @@ namespace GoldenTicket.Utilities
                 return user == null ? false : true;
             }
         }
+        #endregion
+        #region -   FindUser
         public static User FindUser(string Username)
         {
             using(var context = new ApplicationDbContext()){
@@ -150,6 +168,8 @@ namespace GoldenTicket.Utilities
                 return user!;
             }
         }
+        #endregion
+        #region -   GetUsersByRole
         public static Dictionary<string, List<UserDTO>> GetUsersByRole() 
         {
             using (var context = new ApplicationDbContext())
@@ -172,15 +192,21 @@ namespace GoldenTicket.Utilities
                 return users;
             }
         }
+        #endregion
+        #region -   GetAdminUsers
         public static List<UserDTO> GetAdminUsers() {
             using(var context = new ApplicationDbContext()){
                 return context.Users.Include(u => u.Role).Where(user => user.Role!.RoleName == "Admin").Select(user => new UserDTO(user)).ToList();
             }
         }
         #endregion
-
-
+        #endregion
         #region Ticket
+
+
+
+
+        #region -   AddTicket
         public async static Task<Tickets> AddTicket(string TicketTitle, int AuthorID, string MainTagName, string SubTagName, int ChatroomID)
         {
             int? mainTagID = null;
@@ -248,7 +274,8 @@ namespace GoldenTicket.Utilities
                 return newTicket;
             }
         }
-
+        #endregion
+        #region -   GetTickets
         public static List<TicketDTO> GetTickets(int userID, bool isEmployee)
         {
             
@@ -281,6 +308,8 @@ namespace GoldenTicket.Utilities
                 return ticketDTOs;
             }
         }
+        #endregion
+        #region -   GetTicket
         public static Tickets? GetTicket(int ticketID) 
         {
             using(var context = new ApplicationDbContext())
@@ -298,6 +327,8 @@ namespace GoldenTicket.Utilities
                     .FirstOrDefault(t => t.TicketID == ticketID);
             }
         }
+        #endregion
+        #region -   GetStatuses
         public static List<string> GetStatuses()
         {
             using(var context = new ApplicationDbContext())
@@ -308,9 +339,14 @@ namespace GoldenTicket.Utilities
             }
         }
         #endregion
-
-
+        #endregion
         #region Chatroom
+
+
+
+
+
+        #region -   AddChatroom
         public async static Task<Chatroom> AddChatroom(int AuthorID)
         {
             using(var context = new ApplicationDbContext())
@@ -344,8 +380,9 @@ namespace GoldenTicket.Utilities
                 return newChat;
             }
         }
+        #endregion
         #region -   JoinChatroom
-        public static void JoinChatroom(int UserID, int ChatroomID)
+        public static ChatroomDTO JoinChatroom(int UserID, int ChatroomID)
         {
             using(var context = new ApplicationDbContext()) 
             {
@@ -358,6 +395,7 @@ namespace GoldenTicket.Utilities
                 chatroom!.Members.Add(newMember);
                 context.Chatrooms.Attach(chatroom!);
                 context.SaveChanges();
+                return new ChatroomDTO(chatroom);
             }
         }
         #endregion
@@ -438,6 +476,7 @@ namespace GoldenTicket.Utilities
             }
         }
         #endregion
+        #region -   UpdateLastSeen
         public static void UpdateLastSeen(int UserID, int ChatroomID)
         {
             using(var context = new ApplicationDbContext())
@@ -449,6 +488,8 @@ namespace GoldenTicket.Utilities
                 }
             }
         }
+        #endregion
+        #region -   SendMessage
         public async static Task<Message> SendMessage(int SenderID, int ChatroomID, string Message)
         {
             using(var context = new ApplicationDbContext())
@@ -464,6 +505,8 @@ namespace GoldenTicket.Utilities
                 return message;
             }
         }
+        #endregion
+        #region -   GetMessage
         public static Message? GetMessage(int MessageID)
         {
             using (var context = new ApplicationDbContext())
@@ -474,7 +517,7 @@ namespace GoldenTicket.Utilities
                     .FirstOrDefault(m => m.MessageID == MessageID);
             }
         }
-        
+        #endregion
         #endregion
     }
 }

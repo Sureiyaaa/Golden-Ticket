@@ -42,7 +42,7 @@ namespace GoldenTicket.Hubs
         public async Task AddFAQ(string Title, string Description, string Solution, int MainTagID, int SubTagID) 
         {
             var newFAQ = DBUtil.AddFAQ(Title, Description, Solution, MainTagID, SubTagID);
-            await Clients.All.SendAsync("FAQUpdate", new {faq = newFAQ});
+            await Clients.All.SendAsync("FAQUpdate", new {faq = DBUtil.GetFAQs()});
         }
         #endregion
 
@@ -70,6 +70,19 @@ namespace GoldenTicket.Hubs
                 }
             }
             await Clients.Caller.SendAsync("ReceiveSupport", new {chatroom =  chatroomDTO});
+        }
+        public async Task JoinChatroom(int UserID, int ChatroomID)
+        {
+            var chatroomDTO = DBUtil.JoinChatroom(UserID, ChatroomID);
+            var userDTO = new UserDTO(DBUtil.FindUser(UserID));
+            foreach(var member in chatroomDTO.GroupMembers)
+            {
+                var receiverConnectionId = _connections.Where(x => x.Value == member.User.UserID).ToList();
+                foreach(var connection in receiverConnectionId)
+                {
+                    await Clients.All.SendAsync("StaffJoined", new {user = userDTO, chatroom = chatroomDTO});
+                }
+            }
         }
         public async Task OpenChatroom(int UserID, int ChatroomID) 
         {

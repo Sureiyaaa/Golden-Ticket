@@ -39,7 +39,7 @@ namespace GoldenTicket.Entities
         public LastMessageDTO? LastMessage { get; set; } = null;
         public DateTime? CreatedAt  { get; set; }
 
-        public ChatroomDTO(Chatroom chatroom, bool IncludeMessages = false)
+        public ChatroomDTO(Chatroom chatroom, bool IncludeLastMessageOnly, bool IncludeMessages = false)
         {
             this.ChatroomID = chatroom.ChatroomID;
             this.ChatroomName = chatroom.ChatroomName;
@@ -48,7 +48,7 @@ namespace GoldenTicket.Entities
             this.Ticket = chatroom.Ticket != null ? new TicketDTO(chatroom.Ticket) : null;
 
             // Sort messages from latest to earliest
-            if(IncludeMessages){
+            if(IncludeLastMessageOnly || IncludeMessages){
                 this.Messages = chatroom.Messages
                     .OrderByDescending(m => m.CreatedAt)
                     .Select(m => new MessageDTO(m))
@@ -57,7 +57,7 @@ namespace GoldenTicket.Entities
             // Assign the last message if available
             var lastMessage = chatroom.Messages.OrderByDescending(m => m.CreatedAt).FirstOrDefault();
             this.LastMessage = lastMessage != null ? new LastMessageDTO(lastMessage) : null;
-
+            if(!IncludeMessages) this.Messages = [];
             this.GroupMembers = chatroom.Members
                 .Select(member => new GroupMemberDTO(member))
                 .ToList();

@@ -3,11 +3,11 @@ import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
 import 'package:golden_ticket_enterprise/entities/user.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
-import 'package:golden_ticket_enterprise/models/signalr_service.dart';
 import 'package:golden_ticket_enterprise/secret.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:golden_ticket_enterprise/models/http_request.dart' as http;
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -19,6 +19,7 @@ class LoginPage extends StatefulWidget {
 class _LoginPage extends State<LoginPage> {
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  var logger = Logger();
   // This widget is the root of your application.
 
   @override
@@ -30,7 +31,7 @@ class _LoginPage extends State<LoginPage> {
       var userSession = box.get('user');
 
       if (userSession != null) {
-        print("User session found: ${userSession.user.username}");
+        logger.i("User session found: ${userSession.user.username}");
         context.go('/hub', extra: userSession.user);
       }
     });
@@ -142,7 +143,7 @@ class _LoginPage extends State<LoginPage> {
                     SizedBox(height: 10),
                     TextButton(
                       onPressed: () {
-                        print("Navigate to Forgot Password");
+                        logger.d("Navigate to Forgot Password");
                       },
                       child: Text("Forgot Password?",
                           style: TextStyle(color: Colors.blue)),

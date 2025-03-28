@@ -390,7 +390,7 @@ namespace GoldenTicket.Utilities
                 var newMember = new GroupMember 
                 {
                     ChatroomID = ChatroomID,
-                    ChatMemberID = UserID,
+                    MemberID = UserID,
                 };
                 chatroom!.Members.Add(newMember);
                 context.Chatrooms.Attach(chatroom!);

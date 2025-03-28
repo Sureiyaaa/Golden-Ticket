@@ -163,7 +163,7 @@ namespace GoldenTicket.Utilities
         public static User FindUser(int Id)
         {
             using(var context = new ApplicationDbContext()){
-                var user = context.Users.FirstOrDefault(user => user.UserID == Id);
+                var user = context.Users.Include(u => u.Role).FirstOrDefault(user => user.UserID == Id);
 
                 return user!;
             }

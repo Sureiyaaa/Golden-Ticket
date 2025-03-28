@@ -65,6 +65,7 @@ class _HubPageState extends State<HubPage> {
 
 
   void _onDrawerItemTapped(int index) {
+    if (_selectedIndex == index) return; // Prevent reloading the same screen
     setState(() {
       _selectedIndex = index;
     });

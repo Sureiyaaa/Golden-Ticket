@@ -25,11 +25,11 @@ namespace GoldenTicket.Entities
         public int? StatusID { get; set; }
         [ForeignKey("StatusID")]
         public Status? Status { get; set; } = null;
-        public int MainTagID { get; set; }
+        public int? MainTagID { get; set; }
 
         [ForeignKey("MainTagID")]
         public MainTag? MainTag { get; set; } = null;
-        public int SubTagID { get; set; }
+        public int? SubTagID { get; set; }
 
         [ForeignKey("SubTagID")]
         public SubTag? SubTag { get; set; } = null;

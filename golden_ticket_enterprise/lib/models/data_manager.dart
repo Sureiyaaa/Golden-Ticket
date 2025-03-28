@@ -53,7 +53,7 @@ class DataManager extends ChangeNotifier {
     };
 
     signalRService.onReceiveMessage = (message, chatroom){
-      updateLastMessage(chatroom as Chatroom);
+      updateLastMessage(chatroom);
     };
     signalRService.onSeenUpdate = (userID, chatroomID){
       updateMemberSeen(userID, chatroomID);
@@ -70,6 +70,7 @@ class DataManager extends ChangeNotifier {
     };
     signalRService.onStaffJoined = (user, chatroom){
       updateChatroom(chatroom);
+
     };
   }
 
@@ -93,7 +94,17 @@ class DataManager extends ChangeNotifier {
   }
   void updateChatrooms(List<Chatroom> chatroomList){
     chatrooms = chatroomList;
-    chatrooms.sort((a, b) => b.lastMessage!.createdAt!.compareTo(a.lastMessage!.createdAt!));
+    chatrooms.sort((a, b) {
+      DateTime? aTime = a.lastMessage?.createdAt;
+      DateTime? bTime = b.lastMessage?.createdAt;
+
+      // If one of the messages is null, place the chatroom without messages at the bottom
+      if (aTime == null && bTime == null) return 0;
+      if (aTime == null) return 1;
+      if (bTime == null) return -1;
+
+      return bTime.compareTo(aTime); // Newest first
+    });
     notifyListeners();
   }
   void updateLastMessage(Chatroom chatroom){
@@ -102,7 +113,20 @@ class DataManager extends ChangeNotifier {
     if (index != -1) {
       chatrooms[index].lastMessage = chatroom.lastMessage;
     }
-    chatrooms.sort((a, b) => b.lastMessage!.createdAt!.compareTo(a.lastMessage!.createdAt!));
+    chatrooms.sort((a, b) {
+      DateTime? aTime = a.lastMessage?.createdAt;
+      DateTime? bTime = b.lastMessage?.createdAt;
+
+      // If one of the messages is null, place the chatroom without messages at the bottom
+      if (aTime == null && bTime == null) return 0;
+      if (aTime == null) return 1;
+      if (bTime == null) return -1;
+
+      return bTime.compareTo(aTime); // Newest first
+    });
+
+    notifyListeners();
+    print("Chatrooms list updated. Total chatrooms: ${chatrooms.length}");
   }
   void addMessage(message, chatroom){
     int index = chatrooms.indexWhere((c) => c.chatroomID == chatroom.chatroomID);
@@ -111,7 +135,7 @@ class DataManager extends ChangeNotifier {
       chatrooms[index].messages!.add(message);
       chatrooms[index].messages!.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     }
-    chatrooms.sort((a, b) => b.lastMessage!.createdAt!.compareTo(a.lastMessage!.createdAt!));
+    updateLastMessage(chatroom);
     notifyListeners();
   }
 

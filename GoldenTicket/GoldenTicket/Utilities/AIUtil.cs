@@ -1,7 +1,10 @@
 using GoldenTicket.Services;
 using GoldenTicket.Models;
 using OpenAIApp.Services;
-using GoldenTicket.Controllers;
+using OpenAI.Chat;
+using GoldenTicket.Database;
+using GoldenTicket.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace GoldenTicket.Utilities
 {
@@ -44,8 +47,11 @@ namespace GoldenTicket.Utilities
                     throw new InvalidOperationException("AIUtil is not initialized.");
 
                 if (_message == null || _promptType == null)
-                    return null;
-
+                {
+                    _logger.LogError("[AIUtil]: Message cant be empty");
+                    return AIResponse.Unavailable();
+                }
+                    
                 string additional = _additional + FAQData() ?? "";
                 string requestPrompt = _promptService.GetPrompt(_promptType, additional);
 
@@ -55,7 +61,7 @@ namespace GoldenTicket.Utilities
                 // _logger.LogInformation($"\n[AI-AR Input]: {_message}");
                 // _logger.LogInformation($"[AI-AR Response]: {aiResponse}");
 
-                return !string.IsNullOrWhiteSpace(parsedResponse.Message) ? parsedResponse : null;
+                return string.IsNullOrWhiteSpace(parsedResponse.Message) ? parsedResponse : AIResponse.Unavailable();
             }
             catch (Exception ex)
             {
@@ -82,11 +88,85 @@ namespace GoldenTicket.Utilities
             var faqData = DBUtil.GetFAQs();
             foreach (var faq in faqData)
             {
-                faqList += $"FAQ: {faq.Title}\nDescription: {faq.Description}\nSolution: {faq.Solution}\nMainTag: {faq.MainTag!.MainTagID}\n>{faq.SubTag!.SubTagName}\n\n";
+                faqList += $"FAQ: {faq.Title}\nDescription: {faq.Description}\nSolution: {faq.Solution}\nMainTag: {faq.MainTag!.MainTagName}\n>{faq.SubTag!.SubTagName}\n\n";
             }
 
             return $"\n[FAQ DATA] \nTag List:\n{tagList}--------------------------------------------\n{faqList}";
         }
+
+        public static Dictionary<string, List<ChatMessage>> PopulateID()
+        {
+            Dictionary<string, List<ChatMessage>> MessageList = new();
+
+            using (var context = new ApplicationDbContext())
+            {
+                List<ChatroomDTO> dtos = new();
+                List<Chatroom> chatrooms = context.Chatrooms
+                    .Include(c => c.Members)
+                        .ThenInclude(m => m.Member)
+                            .ThenInclude(t => t!.Role)
+                    .Include(c => c.Messages)
+                        .ThenInclude(m => m.Sender)
+                            .ThenInclude(u => u!.Role)
+                    .Include(c => c.Ticket)
+                        .ThenInclude(t => t!.Author)
+                            .ThenInclude(t => t!.Role)
+                    .Include(c => c.Ticket)
+                        .ThenInclude(t => t!.Assigned)
+                            .ThenInclude(t => t!.Role)
+                    .Include(c => c.Ticket)
+                        .ThenInclude(t => t!.ticketHistories)
+                            .ThenInclude(t => t!.Action)
+                    .Include(c => c.Ticket)
+                        .ThenInclude(t => t!.MainTag)
+                    .Include(c => c.Ticket)
+                        .ThenInclude(t => t!.SubTag)
+                    .Include(c => c.Ticket)
+                        .ThenInclude(t => t!.Status)
+                    .Include(c => c.Author)
+                        .ThenInclude(t => t!.Role)
+                    .ToList();
+
+                foreach (var chatroom in chatrooms.Where(c => c.TicketID != 99))
+                {
+                    dtos.Add(new ChatroomDTO(chatroom, true));
+                }
+
+                foreach (var chatroom in dtos)
+                {
+                    List<ChatMessage> chatMessages = new();
+
+                    foreach (var message in chatroom.Messages!)
+                    {
+                        if (message.Sender!.UserID != 100000001)
+                        {
+                            chatMessages.Add(new UserChatMessage(message.MessageContent));
+                        }
+                    }
+                    if (!MessageList.ContainsKey(chatroom.ChatroomID.ToString()!))
+                    {
+                        MessageList[chatroom.ChatroomID.ToString()!] = chatMessages;
+                        Console.WriteLine($"[AIUtil] added chatroom {chatroom.ChatroomID} to chat history");
+                    }
+                }
+            }
+            return MessageList;
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         private string ManualFAQData() {
             return @"FAQ 1: The MaxHub Sharescreen code is not showing, how do i fix this?

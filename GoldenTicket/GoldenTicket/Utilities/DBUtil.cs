@@ -240,8 +240,9 @@ namespace GoldenTicket.Utilities
                 var chatroom = GetChatroom(ChatroomID);
                 if (chatroom != null)
                 {
+                    context.Chatrooms.Attach(chatroom);
                     chatroom.TicketID = newTicket.TicketID;
-                    context.SaveChanges();
+                    await context.SaveChangesAsync();
                 }
 
                 return newTicket;
@@ -343,6 +344,19 @@ namespace GoldenTicket.Utilities
                 return newChat;
             }
         }
+        public static void JoinChatroom(int UserID, int ChatroomID)
+        {
+            using(var context = new ApplicationDbContext()) 
+            {
+                var chatroom = GetChatroom(UserID);
+                var newMember = new GroupMember 
+                {
+                    ChatroomID = ChatroomID,
+                    ChatMemberID = UserID,
+                };
+                
+            }
+        }
         public static List<ChatroomDTO> GetChatrooms(int userID, bool isEmployee = false)
         {
             using(var context = new ApplicationDbContext())
@@ -413,8 +427,6 @@ namespace GoldenTicket.Utilities
                 if(member != null){
                     member.LastSeenAt = DateTime.Now;
                     context.SaveChanges();
-                } else {
-                    Console.WriteLine("Member not found");
                 }
             }
         }

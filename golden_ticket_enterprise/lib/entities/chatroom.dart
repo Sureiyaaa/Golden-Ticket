@@ -6,13 +6,13 @@ import 'package:golden_ticket_enterprise/entities/user.dart';
 
 class Chatroom {
   final int chatroomID;
-  final String chatroomName;
+  String chatroomName;
   final User author;
   Ticket? ticket;
   List<Message>? messages = [];
   LastMessage? lastMessage;
-  final List<GroupMember> groupMembers;
-  final DateTime createdAt;
+  List<GroupMember> groupMembers;
+  DateTime createdAt;
 
   Chatroom({required this.chatroomID, required this.chatroomName, required this.author, this.ticket, required this.createdAt, required this.messages, required this.groupMembers, required this.lastMessage});
 
@@ -50,9 +50,9 @@ class Chatroom {
 }
 
 class LastMessage{
-  final String? messageContent;
-  final User? sender;
-  final DateTime? createdAt;
+  String? messageContent;
+  User? sender;
+  DateTime? createdAt;
   LastMessage({required this.messageContent, required this.sender, required this.createdAt});
   factory LastMessage.fromJson(Map<String, dynamic> json) {
     return LastMessage(

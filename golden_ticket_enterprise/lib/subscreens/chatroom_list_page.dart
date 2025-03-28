@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:go_router/go_router.dart';
 import 'package:golden_ticket_enterprise/entities/chatroom.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
@@ -118,12 +119,7 @@ class _ChatroomListPageState extends State<ChatroomListPage> {
                     child: Row(
                       children: [
                         Expanded(
-                          child: Text(
-                            lastMessage,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: Colors.grey[700], fontSize: 14),
-                          ),
+                          child: _buildLastMessage(lastMessage)
                         ),
                         if (messageTime.isNotEmpty)
                           Padding(
@@ -148,5 +144,22 @@ class _ChatroomListPageState extends State<ChatroomListPage> {
         );
       },
     );
+
   }
+  Widget _buildLastMessage(String messageContent) {
+    // Replace newlines with spaces to prevent chatroom distortion
+    String cleanedMessage = messageContent.replaceAll("\n", " ");
+
+    return MarkdownBody(
+      data: cleanedMessage,
+      styleSheet: MarkdownStyleSheet(
+        p: TextStyle(color: Colors.grey[700], fontSize: 14),
+        strong: TextStyle(fontWeight: FontWeight.bold), // Handles **bold**
+        em: TextStyle(fontStyle: FontStyle.italic),     // Handles *italic*
+        blockquote: TextStyle(color: Colors.grey[600], fontStyle: FontStyle.italic),
+      ),
+      selectable: false,
+    );
+  }
+
 }

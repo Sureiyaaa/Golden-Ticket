@@ -387,6 +387,8 @@ namespace GoldenTicket.Utilities
                         .ThenInclude(t => t!.MainTag)
                     .Include(c => c.Ticket)
                         .ThenInclude(t => t!.SubTag)
+                    .Include(c => c.Ticket)
+                        .ThenInclude(t => t!.Status)
                     .Include(c => c.Author)
                         .ThenInclude(t => t!.Role).ToList();
                 if(isEmployee){   
@@ -425,6 +427,8 @@ namespace GoldenTicket.Utilities
                     .Include(c => c.Ticket)
                         .ThenInclude(t => t!.ticketHistories)
                             .ThenInclude(t => t!.Action)
+                    .Include(c => c.Ticket)
+                        .ThenInclude(t => t!.Status)
                     .Include(c => c.Messages)
                         .ThenInclude(m => m.Sender)
                             .ThenInclude(u => u!.Role)

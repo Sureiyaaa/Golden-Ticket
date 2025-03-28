@@ -93,6 +93,7 @@ class DataManager extends ChangeNotifier {
   }
   void updateChatrooms(List<Chatroom> chatroomList){
     chatrooms = chatroomList;
+    chatrooms.sort((a, b) => b.lastMessage!.createdAt!.compareTo(a.lastMessage!.createdAt!));
     notifyListeners();
   }
   void updateLastMessage(Chatroom chatroom){
@@ -101,6 +102,7 @@ class DataManager extends ChangeNotifier {
     if (index != -1) {
       chatrooms[index].lastMessage = chatroom.lastMessage;
     }
+    chatrooms.sort((a, b) => b.lastMessage!.createdAt!.compareTo(a.lastMessage!.createdAt!));
   }
   void addMessage(message, chatroom){
     int index = chatrooms.indexWhere((c) => c.chatroomID == chatroom.chatroomID);
@@ -109,6 +111,7 @@ class DataManager extends ChangeNotifier {
       chatrooms[index].messages!.add(message);
       chatrooms[index].messages!.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     }
+    chatrooms.sort((a, b) => b.lastMessage!.createdAt!.compareTo(a.lastMessage!.createdAt!));
     notifyListeners();
   }
 

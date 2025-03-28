@@ -386,7 +386,7 @@ namespace GoldenTicket.Utilities
         {
             using(var context = new ApplicationDbContext()) 
             {
-                var chatroom = GetChatroom(UserID);
+                var chatroom = GetChatroom(ChatroomID);
                 var newMember = new GroupMember 
                 {
                     ChatroomID = ChatroomID,

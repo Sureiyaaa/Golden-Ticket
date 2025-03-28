@@ -5,6 +5,7 @@ import 'package:golden_ticket_enterprise/entities/faq.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
+import 'package:golden_ticket_enterprise/widgets/add_faq_widget.dart';
 import 'package:provider/provider.dart';
 
 class FAQPage extends StatefulWidget {
@@ -27,9 +28,9 @@ class _FAQPageState extends State<FAQPage> {
       builder: (context, dataManager, child) {
 
         dataManager.signalRService.onReceiveSupport = (chatroom){
-          print(chatroom.chatroomID);
           context.push('/hub/chatroom/${chatroom.chatroomID}');
         };
+
         dataManager.signalRService.onMaximumChatroom = (){
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -45,6 +46,10 @@ class _FAQPageState extends State<FAQPage> {
           return matchesSearch && matchesMainTag && matchesSubTag;
         }).toList();
 
+        void addFAQ(String title, String description, String solution, String mainTag, String subTag){
+
+        }
+
         return Scaffold(
           floatingActionButton: FloatingActionButton(
             heroTag: "add_faq",
@@ -54,7 +59,15 @@ class _FAQPageState extends State<FAQPage> {
                  dataManager.signalRService.requestChat(widget.session!.user.userID);
               } else {
               // Navigate to Add FAQ Page
-                context.push('/faq/add');
+                showDialog(
+                  context: context,
+                  builder: (context) => AddFAQDialog(
+                    onSubmit: (title, description, solution, mainTag, subTag) {
+                      // Handle new FAQ submission
+                      //dataManager.addFAQ(title, description, solution, mainTag, subTag);
+                    },
+                  ),
+                );
               }
             },
             child: Icon(widget.session!.user.role == "Employee" ? Icons.chat : Icons.add),

@@ -94,6 +94,10 @@ class _HubPageState extends State<HubPage> {
               title: Text(_getAppBarTitle()), // Dynamic title
               actions: [
                 IconButton(
+                  icon: Icon(Icons.notifications),
+                  onPressed: (){},
+                ),
+                IconButton(
                   icon: Icon(Icons.logout),
                   onPressed: _logout,
                 ),
@@ -116,7 +120,7 @@ class _HubPageState extends State<HubPage> {
                   if(widget.session?.user.role == "Admin" || widget.session?.user.role == "Staff") _buildDrawerItem(Icons.list, "Tickets", 2),
                   _buildDrawerItem(Icons.question_mark, "FAQ", 3),
                   if(widget.session?.user.role == "Admin") _buildDrawerItem(Icons.person_outline, "User Management", 4),
-                  _buildDrawerItem(Icons.settings, "Settings", 5),
+                  if(widget.session?.user.role == "Admin") _buildDrawerItem(Icons.settings, "Settings", 5),
                 ],
               ),
             ),

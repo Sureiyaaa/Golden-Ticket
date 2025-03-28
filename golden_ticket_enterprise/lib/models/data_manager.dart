@@ -11,6 +11,7 @@ class DataManager extends ChangeNotifier {
   final SignalRService signalRService;
   List<MainTag> mainTags = [];
   List<FAQ> faqs = [];
+  List<String> status = [];
   List<Chatroom> chatrooms = [];
   List<Ticket> tickets = [];
   List<User> users = [];
@@ -57,6 +58,19 @@ class DataManager extends ChangeNotifier {
     signalRService.onSeenUpdate = (userID, chatroomID){
       updateMemberSeen(userID, chatroomID);
     };
+    signalRService.onTicketUpdate = (ticket){
+      updateTicket(ticket);
+    };
+    signalRService.onTicketsUpdate = (updatedTickets){
+      updateTickets(updatedTickets);
+    };
+
+    signalRService.onStatusUpdate = (updatedStatus){
+      updateStatus(updatedStatus);
+    };
+    signalRService.onStaffJoined = (user, chatroom){
+      updateChatroom(chatroom);
+    };
   }
 
   void updateMainTags(List<MainTag> updatedTags) {
@@ -66,6 +80,15 @@ class DataManager extends ChangeNotifier {
 
   void updateFAQs(List<FAQ> updatedFAQs) {
     faqs = updatedFAQs;
+    notifyListeners();
+  }
+
+  void updateStatus(List<String> updatedStatus){
+    status = updatedStatus;
+    notifyListeners();
+  }
+  void updateTickets(List<Ticket> updatedTickets){
+    tickets = updatedTickets;
     notifyListeners();
   }
   void updateChatrooms(List<Chatroom> chatroomList){
@@ -105,14 +128,14 @@ class DataManager extends ChangeNotifier {
 
   void updateChatroom(Chatroom chatroom) {
     int index = chatrooms.indexWhere((c) => c.chatroomID == chatroom.chatroomID);
-    print('Yes');
+
     if (index != -1) {
       // Keep existing messages if the new chatroom's messages are null
       List<Message>? existingMessages = chatrooms[index].messages;
 
       chatrooms[index] = chatroom;  // Update chatroom
 
-      if (chatroom.messages == null) {
+      if (chatroom.messages!.length == 0) {
         chatrooms[index].messages = existingMessages; // Retain old messages
       }
     } else {
@@ -121,7 +144,20 @@ class DataManager extends ChangeNotifier {
     chatrooms.sort((a, b) => b.lastMessage!.createdAt!.compareTo(a.lastMessage!.createdAt!));
     notifyListeners();
   }
-
+  void updateTicket(Ticket ticket) {
+    int index = tickets.indexWhere((c) => c.ticketID == ticket.ticketID);
+    int chatroomIndex = chatrooms.indexWhere((c) => c.chatroomID == ticket.chatroomID);
+    if (index != -1) {
+      tickets[index] = ticket;  // Update chatroom
+    } else {
+      tickets.add(ticket);
+    }
+    if(chatroomIndex != -1){
+      chatrooms[chatroomIndex].ticket = ticket;
+      updateChatroom(chatrooms[chatroomIndex]);
+    }
+    notifyListeners();
+  }
 
   @override
   void dispose() {

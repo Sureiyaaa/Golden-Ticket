@@ -1,5 +1,7 @@
 import 'dart:developer';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:golden_ticket_enterprise/entities/chatroom.dart';
 import 'package:golden_ticket_enterprise/entities/group_member.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
@@ -42,6 +44,9 @@ class _ChatroomPageState extends State<ChatroomPage> {
       setState(() {
         enableMessage = false;
       });
+
+    }else{
+      messageFocusNode.requestFocus();
     }
   }
 
@@ -163,11 +168,15 @@ class _ChatroomPageState extends State<ChatroomPage> {
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       constraints: BoxConstraints(
-                                        maxWidth: constraints.maxWidth * 0.5, // ✅ 40% of available width
+                                        maxWidth: constraints.maxWidth * 0.5, // ✅ 50% of available width
                                       ),
-                                      child: Text(
-                                        message.messageContent,
-                                        textAlign: TextAlign.justify, // ✅ Justified text alignment
+                                      child: MarkdownBody(
+                                        data: message.messageContent, // ✅ Render Markdown
+                                        styleSheet: MarkdownStyleSheet(
+                                          p: TextStyle(fontSize: 14, color: Colors.black),
+                                          strong: const TextStyle(fontWeight: FontWeight.bold),
+                                          blockquote: TextStyle(color: Colors.grey[600], fontStyle: FontStyle.italic),
+                                        ),
                                       ),
                                     ),
                                   );
@@ -208,23 +217,43 @@ class _ChatroomPageState extends State<ChatroomPage> {
           Expanded(
             child: TextField(
               controller: messageController,
+              focusNode: messageFocusNode,
+              keyboardType: TextInputType.multiline,
+              maxLines: 4, // Expands up to 4 lines, then scrolls
+              minLines: 1,
+              textInputAction: TextInputAction.newline, // Allows multi-line
               decoration: InputDecoration(
                 hintText: "Type a message...",
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 10),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
               ),
-              enabled: enableMessage,
-              onSubmitted: (text) => sendMessage(text, chatroom),
+              onEditingComplete: () {
+                // Ensures the message is sent when Enter is pressed
+                sendMessage(messageController.text.trim(), chatroom);
+                messageController.clear();
+                messageFocusNode.requestFocus();
+              },
+              inputFormatters: [
+                TextInputFormatter.withFunction((oldValue, newValue) {
+                  if (newValue.text.endsWith('\n') && !HardwareKeyboard.instance.isShiftPressed) {
+                    sendMessage(newValue.text.trim(), chatroom);
+                    return TextEditingValue.empty;
+                  }
+                  return newValue;
+                }),
+              ],
             ),
           ),
           IconButton(
             icon: Icon(Icons.send, color: enableMessage ? Colors.blue : Colors.grey),
-            onPressed: enableMessage ? () => sendMessage(messageController.text, chatroom) : null,
+            onPressed: enableMessage ? () => sendMessage(messageController.text.trim(), chatroom) : null,
           ),
         ],
       ),
     );
   }
+
+
 
   Widget _buildJoinRoomButton(DataManager dataManager, HiveSession? userSession, Chatroom chatroom) {
     return Padding(

@@ -4,7 +4,7 @@ import 'package:golden_ticket_enterprise/models/data_manager.dart';
 import 'package:provider/provider.dart';
 
 class AddFAQDialog extends StatefulWidget {
-  final Function(String title, String description, String solution, String? mainTag, String? subTag) onSubmit;
+  final Function(String title, String description, String solution, String mainTag, String subTag) onSubmit;
 
   const AddFAQDialog({Key? key, required this.onSubmit}) : super(key: key);
 
@@ -13,6 +13,7 @@ class AddFAQDialog extends StatefulWidget {
 }
 
 class _AddFAQDialogState extends State<AddFAQDialog> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController titleController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
   final TextEditingController solutionController = TextEditingController();
@@ -28,74 +29,84 @@ class _AddFAQDialogState extends State<AddFAQDialog> {
 
         return Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-          child: Container(
+          child: SizedBox(
             width: MediaQuery.of(context).size.width * 0.4,
-            padding: const EdgeInsets.all(20),
+            height: MediaQuery.of(context).size.height * 0.7, // Limit height to 70% of screen
             child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Add FAQ", style: Theme.of(context).textTheme.headlineMedium),
-                  const SizedBox(height: 16),
+              padding: const EdgeInsets.all(20),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Add FAQ", style: Theme.of(context).textTheme.headlineMedium),
+                    const SizedBox(height: 16),
 
-                  // Title
-                  _buildTextField(titleController, "Title", 1),
+                    _buildTextField(titleController, "Title", 1),
+                    _buildTextField(descriptionController, "Description", 3),
+                    _buildTextField(solutionController, "Solution", 3),
 
-                  // Description
-                  _buildTextField(descriptionController, "Description", 3),
+                    _buildDropdown(
+                      "Select Main Tag",
+                      selectedMainTag,
+                      mainTags.map((tag) => tag.tagName).toList(),
+                          (value) {
+                        setState(() {
+                          selectedMainTag = value;
+                          selectedSubTag = null;
+                        });
+                      },
+                    ),
 
-                  // Solution
-                  _buildTextField(solutionController, "Solution", 3),
+                    _buildDropdown(
+                      "Select Sub Tag",
+                      selectedSubTag,
+                      selectedMainTag == null
+                          ? []
+                          : mainTags
+                          .firstWhere((tag) => tag.tagName == selectedMainTag)
+                          .subTags
+                          .map((subTag) => subTag.subTagName)
+                          .toList(),
+                          (value) {
+                        setState(() {
+                          selectedSubTag = value;
+                        });
+                      },
+                    ),
 
-                  // Main Tag Dropdown
-                  _buildDropdown("Select Main Tag", selectedMainTag, mainTags.map((tag) => tag.tagName).toList(), (value) {
-                    setState(() {
-                      selectedMainTag = value;
-                      selectedSubTag = null;
-                    });
-                  }),
+                    const SizedBox(height: 20),
 
-                  // Sub Tag Dropdown
-                  _buildDropdown("Select Sub Tag", selectedSubTag, selectedMainTag == null
-                      ? []
-                      : mainTags
-                      .firstWhere((tag) => tag.tagName == selectedMainTag)
-                      .subTags
-                      .map((subTag) => subTag.subTagName)
-                      .toList(), (value) {
-                    setState(() {
-                      selectedSubTag = value;
-                    });
-                  }),
-
-                  const SizedBox(height: 20),
-
-                  // Buttons
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text("Cancel"),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Wrap(
+                        spacing: 8,
+                        children: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text("Cancel"),
+                          ),
+                          ElevatedButton(
+                            onPressed: () {
+                              if (_formKey.currentState!.validate()) {
+                                widget.onSubmit(
+                                  titleController.text,
+                                  descriptionController.text,
+                                  solutionController.text,
+                                  selectedMainTag!,
+                                  selectedSubTag!,
+                                );
+                                Navigator.pop(context);
+                              }
+                            },
+                            child: const Text("Add FAQ"),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      ElevatedButton(
-                        onPressed: () {
-                          widget.onSubmit(
-                            titleController.text,
-                            descriptionController.text,
-                            solutionController.text,
-                            selectedMainTag,
-                            selectedSubTag,
-                          );
-                          Navigator.pop(context);
-                        },
-                        child: const Text("Add FAQ"),
-                      ),
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -115,6 +126,7 @@ class _AddFAQDialogState extends State<AddFAQDialog> {
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         ),
+        validator: (value) => value == null || value.trim().isEmpty ? 'This field is required' : null,
       ),
     );
   }
@@ -127,6 +139,7 @@ class _AddFAQDialogState extends State<AddFAQDialog> {
         hint: Text(hint),
         items: items.map((item) => DropdownMenuItem(value: item, child: Text(item))).toList(),
         onChanged: onChanged,
+        validator: (value) => value == null ? 'Please select a value' : null,
         decoration: InputDecoration(
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),

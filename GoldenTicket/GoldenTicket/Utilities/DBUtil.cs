@@ -248,13 +248,13 @@ namespace GoldenTicket.Utilities
             }
         }
 
-        public static List<Tickets> GetTickets(int userID, bool isEmployee)
+        public static List<TicketDTO> GetTickets(int userID, bool isEmployee)
         {
+            
             using(var context = new ApplicationDbContext())
             {
-                if (isEmployee)
-                {
-                    return context.Tickets
+                List<TicketDTO> ticketDTOs = new List<TicketDTO>();
+                List<Tickets> ticketList = context.Tickets
                         .Include(t => t.ticketHistories)
                             .ThenInclude(t => t.Action)
                         .Include(t => t.Author)
@@ -265,22 +265,19 @@ namespace GoldenTicket.Utilities
                         .Include(t => t.SubTag)
                         .Include(t => t.Status)
                         .ToList();
+                if (isEmployee)
+                {
+                    foreach(var ticket in ticketList.Where(c => c.AuthorID == userID)){
+                        ticketDTOs.Add(new TicketDTO(ticket));
+                    }
                 }
                 else
                 {
-                    return context.Tickets
-                        .Include(t => t.ticketHistories)
-                            .ThenInclude(t => t.Action)
-                        .Include(t => t.Author)
-                            .ThenInclude(a => a!.Role)
-                        .Include(t => t.Assigned)
-                            .ThenInclude(a => a!.Role)
-                        .Include(t => t.MainTag)
-                        .Include(t => t.SubTag)
-                        .Include(t => t.Status)
-                        .Where(t => t.AuthorID == userID)
-                        .ToList();
+                    foreach(var ticket in ticketList){
+                        ticketDTOs.Add(new TicketDTO(ticket));
+                    }
                 }
+                return ticketDTOs;
             }
         }
         public static Tickets? GetTicket(int ticketID) 
@@ -359,9 +356,11 @@ namespace GoldenTicket.Utilities
                         .ThenInclude(m => m.Sender)
                             .ThenInclude(u => u!.Role)
                     .Include(c => c.Ticket)
-                        .ThenInclude(t => t!.Author).ThenInclude(t => t!.Role) // Ensure Ticket's Author is loaded
+                        .ThenInclude(t => t!.Author)
+                            .ThenInclude(t => t!.Role) // Ensure Ticket's Author is loaded
                     .Include(c => c.Ticket)
-                        .ThenInclude(t => t!.Assigned).ThenInclude(t => t!.Role)
+                        .ThenInclude(t => t!.Assigned)
+                            .ThenInclude(t => t!.Role)
                     .Include(c => c.Ticket)
                         .ThenInclude(t => t!.MainTag)
                     .Include(c => c.Ticket)
@@ -386,11 +385,14 @@ namespace GoldenTicket.Utilities
             {
                 return context.Chatrooms
                     .Include(c => c.Members)
-                        .ThenInclude(m => m.Member).ThenInclude(t => t!.Role)
+                        .ThenInclude(m => m.Member)
+                            .ThenInclude(t => t!.Role)
                     .Include(c => c.Ticket)
-                        .ThenInclude(t => t!.Author).ThenInclude(t => t!.Role) // Ensure Ticket's Author is loaded
+                        .ThenInclude(t => t!.Author)
+                            .ThenInclude(t => t!.Role) // Ensure Ticket's Author is loaded
                     .Include(c => c.Ticket)
-                        .ThenInclude(t => t!.Assigned).ThenInclude(t => t!.Role)
+                        .ThenInclude(t => t!.Assigned)
+                            .ThenInclude(t => t!.Role)
                     .Include(c => c.Ticket)
                         .ThenInclude(t => t!.MainTag)
                     .Include(c => c.Ticket)

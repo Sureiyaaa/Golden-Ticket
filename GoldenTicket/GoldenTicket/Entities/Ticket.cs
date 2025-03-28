@@ -43,8 +43,8 @@ namespace GoldenTicket.Entities
         public int? TicketID { get; set; }
         public string? TicketTitle { get; set; }
         public string? Status { get; set; }
-        public UserDTO? author { get; set; }
-        public UserDTO? assigned { get; set; }
+        public UserDTO? Author { get; set; }
+        public UserDTO? Assigned { get; set; }
         public MainTagDTO? MainTag { get; set; }
         public SubTagDTO? SubTag { get; set; }
         public List<TicketHistoryDTO> TicketHistory {get; set;} = [];
@@ -52,13 +52,14 @@ namespace GoldenTicket.Entities
         public DateTime? DeadlineAt { get; set; }
         public TicketDTO(Tickets ticket){
             this.TicketID = ticket.TicketID;
-            
+            this.TicketTitle = ticket.TicketTitle;
             Console.WriteLine(ticket.Author!.FirstName);
-            this.author = ticket.Author != null ? new UserDTO(ticket.Author) : null;
-            this.assigned = ticket.Assigned != null ? new UserDTO(ticket.Assigned) : null;
+            this.Author = ticket.Author != null ? new UserDTO(ticket.Author) : null;
+            this.Assigned = ticket.Assigned != null ? new UserDTO(ticket.Assigned) : null;
             foreach(var history in ticket.ticketHistories){
                 TicketHistory.Add(new TicketHistoryDTO(history));
             }
+            this.CreatedAt = ticket.CreatedAt;
             this.Status = ticket.Status!.StatusName;
             this.MainTag = ticket.MainTag != null ? new MainTagDTO(ticket.MainTag) : null;
             this.SubTag = ticket.SubTag != null ? new SubTagDTO(ticket.SubTag) : null;

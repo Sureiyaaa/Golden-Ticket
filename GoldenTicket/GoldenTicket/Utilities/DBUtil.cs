@@ -32,9 +32,30 @@ namespace GoldenTicket.Utilities
         }
         #endregion
         #region -   AddFAQ
-        public static FAQ AddFAQ(string _title, string _description, string _solution, int _mainTagID, int _subTagID)
+        public static FAQ AddFAQ(string _title, string _description, string _solution, string _mainTagName, string _subTagName)
         {
+            int? mainTagID = null;
+            int? subTagID = null;
+
+            if (_mainTagName != "null")
+            {
+                var mainTag = GetTags().FirstOrDefault(x => x.MainTagName == _mainTagName);
+                if (mainTag != null)
+                {
+                    mainTagID = mainTag.MainTagID;
+                    if (_subTagName != "null")
+                    {
+                        var subTag = mainTag.SubTags?.FirstOrDefault(x => x.SubTagName == _subTagName);
+                        if (subTag != null)
+                        {
+                            subTagID = subTag.SubTagID;
+                        }
+                    }
+                }
+            }
+
             using(var context = new ApplicationDbContext()){
+                
                 var newFAQ = new FAQ
                 {
                     Title = _title,
@@ -42,10 +63,10 @@ namespace GoldenTicket.Utilities
                     Solution = _solution,
                     CreatedAt = DateTime.Now,
                     IsArchived = false,
-                    MainTagID = _mainTagID,
-                    SubTagID = _subTagID,
-                    MainTag = context.MainTag.Include(m => m.ChildTags).FirstOrDefault(tag => tag.TagID == _mainTagID),
-                    SubTag = context.SubTag.FirstOrDefault(tag => tag.TagID == _subTagID && tag.MainTagID == _mainTagID)
+                    MainTagID = mainTagID,
+                    SubTagID = subTagID,
+                    MainTag = context.MainTag.Include(m => m.ChildTags).FirstOrDefault(tag => tag.TagID == mainTagID),
+                    SubTag = context.SubTag.FirstOrDefault(tag => tag.TagID == subTagID && tag.MainTagID == mainTagID)
                 };
                 context.Faq.Add(newFAQ);
                 context.SaveChanges();

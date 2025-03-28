@@ -7,6 +7,7 @@ import 'package:golden_ticket_enterprise/models/data_manager.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
 import 'package:golden_ticket_enterprise/models/time_utils.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
+import 'package:golden_ticket_enterprise/widgets/chatroom_details_widget.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 
@@ -38,19 +39,19 @@ class _ChatroomPageState extends State<ChatroomPage> {
         .sendMessage(userSession.user.userID, widget.chatroomID, messageContent);
 
     messageController.clear(); // Clear input field after sending
-    if(chatroom.ticket == null) {
+    if (chatroom.ticket == null) {
       setState(() {
         enableMessage = false;
       });
     }
   }
+
   @override
-  void initState(){
+  void initState() {
     super.initState();
-
-
     messageFocusNode.requestFocus();
   }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -69,7 +70,6 @@ class _ChatroomPageState extends State<ChatroomPage> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Consumer<DataManager>(
@@ -79,17 +79,16 @@ class _ChatroomPageState extends State<ChatroomPage> {
         var userSession = Hive.box<HiveSession>('sessionBox').get('user');
         dataManager.signalRService.onReceiveMessage = (message, chatroom) {
           if (chatroom.chatroomID == widget.chatroomID) {
-
             dataManager.signalRService.sendSeen(userSession!.user.userID, widget.chatroomID);
             dataManager.addMessage(message, chatroom);
           }
         };
-        dataManager.signalRService.onAllowMessage = (){
-          print('Yes');
+        dataManager.signalRService.onAllowMessage = () {
           setState(() {
             enableMessage = true;
           });
         };
+
         if (chatroom == null) {
           return Scaffold(
             appBar: AppBar(title: const Text("Chatroom Not Found")),
@@ -119,62 +118,75 @@ class _ChatroomPageState extends State<ChatroomPage> {
                   itemCount: chatroom.messages!.length,
                   itemBuilder: (context, index) {
                     final message = chatroom.messages![index];
-                    final seenByMembers = chatroom.groupMembers
-                        .where((m) => m.lastSeenAt != null && m.lastSeenAt!.isAfter(message.createdAt))
-                        .toList();
+                    final previousMessage = index < chatroom.messages!.length - 1
+                        ? chatroom.messages![index + 1]
+                        : null;
 
                     final isMe = message!.sender.userID == userSession!.user.userID;
-                    final isSeen = seenByMembers.isNotEmpty && seenMessageID == message.messageID;
 
+                    // Check if time difference is greater than 1 hour and 30 minutes
+                    bool shouldShowTimeSeparator = false;
+                    if (previousMessage != null) {
+                      final timeDifference = previousMessage!.createdAt.difference(message.createdAt);
+                      if (timeDifference.inMinutes > 90) {
+                        shouldShowTimeSeparator = true;
+                      }
+                    }
 
-                    return Align(
-                      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                      child: MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              seenMessageID = (seenMessageID == message.messageID) ? null : message.messageID;
-                            });
-                          },
-                          child: Column(
-                            crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                            children: [
-                              Tooltip(
-                                message: TimeUtil.formatTimestamp(message.createdAt),
-                                child: Container(
-                                  margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: isMe ? kPrimaryContainer : kTertiaryContainer,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  constraints: BoxConstraints(
-                                    maxWidth: MediaQuery.of(context).size.width * 0.75, // Prevents full row width
-                                  ),
-                                  child: Text(message.messageContent),
-                                ),
-                              ),
-                              if (isSeen)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 2, right: 12, left: 12),
-                                  child: Text(
-                                    _formatSeenBy(chatroom.groupMembers
-                                        .where((m) => m.lastSeenAt != null && m.lastSeenAt!.isAfter(message.createdAt))
-                                        .toList()
+                    return Column(
+                      children: [
+                        if (shouldShowTimeSeparator)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Text(
+                              TimeUtil.formatTimestamp(message.createdAt),
+                              style: TextStyle(fontSize: 12, color: Colors.grey),
+                            ),
+                          ),
+                        Align(
+                          alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: GestureDetector(
+                              child: Column(
+                                crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 12, right: 12, top: 6),
+                                    child: Text(
+                                      isMe ? "You" : "${message.sender.firstName} ${message.sender.lastName}",
+                                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey[700]),
                                     ),
-                                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                                   ),
-                                ),
-                            ],
+                                  Tooltip(
+                                    message: TimeUtil.formatTimestamp(message.createdAt),
+                                    child: Container(
+                                      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: isMe ? kPrimaryContainer : kTertiaryContainer,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      constraints: BoxConstraints(
+                                        maxWidth: MediaQuery.of(context).size.width * 0.4,
+                                      ),
+                                      child: SelectableText(message.messageContent),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     );
                   },
                 ),
               ),
-              _buildMessageInput(chatroom),
+              if (chatroom.groupMembers.any((u) => u.member?.userID == userSession?.user.userID))
+                _buildMessageInput(chatroom)
+              else
+                _buildJoinRoomButton(dataManager, userSession, chatroom),
             ],
           ),
         );
@@ -200,14 +212,28 @@ class _ChatroomPageState extends State<ChatroomPage> {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.send, color: Colors.blue),
+            icon: Icon(Icons.send, color: enableMessage ? Colors.blueAccent : Colors.grey),
             disabledColor: Colors.grey,
-            onPressed: enableMessage ? null: () => sendMessage(messageController.text, chatroom), // ✅ Calls sendMessage on click
+            onPressed: enableMessage ? () => sendMessage(messageController.text, chatroom) : null, // ✅ Calls sendMessage on click
           ),
         ],
       ),
     );
   }
+  Widget _buildJoinRoomButton(DataManager dataManager, HiveSession? userSession, Chatroom chatroom) {
+    return Padding(
+      padding: const EdgeInsets.all(12.0),
+      child: ElevatedButton(
+        onPressed: () {
+          if (userSession != null) {
+            dataManager.signalRService.joinChatroom(userSession.user.userID, chatroom.chatroomID);
+          }
+        },
+        child: Text("Join Room"),
+      ),
+    );
+  }
+
   String _formatSeenBy(List<GroupMember> seenBy) {
     if (seenBy.isEmpty) return "You";
 
@@ -222,52 +248,3 @@ class _ChatroomPageState extends State<ChatroomPage> {
   }
 }
 
-
-
-class ChatroomDetailsDrawer extends StatelessWidget {
-  final Chatroom chatroom;
-
-  const ChatroomDetailsDrawer({Key? key, required this.chatroom}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Drawer(
-      backgroundColor: kPrimaryContainer,
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          DrawerHeader(
-            decoration: BoxDecoration(color: kPrimary),
-            child: Text(
-              '${chatroom.author.firstName} ${chatroom.author.lastName}',
-              style: const TextStyle(color: Colors.white, fontSize: 20),
-            ),
-          ),
-
-          ListTile(
-            leading: const Icon(Icons.person),
-            title: const Text("Created By"),
-            subtitle: Text('${chatroom.author.firstName} ${chatroom.author.lastName}' ?? "Unknown"),
-          ),
-          ExpansionTile(
-            leading: const Icon(Icons.people),
-            title: const Text("Members"),
-            subtitle: Text("${chatroom.groupMembers.length} members"),
-            children: chatroom.groupMembers.map((member) {
-              return ListTile(
-                leading: const Icon(Icons.person),
-                title: Text("${member.member!.firstName} ${member.member!.lastName}"),
-                subtitle: Text(TimeUtil.formatCreationDate(member.joinedAt!)),
-              );
-            }).toList(),
-          ),
-          ListTile(
-            leading: const Icon(Icons.event),
-            title: const Text("Date Created"),
-            subtitle: Text(TimeUtil.formatCreationDate(chatroom.createdAt.toLocal())),
-          ),
-        ],
-      ),
-    );
-  }
-}

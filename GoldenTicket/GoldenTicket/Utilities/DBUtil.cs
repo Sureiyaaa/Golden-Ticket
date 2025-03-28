@@ -395,7 +395,8 @@ namespace GoldenTicket.Utilities
                 chatroom!.Members.Add(newMember);
                 context.Chatrooms.Attach(chatroom!);
                 context.SaveChanges();
-                return new ChatroomDTO(chatroom);
+                var updatedChatroom = GetChatroom(ChatroomID);
+                return new ChatroomDTO(updatedChatroom!);
             }
         }
         #endregion

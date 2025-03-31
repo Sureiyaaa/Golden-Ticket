@@ -29,6 +29,14 @@ public class AIResponse
         if (callAgentMatch.Success) response.CallAgent = bool.Parse(callAgentMatch.Groups[1].Value.Trim());
         if (messageMatch.Success) response.Message = messageMatch.Groups[1].Value.Trim(); // This will now capture multi-line responses
 
+        // DEBUG
+        Console.WriteLine($"Title       : {response.Title}");
+        Console.WriteLine($"MainTag     : {response.MainTag}");
+        Console.WriteLine($"SubTag      : {response.SubTags}");
+        Console.WriteLine($"CallAgent   : {response.CallAgent}");
+        Console.WriteLine($"Message     : {response.Message}");
+
+
         return response;
     }
     public string ToJson()

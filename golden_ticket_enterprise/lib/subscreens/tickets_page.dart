@@ -42,17 +42,25 @@ class _TicketsPageState extends State<TicketsPage> {
       _applyFilters(dataManager);
     }
   }
+
   void _applyFilters(DataManager dataManager) {
     final query = _searchController.text.toLowerCase();
 
     setState(() {
       _filteredTickets = dataManager.tickets.where((ticket) {
         bool matchesSearch = ticket.ticketTitle.toLowerCase().contains(query);
-        bool matchesStatus = selectedStatus == 'All' || ticket.status == selectedStatus;
-        bool matchesMainTag = selectedMainTag == 'All' || (ticket.mainTag?.tagName == selectedMainTag);
-        bool matchesSubTag = selectedSubTag == 'All' || selectedSubTag == null || (ticket.subTag?.subTagName == selectedSubTag);
+        bool matchesStatus =
+            selectedStatus == 'All' || ticket.status == selectedStatus;
+        bool matchesMainTag = selectedMainTag == 'All' ||
+            (ticket.mainTag?.tagName == selectedMainTag);
+        bool matchesSubTag = selectedSubTag == 'All' ||
+            selectedSubTag == null ||
+            (ticket.subTag?.subTagName == selectedSubTag);
 
-        return matchesSearch && matchesStatus && matchesMainTag && matchesSubTag;
+        return matchesSearch &&
+            matchesStatus &&
+            matchesMainTag &&
+            matchesSubTag;
       }).toList();
     });
   }
@@ -82,9 +90,13 @@ class _TicketsPageState extends State<TicketsPage> {
                     Center(child: CircularProgressIndicator())
                   else
                     ExpansionTile(
-                      initiallyExpanded: isMobile, // ✅ Expanded by default on mobile, collapsed on desktop
-                      title: Text("Filters", style: TextStyle(fontWeight: FontWeight.bold)),
-                      children: [_buildFilters(tags, statuses, isRow: !isMobile)],
+                      initiallyExpanded:
+                          isMobile, // ✅ Expanded by default on mobile, collapsed on desktop
+                      title: Text("Filters",
+                          style: TextStyle(fontWeight: FontWeight.bold)),
+                      children: [
+                        _buildFilters(tags, statuses, isRow: !isMobile)
+                      ],
                     ),
                   SizedBox(height: 10),
                   TextField(
@@ -93,32 +105,50 @@ class _TicketsPageState extends State<TicketsPage> {
                     decoration: InputDecoration(
                       hintText: "Search tickets...",
                       prefixIcon: Icon(Icons.search),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
                   SizedBox(height: 10),
                   Expanded(
-                    child: Scrollbar(
-                      controller: scrollController,
-                      thumbVisibility: true,
-                      child: ListView.builder(
-                        controller: scrollController,
-                        itemCount: _filteredTickets.length,
-                        itemBuilder: (context, index) {
-                          final ticket = _filteredTickets[index];
-                          return TicketTile(
-                            title: ticket.ticketTitle,
-                            mainTag: ticket.mainTag?.tagName ?? 'No main tag provided',
-                            subTag: ticket.subTag?.subTagName ?? 'No sub tag provided',
-                            onChatPressed: () {
-                              context.push('/hub/chatroom/${ticket.chatroomID}');
-                              dataManager.signalRService.openChatroom(widget.session!.user.userID, ticket.chatroomID);
-                            },
-                            onEditPressed: () {},
-                          );
-                        },
-                      ),
-                    ),
+                    child: _filteredTickets.isEmpty
+                        ? Center(
+                            child: Text(
+                              _searchController.text.isEmpty
+                                  ? "No tickets available"
+                                  : "No tickets found",
+                              style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey),
+                            ),
+                          )
+                        : Scrollbar(
+                            controller: scrollController,
+                            thumbVisibility: true,
+                            child: ListView.builder(
+                              controller: scrollController,
+                              itemCount: _filteredTickets.length,
+                              itemBuilder: (context, index) {
+                                final ticket = _filteredTickets[index];
+                                return TicketTile(
+                                  title: ticket.ticketTitle,
+                                  mainTag: ticket.mainTag?.tagName ??
+                                      'No main tag provided',
+                                  subTag: ticket.subTag?.subTagName ??
+                                      'No sub tag provided',
+                                  onChatPressed: () {
+                                    context.push(
+                                        '/hub/chatroom/${ticket.chatroomID}');
+                                    dataManager.signalRService.openChatroom(
+                                        widget.session!.user.userID,
+                                        ticket.chatroomID);
+                                  },
+                                  onEditPressed: () {},
+                                );
+                              },
+                            ),
+                          ),
                   ),
                 ],
               );
@@ -129,7 +159,8 @@ class _TicketsPageState extends State<TicketsPage> {
     );
   }
 
-  Widget _buildFilters(Map<String, List<String>> tags, List<String> statuses, {bool isRow = false}) {
+  Widget _buildFilters(Map<String, List<String>> tags, List<String> statuses,
+      {bool isRow = false}) {
     List<Widget> filterWidgets = [
       _buildDropdown("Select Status", selectedStatus, statuses, (value) {
         setState(() {
@@ -137,14 +168,17 @@ class _TicketsPageState extends State<TicketsPage> {
         });
         _applyFilters(Provider.of<DataManager>(context, listen: false));
       }),
-      _buildDropdown("Select Main Tag", selectedMainTag, tags.keys.toList(), (value) {
+      _buildDropdown("Select Main Tag", selectedMainTag, tags.keys.toList(),
+          (value) {
         setState(() {
           selectedMainTag = value;
           selectedSubTag = null;
         });
         _applyFilters(Provider.of<DataManager>(context, listen: false));
       }),
-      _buildDropdown("Select Sub Tag", selectedSubTag, ['All', ...?tags[selectedMainTag]], (value) {
+      _buildDropdown(
+          "Select Sub Tag", selectedSubTag, ['All', ...?tags[selectedMainTag]],
+          (value) {
         setState(() {
           selectedSubTag = value;
         });
@@ -154,25 +188,29 @@ class _TicketsPageState extends State<TicketsPage> {
 
     return isRow
         ? Row(
-      children: filterWidgets
-          .expand((widget) => [Expanded(child: widget), SizedBox(width: 10)])
-          .toList()
-        ..removeLast(),
-    )
+            children: filterWidgets
+                .expand(
+                    (widget) => [Expanded(child: widget), SizedBox(width: 10)])
+                .toList()
+              ..removeLast(),
+          )
         : Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: filterWidgets
-          .expand((widget) => [widget, SizedBox(height: 10)])
-          .toList()
-        ..removeLast(),
-    );
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: filterWidgets
+                .expand((widget) => [widget, SizedBox(height: 10)])
+                .toList()
+              ..removeLast(),
+          );
   }
 
-  Widget _buildDropdown(String hint, String? value, List<String>? items, ValueChanged<String?> onChanged) {
+  Widget _buildDropdown(String hint, String? value, List<String>? items,
+      ValueChanged<String?> onChanged) {
     return DropdownButtonFormField<String>(
       value: value,
       hint: Text(hint),
-      items: (items ?? []).map((item) => DropdownMenuItem(value: item, child: Text(item))).toList(),
+      items: (items ?? [])
+          .map((item) => DropdownMenuItem(value: item, child: Text(item)))
+          .toList(),
       onChanged: onChanged,
       decoration: InputDecoration(
         border: OutlineInputBorder(),

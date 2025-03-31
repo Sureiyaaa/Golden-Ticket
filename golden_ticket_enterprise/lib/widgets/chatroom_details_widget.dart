@@ -13,6 +13,8 @@ class ChatroomDetailsDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    print("Building ChatroomDetailsDrawer - Ticket Status: ${chatroom.ticket?.status}");
+
     return Drawer(
       backgroundColor: kPrimaryContainer,
       child: ListView(
@@ -38,7 +40,7 @@ class ChatroomDetailsDrawer extends StatelessWidget {
             children: [
               if(chatroom.ticket != null) ListTile(
                 title: const Text("Ticket Title:"),
-                subtitle: Text('${chatroom.ticket!.ticketTitle}')
+                subtitle: Text('${chatroom.ticket?.ticketTitle ?? "No Title Provided"}')
               ),
               if(chatroom.ticket != null && chatroom.ticket?.assigned != null) ListTile(
                   title: const Text("Assigned Agent:"),

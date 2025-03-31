@@ -44,7 +44,6 @@ class _ChatroomPageState extends State<ChatroomPage> {
       setState(() {
         enableMessage = false;
       });
-
     }else{
       messageFocusNode.requestFocus();
     }
@@ -88,9 +87,16 @@ class _ChatroomPageState extends State<ChatroomPage> {
           }
         };
 
+        dataManager.signalRService.onTicketUpdate = (ticket) {
+          if(ticket.chatroomID == chatroom!.chatroomID){
+            chatroom.ticket = ticket;
+          }
+        };
+
         dataManager.signalRService.onAllowMessage = () {
           setState(() {
             enableMessage = true;
+            messageFocusNode.requestFocus();
           });
         };
 
@@ -231,7 +237,7 @@ class _ChatroomPageState extends State<ChatroomPage> {
                 // Ensures the message is sent when Enter is pressed
                 sendMessage(messageController.text.trim(), chatroom);
                 messageController.clear();
-                messageFocusNode.requestFocus();
+                enableMessage = false;
               },
               inputFormatters: [
                 TextInputFormatter.withFunction((oldValue, newValue) {

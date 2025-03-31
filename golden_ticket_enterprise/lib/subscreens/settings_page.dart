@@ -44,6 +44,15 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     return Consumer<DataManager>(
       builder: (context, dataManager, child) {
+        dataManager.signalRService.onExistingTag = () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("The tag you added is already a existing tag!"),
+              backgroundColor: Colors.red,
+            ),
+          );
+        };
+
         return Scaffold(
           body: Padding(
             padding: const EdgeInsets.all(16.0),

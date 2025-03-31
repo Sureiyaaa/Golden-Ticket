@@ -4,6 +4,10 @@ using System.ClientModel;
 using TiktokenSharp;
 using GoldenTicket.Services;
 using GoldenTicket.Models;
+using GoldenTicket.Database;
+using GoldenTicket.Utilities;
+using GoldenTicket.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace OpenAIApp.Services;
 
@@ -34,24 +38,25 @@ public class OpenAIService
         };
 
         _logger.LogInformation("[OpenAIService] Using Base URL: {BaseUrl}", baseUrl);
-
         _apiCredential = new ApiKeyCredential("Bearer " + _apiConfig.GetOpenAIKey(_apiKeyIndex));
         _client = new ChatClient("gpt-4o", _apiCredential, _options);
+        
+        PopulateMessages();
     }
 
-    public async Task<string> GetAIResponse(string clientId, string userInput, string Prompt, bool isDirect = false)
+    public async Task<string> GetAIResponse(string chatroomID, string userInput, string Prompt, bool isDirect = false)
     {
-        if (!clientMessages.ContainsKey(clientId))
+        if (!clientMessages.ContainsKey(chatroomID))
         {
-            clientMessages[clientId] = new List<ChatMessage>(); // Initialize storage for this client
+            clientMessages[chatroomID] = new List<ChatMessage>(); // Initialize storage for this client
         }
 
-        List<ChatMessage> messages = clientMessages[clientId];
+        List<ChatMessage> messages = clientMessages[chatroomID];
         List<ChatMessage> directMsg = new();
 
         if (!isDirect)
         {
-            await CheckHistoryAsync(clientId, Prompt);
+            messages = await CheckHistoryAsync(chatroomID, Prompt);
             messages.Add(new UserChatMessage(userInput));
         }
         else
@@ -74,6 +79,12 @@ public class OpenAIService
         try
         {
             var response = await _client.CompleteChatAsync(!isDirect ? messages : directMsg, requestOptions, cts.Token);
+            // // DEBUG
+            // foreach (var message in messages)
+            // {
+            //     Console.WriteLine($"Message Type: {message.GetType()}");
+            //     Console.WriteLine($"Content Type: {message.Content.FirstOrDefault()!.Text}");
+            // }
 
             if (response == null || response.Value == null || response.Value.Content.Count == 0)
             {
@@ -84,28 +95,28 @@ public class OpenAIService
             string content = response.Value.Content[0].Text;
             TotalCharactersUsed += content.Length;
             messages.Add(new AssistantChatMessage(content));
-            GetTotalTokenUsed(clientId);
+            GetTotalTokenUsed(chatroomID);
 
             return content;
         }
         catch (OperationCanceledException)
         {
             _logger.LogWarning("[OpenAIService] Request timeout detected. Possible rate limit reached. Trying to change API key...");
-            return await HandleRateLimit(clientId, userInput, Prompt, isDirect);
+            return await HandleRateLimit(chatroomID, userInput, Prompt, isDirect);
         }
         catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
         {
             _logger.LogWarning("[OpenAIService] Rate Limit Exceeded: Too many requests. Trying to change API key...");
-            return await HandleRateLimit(clientId, userInput, Prompt, isDirect);
+            return await HandleRateLimit(chatroomID, userInput, Prompt, isDirect);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "[OpenAIService] Error processing OpenAI request. Trying to change API key...");
-            return await HandleRateLimit(clientId, userInput, Prompt, isDirect);
+            return await HandleRateLimit(chatroomID, userInput, Prompt, isDirect);
         }
     }
 
-    private async Task<string> HandleRateLimit(string clientId, string userInput, string Prompt, bool isDirect)
+    private async Task<string> HandleRateLimit(string chatroomID, string userInput, string Prompt, bool isDirect)
     {
         if (_apiKeyIndex < ApiConfig.OpenAIKeys!.Count - 1)
         {
@@ -113,7 +124,7 @@ public class OpenAIService
             _logger.LogWarning("[OpenAIService] Switching API key from API_{OldIndex} to API_{NewIndex}", _apiKeyIndex - 1, _apiKeyIndex);
             _apiCredential = new ApiKeyCredential("Bearer " + _apiConfig.GetOpenAIKey(_apiKeyIndex));
             _client = new ChatClient("gpt-4o", _apiCredential, _options);
-            return await GetAIResponse(clientId, userInput, Prompt, isDirect);
+            return await GetAIResponse(chatroomID, userInput, Prompt, isDirect);
         }
         else
         {
@@ -122,31 +133,31 @@ public class OpenAIService
         }
     }
 
-    private void GetTotalTokenUsed(string clientId)
+    private void GetTotalTokenUsed(string chatroomID)
     {
-        if (!clientMessages.ContainsKey(clientId)) return;
+        if (!clientMessages.ContainsKey(chatroomID)) return;
 
         var encoding = TikToken.EncodingForModel("gpt-4");
-        string allMessagesText = string.Join("\n", clientMessages[clientId]
+        string allMessagesText = string.Join("\n", clientMessages[chatroomID]
             .Select(m => string.Join("", m.Content.Select(c => c.Text))));
 
         int tokensUsed = encoding.Encode(allMessagesText).Count;
 
         // Update per-client token usage
-        if (!clientTokenUsage.ContainsKey(clientId))
+        if (!clientTokenUsage.ContainsKey(chatroomID))
         {
-            clientTokenUsage[clientId] = 0;
+            clientTokenUsage[chatroomID] = 0;
         }
-        clientTokenUsage[clientId] += tokensUsed;
+        clientTokenUsage[chatroomID] += tokensUsed;
 
         // Update global token count
         TokenCountUsed += tokensUsed;
 
-        _logger.LogInformation("[OpenAIService] Total Tokens Used for {ClientId}: {ClientTokenCount}", clientId, clientTokenUsage[clientId]);
+        _logger.LogInformation("[OpenAIService] Total Tokens Used for {ClientId}: {ClientTokenCount}", chatroomID, clientTokenUsage[chatroomID]);
         _logger.LogInformation("[OpenAIService] Total Tokens Used Across All Clients: {TotalTokenCount}", TokenCountUsed);
     }
 
-    private async Task<string> SummarizeMessages(string clientId, List<ChatMessage> oldMessages)
+    private async Task<string> SummarizeMessages(string chatroomID, List<ChatMessage> oldMessages)
     {
         if (!oldMessages.Any())
         {
@@ -156,20 +167,20 @@ public class OpenAIService
 
         string combinedText = string.Join("\n", oldMessages.Select(m => m.Content.FirstOrDefault()?.Text ?? ""));
         string prompt = "Summarize this conversation briefly, keeping key details:";
-        string response = await GetAIResponse(clientId, combinedText, prompt, true);
+        string response = await GetAIResponse(chatroomID, combinedText, prompt, true);
 
-        _logger.LogDebug("[OpenAIService] Summary Generated for {ClientId}: {Summary}", clientId, response);
+        _logger.LogDebug("[OpenAIService] Summary Generated for {ClientId}: {Summary}", chatroomID, response);
         return $"\nChat History Summary: {response}";
     }
 
-    private async Task CheckHistoryAsync(string clientId, string Prompt)
+    private async Task<List<ChatMessage>> CheckHistoryAsync(string chatroomID, string Prompt)
     {
-        if (!clientMessages.ContainsKey(clientId))
+        if (!clientMessages.ContainsKey(chatroomID))
         {
-            clientMessages[clientId] = new List<ChatMessage>();
+            clientMessages[chatroomID] = new List<ChatMessage>();
         }
 
-        List<ChatMessage> messages = clientMessages[clientId];
+        List<ChatMessage> messages = clientMessages[chatroomID];
 
         if (messages.Count == 0 || !(messages[0] is SystemChatMessage))
         {
@@ -179,7 +190,7 @@ public class OpenAIService
         {
             if (((SystemChatMessage)messages[0]).Content.First().Text != Prompt)
             {
-                _logger.LogInformation("[OpenAIService] Changing prompt for {ClientId} to {Prompt} ...", clientId, Prompt);
+                _logger.LogInformation($"[OpenAIService] Changing prompt for {chatroomID} to {Prompt} ...");
                 messages[0] = new SystemChatMessage(Prompt);
             }
         }
@@ -187,18 +198,25 @@ public class OpenAIService
         if (messages.Count > 30)
         {
             var systemMessages = messages.Where(m => m is SystemChatMessage).ToList();
-            string summary = await SummarizeMessages(clientId, messages.GetRange(systemMessages.Count, 10).ToList());
+            string summary = await SummarizeMessages(chatroomID, messages.GetRange(systemMessages.Count, 10).ToList());
             messages.RemoveRange(systemMessages.Count, 20);
 
             string newPrompt = string.Join("\n", Prompt, summary);
             messages[0] = new SystemChatMessage(newPrompt);
         }
+        return messages;
     }
 
-    private async Task<AIResponse> GetFormattedResponse(string clientId, string userInput, string prompt, bool isDirect = false)
+    public void PopulateMessages() 
     {
-        string response = await GetAIResponse(clientId, userInput, prompt, isDirect);
-        AIResponse aIResponse = AIResponse.Parse(response);
-        return aIResponse;
+        var populatedMessages = AIUtil.PopulateID();
+        if (populatedMessages != null)
+        {
+            foreach (var kvp in populatedMessages)
+            {
+                clientMessages[kvp.Key] = kvp.Value;
+            }
+        }
+        Console.WriteLine("[OpenAIService] Past AI Messages Restored");
     }
 }

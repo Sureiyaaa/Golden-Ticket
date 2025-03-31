@@ -27,6 +27,9 @@ namespace GoldenTicket.Database {
         public DbSet<NotificationType> NotificationTypes { get; set; }
         public DbSet<Roles> Roles { get; set; }
         public DbSet<Entities.Action> Actions { get; set; }
+        public DbSet<AIStats> AIStats { get; set; }
+        public DbSet<Rating> Rating { get; set; }
+        
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             ConnectionString = config["ConnectionString"] ?? throw new Exception("Connection String is Invalid");

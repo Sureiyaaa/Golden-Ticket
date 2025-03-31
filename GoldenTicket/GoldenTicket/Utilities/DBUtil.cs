@@ -102,24 +102,27 @@ namespace GoldenTicket.Utilities
         }  
         #endregion
         #region -   AddMainTag
-        public static void AddMainTag(string TagName)
+        public static bool AddMainTag(string TagName)
         {
             using(var context = new ApplicationDbContext()){
                 if(context.MainTag.FirstOrDefault(tag => tag.TagName == TagName) != null)
-                    throw new Exception("Tag already exists");
+                    return false;
                 var newTag = new MainTag
                 {
                     TagName = TagName
                 };
                 context.MainTag.Add(newTag);
                 context.SaveChanges();
+                return true;
             }
         }
         #endregion
         #region -   AddSubTag
-        public static void AddSubTag(string TagName, string MainTagName)
+        public static bool AddSubTag(string TagName, string MainTagName)
         {
             using(var context = new ApplicationDbContext()){
+                if(context.SubTag.FirstOrDefault(tag => tag.TagName == TagName && tag.MainTag!.TagName == MainTagName) != null)
+                    return false;
                 var newTag = new SubTag
                 {
                     TagName = TagName,
@@ -127,6 +130,7 @@ namespace GoldenTicket.Utilities
                 };
                 context.SubTag.Add(newTag);
                 context.SaveChanges();
+                return true;
             }
         }
         #endregion

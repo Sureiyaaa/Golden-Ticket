@@ -22,6 +22,7 @@ namespace GoldenTicket.Entities
 
         [ForeignKey("TicketID")]
         public Tickets? Ticket { get; set; } = null;
+        public bool IsArchived { get; set; }= false;
         [Required]
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 
@@ -34,6 +35,7 @@ namespace GoldenTicket.Entities
         public string? ChatroomName { get; set; }
         public UserDTO? Author { get; set; }
         public TicketDTO? Ticket { get; set; }
+        public bool IsArchived { get; set; }
         public List<MessageDTO>? Messages { get; set; } = [];
         public List<GroupMemberDTO> GroupMembers  { get; set; } = [];
         public LastMessageDTO? LastMessage { get; set; } = null;
@@ -44,7 +46,7 @@ namespace GoldenTicket.Entities
             this.ChatroomID = chatroom.ChatroomID;
             this.ChatroomName = chatroom.ChatroomName;
             this.Author = chatroom.Author != null ? new UserDTO(chatroom.Author) : null;
-
+            this.IsArchived = chatroom.IsArchived;
             this.Ticket = chatroom.Ticket != null ? new TicketDTO(chatroom.Ticket) : null;
 
             // Sort messages from latest to earliest

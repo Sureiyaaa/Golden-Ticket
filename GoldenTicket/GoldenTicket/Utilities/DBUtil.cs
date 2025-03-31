@@ -464,7 +464,41 @@ namespace GoldenTicket.Utilities
             }
         }
         #endregion
-
+public static List<ChatroomDTO> GetChatrooms()
+        {
+            using(var context = new ApplicationDbContext())
+            {
+                List<ChatroomDTO> dtos = new List<ChatroomDTO>();
+                List<Chatroom> chatrooms = context.Chatrooms
+                    .Include(c => c.Members)
+                        .ThenInclude(m => m.Member)
+                            .ThenInclude(t => t!.Role)
+                    .Include(c => c.Messages)
+                        .ThenInclude(m => m.Sender)
+                            .ThenInclude(u => u!.Role)
+                    .Include(c => c.Ticket)
+                        .ThenInclude(t => t!.Author)
+                            .ThenInclude(t => t!.Role) // Ensure Ticket's Author is loaded
+                    .Include(c => c.Ticket)
+                        .ThenInclude(t => t!.Assigned)
+                            .ThenInclude(t => t!.Role)
+                    .Include(c => c.Ticket)
+                        .ThenInclude(t => t!.ticketHistories)
+                            .ThenInclude(t => t!.Action)
+                    .Include(c => c.Ticket)
+                        .ThenInclude(t => t!.MainTag)
+                    .Include(c => c.Ticket)
+                        .ThenInclude(t => t!.SubTag)
+                    .Include(c => c.Ticket)
+                        .ThenInclude(t => t!.Status)
+                    .Include(c => c.Author)
+                        .ThenInclude(t => t!.Role).ToList();
+                foreach(var chatroom in chatrooms.Where(c => c.TicketID != null)){
+                    dtos.Add(new ChatroomDTO(chatroom));
+                }
+                return dtos;
+            }
+        }
         #region -   GetChatroom
         public static Chatroom? GetChatroom(int ChatroomID)
         {

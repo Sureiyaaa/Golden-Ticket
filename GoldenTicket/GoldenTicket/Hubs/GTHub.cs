@@ -46,6 +46,8 @@ namespace GoldenTicket.Hubs
         }
         #endregion
 
+        
+
 
         #region Chatroom
         public async Task RequestChat(int AuthorID) {
@@ -71,6 +73,21 @@ namespace GoldenTicket.Hubs
             }
             await Clients.Caller.SendAsync("ReceiveSupport", new {chatroom =  chatroomDTO});
         }
+
+        public async Task ResolveTickets(List<ChatroomDTO> chatrooms){
+
+            foreach(ChatroomDTO chatroom in chatrooms){
+                foreach(var member in chatroom.GroupMembers)
+                {
+                    var receiverConnectionId = _connections.Where(x => x.Value == member.User.UserID).ToList();
+                    foreach(var connection in receiverConnectionId)
+                    {
+                        await Clients.Client(connection.Key).SendAsync("ChatroomUpdate", new {chatroom = chatroom});
+                    }
+                }
+            }
+        }
+
         public async Task JoinChatroom(int UserID, int ChatroomID)
         {
             var chatroomDTO = DBUtil.JoinChatroom(UserID, ChatroomID);

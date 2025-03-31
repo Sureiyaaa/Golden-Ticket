@@ -1,6 +1,8 @@
 using GoldenTicket.Hubs;
 using GoldenTicket.Services;
 using GoldenTicket.Utilities;
+using Hangfire;
+using Hangfire.MySql;
 using OpenAIApp.Services;
 namespace GoldenTicket.Extensions;
 
@@ -10,13 +12,26 @@ public static class ApplicationServiceExtensions
     {
         services.AddControllers();
 
-        // Add services to the container.
+        string ConnectionString = config["ConnectionString"] ?? throw new Exception("Connection String is Invalid");
+
+        // ✅ Hangfire Configuration
+        services.AddHangfire(config => config.UseStorage(new MySqlStorage(
+            ConnectionString,
+            new MySqlStorageOptions { TablesPrefix = "Hangfire_" }
+        )));
+        services.AddHangfireServer();
+
+        // ✅ Register Hangfire Services
+        services.AddTransient<IRecurringJobManager>(provider => new RecurringJobManager());
+        services.AddSingleton<HangFireService>();
         
         services.AddSingleton<ConfigService>();
         services.AddSingleton<PromptService>();
         services.AddSingleton<OpenAIService>();
         services.AddSingleton<AIUtil>();
+        services.AddSingleton<GTHub>();
         services.AddSingleton<ApiConfig>();
+        
         services.AddSignalR().AddHubOptions<GTHub>(options =>
         {
             options.EnableDetailedErrors = true;
@@ -24,7 +39,7 @@ public static class ApplicationServiceExtensions
             options.KeepAliveInterval = TimeSpan.FromSeconds(5);
         });
         services.AddControllersWithViews();
-
+        
         // Add Database Context HERE
         // services.AddDbContext<DataContext>(opt =>
         // {

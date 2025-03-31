@@ -147,7 +147,11 @@ class _FAQPageState extends State<FAQPage> {
                 // FAQ List
                 Expanded(
                   child: filteredFAQs.isEmpty
-                      ? Center(child: Text("No FAQs found"))
+                      ? Center(child: Text("No FAQs found", style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey),
+                      ))
                       : ListView.builder(
                     itemCount: filteredFAQs.length,
                     itemBuilder: (context, index) {

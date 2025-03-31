@@ -3,6 +3,7 @@ using GoldenTicket.Hubs;
 using GoldenTicket.Models;
 using GoldenTicket.Services;
 using GoldenTicket.Utilities;
+using Hangfire;
 using OpenAIApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -39,13 +40,23 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+app.UseHangfireDashboard();
+app.UseAuthorization();
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var hangfireService = services.GetRequiredService<HangFireService>();
+
+    // ✅ Initialize Recurring Jobs Here
+    hangfireService.InitializeRecurringJobs();
+}
 // app.UseHttpsRedirection();
 //app.UseStaticFiles();
 app.MapControllers();
 app.UseRouting();
 
 app.MapHub<GTHub>("/GTHub");
-app.UseAuthorization();
 
 // app.MapControllerRoute(
 //     name: "default",

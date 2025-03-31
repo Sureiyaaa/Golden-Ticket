@@ -26,7 +26,7 @@ class _ChatroomListPageState extends State<ChatroomListPage> {
     return Consumer<DataManager>(
       builder: (context, dataManager, child) {
         List<Chatroom> filteredChatrooms = dataManager.chatrooms.where((chatroom) {
-          String chatTitle = chatroom.ticket != null ? chatroom.ticket!.ticketTitle : "No title provided";
+          String chatTitle = chatroom.ticket != null ? chatroom.ticket?.ticketTitle ?? "No title provided" : "No title provided";
           String chatroomAuthor = chatroom.author != null
               ? "${chatroom.author!.firstName} ${chatroom.author!.lastName}"
               : "Unknown Author";
@@ -71,7 +71,10 @@ class _ChatroomListPageState extends State<ChatroomListPage> {
               ? Center(
             child: Text(
               "No chatrooms found",
-              style: TextStyle(fontSize: 16, color: Colors.grey),
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey),
             ),
           )
               : ListView.builder(
@@ -79,7 +82,7 @@ class _ChatroomListPageState extends State<ChatroomListPage> {
             itemBuilder: (context, index) {
               Chatroom chatroom = filteredChatrooms[index];
               String chatTitle = chatroom.ticket != null
-                  ? chatroom.ticket!.ticketTitle
+                  ? chatroom.ticket?.ticketTitle ?? "No Title Provided"
                   : "No title provided";
               String chatroomAuthor = chatroom.author != null
                   ? "${chatroom.author!.firstName} ${chatroom.author!.lastName}"

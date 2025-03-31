@@ -105,7 +105,7 @@ namespace GoldenTicket.Utilities
         public static bool AddMainTag(string TagName)
         {
             using(var context = new ApplicationDbContext()){
-                if(context.MainTag.FirstOrDefault(tag => tag.TagName == TagName) != null)
+                if(context.MainTag.FirstOrDefault(tag => tag.TagName!.ToLower() == TagName.ToLower()) != null)
                     return false;
                 var newTag = new MainTag
                 {
@@ -121,12 +121,12 @@ namespace GoldenTicket.Utilities
         public static bool AddSubTag(string TagName, string MainTagName)
         {
             using(var context = new ApplicationDbContext()){
-                if(context.SubTag.FirstOrDefault(tag => tag.TagName == TagName && tag.MainTag!.TagName == MainTagName) != null)
+                if(context.SubTag.FirstOrDefault(tag => tag.TagName == TagName && tag.MainTag!.TagName!.ToLower() == MainTagName.ToLower()) != null)
                     return false;
                 var newTag = new SubTag
                 {
                     TagName = TagName,
-                    MainTagID = context.MainTag.FirstOrDefault(tag => tag.TagName == MainTagName)!.TagID,
+                    MainTagID = context.MainTag.FirstOrDefault(tag => tag.TagName!.ToLower() == MainTagName.ToLower())!.TagID,
                 };
                 context.SubTag.Add(newTag);
                 context.SaveChanges();

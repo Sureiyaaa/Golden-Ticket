@@ -31,6 +31,7 @@ class SignalRService with ChangeNotifier {
   Function(User, Chatroom)? onStaffJoined;
   Function()? onAllowMessage;
   Function()? onMaximumChatroom;
+  Function()? onExistingTag;
   ConnectionType _connectionState = ConnectionType.disconnected;
   ConnectionType get connectionState => _connectionState;
 
@@ -72,13 +73,13 @@ class SignalRService with ChangeNotifier {
     _hubConnection!.keepAliveIntervalInMilliseconds = 5000;
 
     _hubConnection!.onclose((error) {
-      logger.e("❌ SignalR Connection Closed:", error: error ?? 'no error provided');
+      logger.e("❌ SignalR Connection Closed:", error: error.toString().isEmpty ? "None provided" : error.toString().isEmpty);
       _updateConnectionState(ConnectionType.disconnected);
       if (_shouldReconnect) _attemptReconnect(); // ✅ Only retry if allowed
     });
 
     _hubConnection!.onreconnecting((error) {
-      logger.e("🔄 Reconnecting... Error:", error: error ?? 'no error provided');
+      logger.e("🔄 Reconnecting... Error:", error: error.toString().isEmpty ? "None provided" : error.toString().isEmpty);
       _updateConnectionState(ConnectionType.reconnecting);
     });
 
@@ -99,21 +100,21 @@ class SignalRService with ChangeNotifier {
     try {
       _hubConnection!.invoke('RequestChat', args: [userID]);
     }catch(err){
-      logger.e("There was an error caught while requesting support:", error: err.toString());
+      logger.e("There was an error caught while requesting support:", error: err.toString().isEmpty ? "None provided" : err.toString().isEmpty);
     }
   }
   void openChatroom(int userID, int chatroomID){
     try {
       _hubConnection!.invoke('OpenChatroom', args: [userID, chatroomID]);
     }catch(err){
-      logger.e("There was an error caught while opening chatroom:", error: err.toString());
+      logger.e("There was an error caught while opening chatroom:", error: err.toString().isEmpty ? "None provided" : err.toString().isEmpty);
     }
   }
   void addMainTag(String tagName){
     try {
       _hubConnection!.invoke('AddMainTag', args: [tagName]);
     }catch(err){
-      logger.e("There was an error caught while saving tag:", error: err.toString());
+      logger.e("There was an error caught while saving tag:", error: err.toString().isEmpty ? "None provided" : err.toString().isEmpty);
     }
   }
   void addSubTag(String tagName, String mainTagName){
@@ -143,14 +144,14 @@ class SignalRService with ChangeNotifier {
     try{
       _hubConnection!.invoke('SendMessage', args: [userID, chatroomID, messageContent]);
     }catch(err){
-      logger.e("There was an error caught while sending message:", error: err.toString());
+      logger.e("There was an error caught while sending message:", error: err.toString().isEmpty ? "None provided" : err.toString().isEmpty);
     }
   }
   void sendSeen(int userID, int chatroomID){
     try{
       _hubConnection!.invoke('UserSeen', args: [userID, chatroomID]);
     }catch(err){
-      logger.e("There was an error caught while sending message:", error: err.toString());
+      logger.e("There was an error caught while sending message:", error: err.toString().isEmpty ? "None provided" : err.toString().isEmpty);
     }
   }
   /// Sets up SignalR event handlers
@@ -158,6 +159,11 @@ class SignalRService with ChangeNotifier {
 
     _hubConnection!.on('MaximumChatroom', (arguments){
       onMaximumChatroom?.call();
+      notifyListeners();
+    });
+
+    _hubConnection!.on('ExistingTag', (arguments){
+      onExistingTag?.call();
       notifyListeners();
     });
 
@@ -215,10 +221,10 @@ class SignalRService with ChangeNotifier {
       }
     });
 
-    _hubConnection!.on('ReceiveSupport', (arguments) {
+    _hubConnection!.on('ReceiveSupport', (arguments) async {
       if(arguments != null){
-        onChatroomUpdate?.call(Chatroom.fromJson(arguments[0]['chatroom']));
-        onReceiveSupport?.call(Chatroom.fromJson(arguments[0]['chatroom']));
+        await onChatroomUpdate?.call(Chatroom.fromJson(arguments[0]['chatroom']));
+        await onReceiveSupport?.call(Chatroom.fromJson(arguments[0]['chatroom']));
         notifyListeners();
       }
     });
@@ -287,25 +293,23 @@ class SignalRService with ChangeNotifier {
 
   /// Starts the SignalR connection
   Future<void> startConnection() async {
-
     if (_hubConnection == null) return;
 
     try {
       _shouldReconnect = true; // ✅ Allow reconnects on normal use
       _updateConnectionState(ConnectionType.connecting);
-      await _hubConnection!.start();
+      await _hubConnection!.start();  // ❌ If the old tab is using the same user ID, it might get disconnected
       logger.i("✅ SignalR Connected!");
       _updateConnectionState(ConnectionType.connected);
       onConnected?.call();
 
       logger.i("🔄 Invoking Online Event...");
-
       var userSession = Hive.box<HiveSession>('sessionBox').get('user');
       await _hubConnection!.invoke("Online", args: [userSession!.user.userID, userSession!.user.role]);
     } catch (e) {
       logger.e("❌ Error connecting to SignalR:", error: e.toString());
       _updateConnectionState(ConnectionType.disconnected);
-      if (_shouldReconnect) _attemptReconnect(); // ✅ Check flag before retrying
+      if (_shouldReconnect) _attemptReconnect();
     }
   }
 

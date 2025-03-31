@@ -39,7 +39,7 @@ namespace GoldenTicket.Utilities
             return aiResponse;
         }
 
-        public static async Task<AIResponse?> GetJsonResponseAsync(string _id, string _message, string _promptType = "GoldenTicket", string _additional = "")
+        public static async Task<AIResponse?> GetJsonResponseAsync(string _id, string _message, int _userID = 0, string _promptType = "GoldenTicket", string _additional = "")
         {
             try
             {
@@ -48,11 +48,11 @@ namespace GoldenTicket.Utilities
 
                 if (_message == null || _promptType == null)
                 {
-                    _logger.LogError("[AIUtil]: Message cant be empty");
+                    Console.WriteLine("[AIUtil]: Message cant be empty");
                     return AIResponse.Unavailable();
                 }
                     
-                string additional = _additional + FAQData() ?? "";
+                string additional = _additional + FAQData(_userID) ?? "";
                 string requestPrompt = _promptService.GetPrompt(_promptType, additional);
 
                 string aiResponse = await _openAIService.GetAIResponse(_id, _message, requestPrompt);
@@ -61,20 +61,32 @@ namespace GoldenTicket.Utilities
                 // _logger.LogInformation($"\n[AI-AR Input]: {_message}");
                 // _logger.LogInformation($"[AI-AR Response]: {aiResponse}");
 
-                return string.IsNullOrWhiteSpace(parsedResponse.Message) ? parsedResponse : AIResponse.Unavailable();
+                if(string.IsNullOrEmpty(parsedResponse.Message)){
+                    Console.WriteLine($"[AIUtil] Message empty, responding default unavailable message");
+                    return AIResponse.Unavailable();
+                } else {
+                    return parsedResponse;
+                }
             }
             catch (Exception ex)
             {
-                _logger!.LogError(ex, "Error in ProcessJsonResponseAsync");
+                Console.WriteLine($"Error in ProcessJsonResponseAsync: {ex}");
                 return null;
             }
         }
 
-        private static string FAQData()
+        private static string FAQData(int _userID = 0)
         {
+            string userName = "Not provided yet";
             string tagList = "";
             string faqList = "";
 
+            if(_userID != 0)
+            {
+                var user = DBUtil.FindUser(_userID);
+                if(user != null) userName = user.FirstName!;
+            }
+            
             var mainTags = DBUtil.GetTags();
             foreach (var mainTag in mainTags)
             {
@@ -91,7 +103,7 @@ namespace GoldenTicket.Utilities
                 faqList += $"FAQ: {faq.Title}\nDescription: {faq.Description}\nSolution: {faq.Solution}\nMainTag: {faq.MainTag!.MainTagName}\n>{faq.SubTag!.SubTagName}\n\n";
             }
 
-            return $"\n[FAQ DATA] \nTag List:\n{tagList}--------------------------------------------\n{faqList}";
+            return $"\n[USER DETAIL]\nUser's Name: {userName} \n[FAQ DATA] \nTag List:\n{tagList}--------------------------------------------\n{faqList}";
         }
 
         public static Dictionary<string, List<ChatMessage>> PopulateID()
@@ -127,7 +139,7 @@ namespace GoldenTicket.Utilities
                         .ThenInclude(t => t!.Role)
                     .ToList();
 
-                foreach (var chatroom in chatrooms.Where(c => c.TicketID != 99))
+                foreach (var chatroom in chatrooms.Where(c => c.TicketID == null))
                 {
                     dtos.Add(new ChatroomDTO(chatroom, true));
                 }
@@ -141,6 +153,10 @@ namespace GoldenTicket.Utilities
                         if (message.Sender!.UserID != 100000001)
                         {
                             chatMessages.Add(new UserChatMessage(message.MessageContent));
+                        }
+                        else
+                        {
+                            // chatMessages.Add(new AssistantChatMessage(message.MessageContent));
                         }
                     }
                     if (!MessageList.ContainsKey(chatroom.ChatroomID.ToString()!))

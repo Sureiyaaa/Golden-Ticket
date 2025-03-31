@@ -33,18 +33,17 @@ class _HubPageState extends State<HubPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-
-    if (!_isInitialized) {
-      _dataManager = Provider.of<DataManager>(context, listen: false);
-
-      if (!_dataManager.signalRService.isConnected) {
-        log("HubPage: Initializing SignalR Connection...");
-        _dataManager.signalRService.initializeConnection(widget.session!.user);
-      }
-
+    _dataManager = Provider.of<DataManager>(context, listen: false);
+    if (!_isInitialized && !_dataManager.signalRService.isConnected) {
+      log("HubPage: Initializing SignalR Connection...");
+      _dataManager.signalRService.initializeConnection(widget.session!.user);
       _isInitialized = true;
+    } else {
+      log("HubPage: Another tab is already connected. Skipping initialization.");
     }
+
   }
+
 
 
   @override
@@ -86,7 +85,7 @@ class _HubPageState extends State<HubPage> {
             var box = Hive.box<HiveSession>('sessionBox');
             context.go('/login');
             await box.delete('user'); // Clear session
-            await dataManager.signalRService.stopConnection();
+            await dataManager.closeConnection();
           }
           return Scaffold(
             backgroundColor: kSurface,

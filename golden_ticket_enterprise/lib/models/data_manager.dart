@@ -188,7 +188,7 @@ class DataManager extends ChangeNotifier {
 
   @override
   void dispose() {
-    signalRService.stopConnection(); // Ensure cleanup
+    closeConnection(); // Ensure cleanup
     super.dispose();
   }
 
@@ -201,5 +201,15 @@ class DataManager extends ChangeNotifier {
   Chatroom? findChatroomByID(int chatroomID) {
     return chatrooms.firstWhere(
             (c) => c.chatroomID == chatroomID);
+  }
+
+  Future<void> closeConnection() async {
+    tickets = [];
+    mainTags = [];
+    status = [];
+    chatrooms = [];
+    users = [];
+    faqs = [];
+    await signalRService.stopConnection();
   }
 }

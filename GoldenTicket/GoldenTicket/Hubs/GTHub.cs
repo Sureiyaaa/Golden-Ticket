@@ -175,13 +175,17 @@ namespace GoldenTicket.Hubs
         #region Tags
         public async Task AddMainTag(string TagName)
         {
-            DBUtil.AddMainTag(TagName);
-            await Clients.All.SendAsync("TagUpdate", new {tags = DBUtil.GetTags()});
+            if(DBUtil.AddMainTag(TagName))
+                await Clients.All.SendAsync("TagUpdate", new {tags = DBUtil.GetTags()});
+            else
+                await Clients.Caller.SendAsync("ExistingTag");
         }
         public async Task AddSubTag(string TagName, string MainTagName)
         {
-            DBUtil.AddSubTag(TagName, MainTagName);
-            await Clients.All.SendAsync("TagUpdate", new {tags = DBUtil.GetTags()}); 
+            if(DBUtil.AddSubTag(TagName, MainTagName))
+                await Clients.All.SendAsync("TagUpdate", new {tags = DBUtil.GetTags()});
+            else
+                await Clients.Caller.SendAsync("ExistingTag");
         }
         #endregion
 

@@ -196,6 +196,7 @@ namespace GoldenTicket.Utilities
                 var user = context.Users
                     .Include(u => u.Role)
                     .Include(u => u.AssignedTags)
+                        .ThenInclude(a => a.MainTag)
                     .FirstOrDefault(user => user.UserID == Id);
 
                 return user!;
@@ -210,6 +211,7 @@ namespace GoldenTicket.Utilities
                 var users = context.Users
                     .Include(u => u.Role)
                     .Include(m => m.AssignedTags)
+                        .ThenInclude(a => a.MainTag)
                     .ToList()
                     .Select(user => new UserDTO(user)).ToList();
 
@@ -223,6 +225,7 @@ namespace GoldenTicket.Utilities
                 return context.Users
                     .Include(u => u.Role)
                     .Include(u => u.AssignedTags)
+                        .ThenInclude(a => a.MainTag)
                     .Where(user => user.Role!.RoleName == "Admin")
                     .Select(user => new UserDTO(user)).ToList();
             }

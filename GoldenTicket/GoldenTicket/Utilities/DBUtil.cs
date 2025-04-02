@@ -184,6 +184,7 @@ namespace GoldenTicket.Utilities
                 var user = context.Users
                     .Include(u => u.Role)
                     .Include(u => u.AssignedTags)
+                        .ThenInclude(a => a.MainTag)
                     .FirstOrDefault(user => user.Username!.Equals(Username));
 
                 return user!;

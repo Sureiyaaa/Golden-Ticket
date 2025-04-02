@@ -90,19 +90,6 @@ namespace GoldenTicket.Hubs
             var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(chatroom.ChatroomID)!, true);
             var chatroomDTOAdmin = new ChatroomDTO(DBUtil.GetChatroom(chatroom.ChatroomID)!);
 
-            foreach (var user in adminUser)
-            {
-                if (user.Role == "Admin" || user.Role == "Staff")
-                {
-                    if (_connections.TryGetValue(user.UserID, out var connectionIds))
-                    {
-                        foreach (var connectionId in connectionIds)
-                        {
-                            await Clients.Client(connectionId).SendAsync("ChatroomUpdate", new { chatroom = chatroomDTOAdmin });
-                        }
-                    }
-                }
-            }
             await Clients.Caller.SendAsync("ReceiveSupport", new { chatroom = chatroomDTO });
         }
 
@@ -188,20 +175,6 @@ namespace GoldenTicket.Hubs
           
             var message = await DBUtil.SendMessage(SenderID, chatroomID, response!.Message);
             var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(chatroomID)!);
-
-            if(chatroomDTO.Ticket == null)
-            {
-                if(response.CallAgent)
-                {
-                    if (_connections.TryGetValue(userID, out var connectionIds)){
-                        foreach (var connectionId in connectionIds)
-                        {
-                            await AddTicket(response.Title, userID, response.MainTag, response.SubTags, chatroomID);
-                            await Clients.Client(connectionId).SendAsync("AllowMessage");
-                        }
-                    }
-                }
-            }
             var messageDTO = new MessageDTO(DBUtil.GetMessage(message.MessageID)!);
             foreach(var member in chatroomDTO.GroupMembers){
                 if(member.User.UserID == userID){
@@ -214,6 +187,21 @@ namespace GoldenTicket.Hubs
                     }
                 }
             }
+            if(chatroomDTO.Ticket == null)
+            {
+                if(response.CallAgent)
+                {
+                    if (_connections.TryGetValue(userID, out var connectionIds)){
+                        foreach (var connectionId in connectionIds)
+                        {
+                            await AddTicket(response.Title, userID, response.MainTag, response.SubTags, chatroomID);
+                            chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(chatroomID)!);
+                            await Clients.Client(connectionId).SendAsync("AllowMessage");
+                        }
+                    }
+                }
+            }
+            
             await UserSeen(SenderID, chatroomID);
         }
         #endregion
@@ -258,6 +246,8 @@ namespace GoldenTicket.Hubs
                 
             }
             await Clients.Caller.SendAsync("TicketUpdate", new {ticket = ticketDTO});
+            await Clients.Caller.SendAsync("ChatroomUpdate", new {chatroom = chatroomDTO});
+                        
         }
         public async Task OpenTicket(int TicketID)
         {

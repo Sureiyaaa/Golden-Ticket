@@ -27,7 +27,7 @@ class Ticket {
 
     return Ticket(
       ticketID: json['ticketID'],
-      ticketTitle: json['ticketTitle'],
+      ticketTitle: json['ticketTitle'] == null ? "None Provided" : json['ticketTitle'],
       chatroomID: json['ticketID'],
       mainTag: json['mainTag'] == null ? null : MainTag.fromJson(json['mainTag']),
       subTag: json['subTag'] == null  ? null : SubTag.fromJson(json['subTag']),

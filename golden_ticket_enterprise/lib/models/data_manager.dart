@@ -90,21 +90,12 @@ class DataManager extends ChangeNotifier {
   }
   void updateTickets(List<Ticket> updatedTickets){
     tickets = updatedTickets;
+    tickets.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     notifyListeners();
   }
   void updateChatrooms(List<Chatroom> chatroomList){
     chatrooms = chatroomList;
-    chatrooms.sort((a, b) {
-      DateTime? aTime = a.lastMessage?.createdAt;
-      DateTime? bTime = b.lastMessage?.createdAt;
-
-      // If one of the messages is null, place the chatroom without messages at the bottom
-      if (aTime == null && bTime == null) return 0;
-      if (aTime == null) return 1;
-      if (bTime == null) return -1;
-
-      return bTime.compareTo(aTime); // Newest first
-    });
+    chatrooms.sort((a, b) => b.lastMessage?.createdAt?.compareTo(a.lastMessage?.createdAt ?? DateTime(0)) ?? 0);
     notifyListeners();
   }
   void updateLastMessage(Chatroom chatroom){
@@ -126,7 +117,6 @@ class DataManager extends ChangeNotifier {
     });
 
     notifyListeners();
-    print("Chatrooms list updated. Total chatrooms: ${chatrooms.length}");
   }
   void addMessage(message, chatroom){
     int index = chatrooms.indexWhere((c) => c.chatroomID == chatroom.chatroomID);
@@ -155,12 +145,14 @@ class DataManager extends ChangeNotifier {
 
   void updateChatroom(Chatroom chatroom) {
     int index = chatrooms.indexWhere((c) => c.chatroomID == chatroom.chatroomID);
-
     if (index != -1) {
       // Keep existing messages if the new chatroom's messages are null
       List<Message>? existingMessages = chatrooms[index].messages;
-
-      chatrooms[index] = chatroom;  // Update chatroom
+      Ticket? existingTicket = chatrooms[index].ticket;
+      chatrooms[index] = chatroom;
+      if (chatroom.ticket == null) {
+        chatrooms[index].ticket = existingTicket;
+      }
 
       if (chatroom.messages!.length == 0) {
         chatrooms[index].messages = existingMessages; // Retain old messages
@@ -168,21 +160,18 @@ class DataManager extends ChangeNotifier {
     } else {
       chatrooms.add(chatroom);
     }
-    chatrooms.sort((a, b) => b.lastMessage!.createdAt!.compareTo(a.lastMessage!.createdAt!));
+    chatrooms.sort((a, b) => b.lastMessage?.createdAt?.compareTo(a.lastMessage?.createdAt ?? DateTime(0)) ?? 0);
     notifyListeners();
   }
   void updateTicket(Ticket ticket) {
     int index = tickets.indexWhere((c) => c.ticketID == ticket.ticketID);
-    int chatroomIndex = chatrooms.indexWhere((c) => c.chatroomID == ticket.chatroomID);
     if (index != -1) {
       tickets[index] = ticket;  // Update chatroom
     } else {
       tickets.add(ticket);
     }
-    if(chatroomIndex != -1){
-      chatrooms[chatroomIndex].ticket = ticket;
-      updateChatroom(chatrooms[chatroomIndex]);
-    }
+
+    tickets.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     notifyListeners();
   }
 

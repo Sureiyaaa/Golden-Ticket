@@ -76,6 +76,7 @@ namespace GoldenTicket.Utilities
         #endregion
         #endregion
 
+
         #region Tags
 
 
@@ -101,15 +102,6 @@ namespace GoldenTicket.Utilities
             }
         }  
         #endregion
-
-        public static List<string> GetPriority(){
-            using (var context = new ApplicationDbContext())
-            {
-                return context.Priorities.Select(m => m.PriorityName!).ToList();
-            }
-        }
-
-
         #region -   AddMainTag
         public static bool AddMainTag(string TagName)
         {
@@ -189,7 +181,10 @@ namespace GoldenTicket.Utilities
         public static User FindUser(string Username)
         {
             using(var context = new ApplicationDbContext()){
-                var user = context.Users.Include(u => u.Role).Include(u => u.AssignedTags).FirstOrDefault(user => user.Username!.Equals(Username));
+                var user = context.Users
+                    .Include(u => u.Role)
+                    .Include(u => u.AssignedTags)
+                    .FirstOrDefault(user => user.Username!.Equals(Username));
 
                 return user!;
             }
@@ -197,32 +192,26 @@ namespace GoldenTicket.Utilities
         public static User FindUser(int Id)
         {
             using(var context = new ApplicationDbContext()){
-                var user = context.Users.Include(u => u.Role).Include(u => u.AssignedTags).FirstOrDefault(user => user.UserID == Id);
+                var user = context.Users
+                    .Include(u => u.Role)
+                    .Include(u => u.AssignedTags)
+                    .FirstOrDefault(user => user.UserID == Id);
 
                 return user!;
             }
         }
         #endregion
         #region -   GetUsersByRole
-        public static Dictionary<string, List<UserDTO>> GetUsersByRole() 
+        public static List<UserDTO> GetUsersByRole() 
         {
             using (var context = new ApplicationDbContext())
             {
                 var users = context.Users
                     .Include(u => u.Role)
+                    .Include(m => m.AssignedTags)
                     .ToList()
-                    .Select(user => new UserDTO(user))
-                    .GroupBy(user => user.Role!)
-                    .ToDictionary(group => group.Key, group => group.ToList());
+                    .Select(user => new UserDTO(user)).ToList();
 
-                var requiredRoles = new[] { "Admin", "Staff", "Employee" };
-                foreach (var role in requiredRoles)
-                {
-                    if (!users.ContainsKey(role))
-                    {
-                        users[role] = new List<UserDTO>();
-                    }
-                }
                 return users;
             }
         }
@@ -230,7 +219,11 @@ namespace GoldenTicket.Utilities
         #region -   GetAdminUsers
         public static List<UserDTO> GetAdminUsers() {
             using(var context = new ApplicationDbContext()){
-                return context.Users.Include(u => u.Role).Where(user => user.Role!.RoleName == "Admin").Select(user => new UserDTO(user)).ToList();
+                return context.Users
+                    .Include(u => u.Role)
+                    .Include(u => u.AssignedTags)
+                    .Where(user => user.Role!.RoleName == "Admin")
+                    .Select(user => new UserDTO(user)).ToList();
             }
         }
         #endregion
@@ -241,71 +234,86 @@ namespace GoldenTicket.Utilities
 
 
         #region -   AddTicket
-        public async static Task<Tickets> AddTicket(string TicketTitle, int AuthorID, string MainTagName, string SubTagName, int ChatroomID)
+        public async static Task<Tickets> AddTicket(string TicketTitle, int AuthorID, string MainTagName, string SubTagName, string Priority, int ChatroomID)
         {
             int? mainTagID = null;
             int? subTagID = null;
+            int? priorityID = null;
 
             if (MainTagName != "null")
             {
-                var mainTag = GetTags().FirstOrDefault(x => x.MainTagName == MainTagName);
-                if (mainTag != null)
+            var mainTag = GetTags().FirstOrDefault(x => x.MainTagName == MainTagName);
+            if (mainTag != null)
+            {
+                mainTagID = mainTag.MainTagID;
+                if (SubTagName != "null")
                 {
-                    mainTagID = mainTag.MainTagID;
-                    if (SubTagName != "null")
-                    {
-                        var subTag = mainTag.SubTags?.FirstOrDefault(x => x.SubTagName == SubTagName);
-                        if (subTag != null)
-                        {
-                            subTagID = subTag.SubTagID;
-                        }
-                    }
+                var subTag = mainTag.SubTags?.FirstOrDefault(x => x.SubTagName == SubTagName);
+                if (subTag != null)
+                {
+                    subTagID = subTag.SubTagID;
                 }
+                }
+            }
             }
 
             using (var context = new ApplicationDbContext())
             {
-                // Creates Ticket
-                var newTicket = new Tickets
+            // Get PriorityID based on Priority name
+            if (Priority != "null")
+            {
+                var priority = context.Priorities.FirstOrDefault(p => p.PriorityName == Priority);
+                if (priority != null)
                 {
-                    TicketTitle = TicketTitle,
-                    AuthorID = AuthorID,
-                    StatusID = 1
-                };
-
-                // Only assign MainTagID and SubTagID if they are not null
-                if (mainTagID.HasValue)
-                {
-                    newTicket.MainTagID = mainTagID.Value;
+                priorityID = priority.PriorityID;
                 }
-                if (subTagID.HasValue)
-                {
-                    newTicket.SubTagID = subTagID.Value;
-                }
+            }
 
-                context.Tickets.Add(newTicket);
+            // Creates Ticket
+            var newTicket = new Tickets
+            {
+                TicketTitle = TicketTitle,
+                AuthorID = AuthorID,
+                StatusID = 1
+            };
+
+            // Only assign MainTagID, SubTagID, and PriorityID if they are not null
+            if (mainTagID.HasValue)
+            {
+                newTicket.MainTagID = mainTagID.Value;
+            }
+            if (subTagID.HasValue)
+            {
+                newTicket.SubTagID = subTagID.Value;
+            }
+            if (priorityID.HasValue)
+            {
+                newTicket.PriorityID = priorityID.Value;
+            }
+
+            context.Tickets.Add(newTicket);
+            await context.SaveChangesAsync();
+
+            // Creates Ticket History
+            var ticketHistory = new TicketHistory
+            {
+                TicketID = newTicket.TicketID,
+                ActionID = 1,
+                ActionMessage = "Ticket Created",
+            };
+            context.TicketHistory.Add(ticketHistory);
+            await context.SaveChangesAsync();
+
+            // Updates the Chatroom with the TicketID
+            var chatroom = GetChatroom(ChatroomID);
+            if (chatroom != null)
+            {
+                context.Chatrooms.Attach(chatroom);
+                chatroom.TicketID = newTicket.TicketID;
                 await context.SaveChangesAsync();
+            }
 
-                // Creates Ticket History
-                var ticketHistory = new TicketHistory
-                {
-                    TicketID = newTicket.TicketID,
-                    ActionID = 1,
-                    ActionMessage = "Ticket Created",
-                };
-                context.TicketHistory.Add(ticketHistory);
-                await context.SaveChangesAsync();
-
-                // Updates the Chatroom with the TicketID
-                var chatroom = GetChatroom(ChatroomID);
-                if (chatroom != null)
-                {
-                    context.Chatrooms.Attach(chatroom);
-                    chatroom.TicketID = newTicket.TicketID;
-                    await context.SaveChangesAsync();
-                }
-
-                return newTicket;
+            return newTicket;
             }
         }
         #endregion
@@ -321,11 +329,18 @@ namespace GoldenTicket.Utilities
                             .ThenInclude(t => t.Action)
                         .Include(t => t.Author)
                             .ThenInclude(a => a!.Role)
+                        .Include(t => t.Author)
+                            .ThenInclude(a => a!.AssignedTags)
+                                .ThenInclude(a => a.MainTag)
                         .Include(t => t.Assigned)
                             .ThenInclude(a => a!.Role)
+                        .Include(t => t.Assigned)
+                            .ThenInclude(a => a!.AssignedTags)
+                                .ThenInclude(a => a.MainTag)
                         .Include(t => t.MainTag)
                         .Include(t => t.SubTag)
                         .Include(t => t.Status)
+                        .Include(t => t.Priority)
                         .ToList();
                 if (isEmployee)
                 {
@@ -353,12 +368,38 @@ namespace GoldenTicket.Utilities
                         .ThenInclude(t => t.Action)
                     .Include(t => t.Author)
                         .ThenInclude(a => a!.Role)
+                    .Include(t => t.Author)
+                        .ThenInclude(a => a!.AssignedTags)
+                            .ThenInclude(a => a.MainTag)
                     .Include(t => t.Assigned)
                         .ThenInclude(a => a!.Role)
+                    .Include(t => t.Assigned)
+                        .ThenInclude(a => a!.AssignedTags)
+                            .ThenInclude(a => a.MainTag)
                     .Include(t => t.MainTag)
                     .Include(t => t.SubTag)
                     .Include(t => t.Status)
+                    .Include(t => t.Priority)
                     .FirstOrDefault(t => t.TicketID == ticketID);
+            }
+        }
+        #endregion
+        #region -   UpdateTicket
+        public async static Task<Tickets> UpdateTicket(int ticketID, string title, string statusName, string priorityName, int assignedID)
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                int statusID = context.Status.Where(s => s.StatusName == statusName).Select(s => s.StatusID).FirstOrDefault();
+                int priorityID = context.Priorities.Where(p => p.PriorityName == priorityName).Select(p => p.PriorityID).FirstOrDefault();
+
+                var newticket = context.Tickets.FirstOrDefault(t => t.TicketID == ticketID);
+                newticket!.TicketTitle = title;
+                newticket.StatusID = statusID;
+                newticket.PriorityID = priorityID;
+                newticket.AssignedID = assignedID;
+
+                await context.SaveChangesAsync();
+                return newticket;
             }
         }
         #endregion
@@ -370,6 +411,14 @@ namespace GoldenTicket.Utilities
                 return context.Status
                     .Select(s => s.StatusName)
                     .ToList()!;
+            }
+        }
+        #endregion
+        #region _   GetPriority
+        public static List<string> GetPriorities(){
+            using (var context = new ApplicationDbContext())
+            {
+                return context.Priorities.Select(m => m.PriorityName!).ToList();
             }
         }
         #endregion
@@ -444,15 +493,28 @@ namespace GoldenTicket.Utilities
                     .Include(c => c.Members)
                         .ThenInclude(m => m.Member)
                             .ThenInclude(t => t!.Role)
+                    .Include(c => c.Members)
+                        .ThenInclude(m => m.Member)
+                            .ThenInclude(t => t!.AssignedTags)
                     .Include(c => c.Messages)
                         .ThenInclude(m => m.Sender)
                             .ThenInclude(u => u!.Role)
+                    .Include(c => c.Messages)
+                        .ThenInclude(m => m.Sender)
+                            .ThenInclude(u => u!.AssignedTags)
                     .Include(c => c.Ticket)
                         .ThenInclude(t => t!.Author)
-                            .ThenInclude(t => t!.Role) // Ensure Ticket's Author is loaded
+                            .ThenInclude(t => t!.Role)
+                    .Include(c => c.Ticket)
+                        .ThenInclude(t => t!.Author)
+                            .ThenInclude(t => t!.AssignedTags)
+                             // Ensure Ticket's Author is loaded
                     .Include(c => c.Ticket)
                         .ThenInclude(t => t!.Assigned)
                             .ThenInclude(t => t!.Role)
+                    .Include(c => c.Ticket)
+                        .ThenInclude(t => t!.Assigned)
+                            .ThenInclude(t => t!.AssignedTags)
                     .Include(c => c.Ticket)
                         .ThenInclude(t => t!.ticketHistories)
                             .ThenInclude(t => t!.Action)
@@ -462,8 +524,12 @@ namespace GoldenTicket.Utilities
                         .ThenInclude(t => t!.SubTag)
                     .Include(c => c.Ticket)
                         .ThenInclude(t => t!.Status)
+                    .Include(c => c.Ticket)
+                        .ThenInclude(t => t!.Priority)
                     .Include(c => c.Author)
-                        .ThenInclude(t => t!.Role).ToList();
+                        .ThenInclude(t => t!.Role)
+                    .Include(c => c.Author)
+                        .ThenInclude(t => t!.AssignedTags).ToList();
                 if(isEmployee){   
                     foreach(var chatroom in chatrooms.Where(c => c.AuthorID == userID)){
                         dtos.Add(new ChatroomDTO(chatroom));
@@ -477,7 +543,7 @@ namespace GoldenTicket.Utilities
             }
         }
         #endregion
-public static List<ChatroomDTO> GetChatrooms()
+        public static List<ChatroomDTO> GetChatrooms()
         {
             using(var context = new ApplicationDbContext())
             {
@@ -486,15 +552,27 @@ public static List<ChatroomDTO> GetChatrooms()
                     .Include(c => c.Members)
                         .ThenInclude(m => m.Member)
                             .ThenInclude(t => t!.Role)
+                    .Include(c => c.Members)
+                        .ThenInclude(m => m.Member)
+                            .ThenInclude(t => t!.AssignedTags)
                     .Include(c => c.Messages)
                         .ThenInclude(m => m.Sender)
                             .ThenInclude(u => u!.Role)
+                    .Include(c => c.Messages)
+                        .ThenInclude(m => m.Sender)
+                            .ThenInclude(u => u!.AssignedTags)
                     .Include(c => c.Ticket)
                         .ThenInclude(t => t!.Author)
                             .ThenInclude(t => t!.Role) // Ensure Ticket's Author is loaded
                     .Include(c => c.Ticket)
+                        .ThenInclude(t => t!.Author)
+                            .ThenInclude(t => t!.AssignedTags)
+                    .Include(c => c.Ticket)
                         .ThenInclude(t => t!.Assigned)
                             .ThenInclude(t => t!.Role)
+                    .Include(c => c.Ticket)
+                        .ThenInclude(t => t!.Assigned)
+                            .ThenInclude(t => t!.AssignedTags)
                     .Include(c => c.Ticket)
                         .ThenInclude(t => t!.ticketHistories)
                             .ThenInclude(t => t!.Action)
@@ -504,8 +582,12 @@ public static List<ChatroomDTO> GetChatrooms()
                         .ThenInclude(t => t!.SubTag)
                     .Include(c => c.Ticket)
                         .ThenInclude(t => t!.Status)
+                    .Include(c => c.Ticket)
+                        .ThenInclude(t => t!.Priority)
                     .Include(c => c.Author)
-                        .ThenInclude(t => t!.Role).ToList();
+                        .ThenInclude(t => t!.Role)
+                    .Include(c => c.Author)
+                        .ThenInclude(t => t!.AssignedTags).ToList();
                 foreach(var chatroom in chatrooms.Where(c => c.TicketID != null)){
                     dtos.Add(new ChatroomDTO(chatroom));
                 }
@@ -521,12 +603,21 @@ public static List<ChatroomDTO> GetChatrooms()
                     .Include(c => c.Members)
                         .ThenInclude(m => m.Member)
                             .ThenInclude(t => t!.Role)
+                    .Include(c => c.Members)
+                        .ThenInclude(m => m.Member)
+                            .ThenInclude(t => t!.AssignedTags)
                     .Include(c => c.Ticket)
                         .ThenInclude(t => t!.Author)
                             .ThenInclude(t => t!.Role) // Ensure Ticket's Author is loaded
                     .Include(c => c.Ticket)
+                        .ThenInclude(t => t!.Author)
+                            .ThenInclude(t => t!.AssignedTags)
+                    .Include(c => c.Ticket)
                         .ThenInclude(t => t!.Assigned)
                             .ThenInclude(t => t!.Role)
+                    .Include(c => c.Ticket)
+                        .ThenInclude(t => t!.Assigned)
+                            .ThenInclude(t => t!.AssignedTags)
                     .Include(c => c.Ticket)
                         .ThenInclude(t => t!.MainTag)
                     .Include(c => c.Ticket)
@@ -536,11 +627,18 @@ public static List<ChatroomDTO> GetChatrooms()
                             .ThenInclude(t => t!.Action)
                     .Include(c => c.Ticket)
                         .ThenInclude(t => t!.Status)
+                    .Include(c => c.Ticket)
+                        .ThenInclude(t => t!.Priority)
                     .Include(c => c.Messages)
                         .ThenInclude(m => m.Sender)
                             .ThenInclude(u => u!.Role)
+                    .Include(c => c.Messages)
+                        .ThenInclude(m => m.Sender)
+                            .ThenInclude(u => u!.AssignedTags)
                     .Include(c => c.Author)
                         .ThenInclude(t => t!.Role)
+                    .Include(c => c.Author)
+                        .ThenInclude(t => t!.AssignedTags)
                     .FirstOrDefault(c => c.ChatroomID == ChatroomID);
             }
         }
@@ -583,6 +681,8 @@ public static List<ChatroomDTO> GetChatrooms()
                 return context.Messages
                     .Include(m => m.Sender)
                         .ThenInclude(s => s!.Role)
+                    .Include(m => m.Sender)
+                        .ThenInclude(s => s!.AssignedTags)
                     .FirstOrDefault(m => m.MessageID == MessageID);
             }
         }

@@ -29,10 +29,8 @@ const Color kOutlineVariant = Color(0xFFD9D9D9);
 
 Color getStatusColor(String status){
   switch(status){
-    case 'Pending':
-      return Colors.yellowAccent;
-    case 'Assigned':
-      return Colors.blueAccent;
+    case 'Open':
+      return Colors.green;
     case 'In Progress':
       return Colors.lightBlueAccent;
     case 'Postponed':

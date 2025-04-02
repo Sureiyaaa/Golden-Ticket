@@ -101,6 +101,15 @@ namespace GoldenTicket.Utilities
             }
         }  
         #endregion
+
+        public static List<string> GetPriority(){
+            using (var context = new ApplicationDbContext())
+            {
+                return context.Priorities.Select(m => m.PriorityName!).ToList();
+            }
+        }
+
+
         #region -   AddMainTag
         public static bool AddMainTag(string TagName)
         {
@@ -180,7 +189,7 @@ namespace GoldenTicket.Utilities
         public static User FindUser(string Username)
         {
             using(var context = new ApplicationDbContext()){
-                var user = context.Users.Include(u => u.Role).FirstOrDefault(user => user.Username!.Equals(Username));
+                var user = context.Users.Include(u => u.Role).Include(u => u.AssignedTags).FirstOrDefault(user => user.Username!.Equals(Username));
 
                 return user!;
             }
@@ -188,7 +197,7 @@ namespace GoldenTicket.Utilities
         public static User FindUser(int Id)
         {
             using(var context = new ApplicationDbContext()){
-                var user = context.Users.Include(u => u.Role).FirstOrDefault(user => user.UserID == Id);
+                var user = context.Users.Include(u => u.Role).Include(u => u.AssignedTags).FirstOrDefault(user => user.UserID == Id);
 
                 return user!;
             }

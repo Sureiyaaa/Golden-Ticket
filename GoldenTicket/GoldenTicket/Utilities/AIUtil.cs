@@ -57,16 +57,18 @@ namespace GoldenTicket.Utilities
 
                 string aiResponse = await _openAIService.GetAIResponse(_id, _message, requestPrompt);
                 var parsedResponse = AIResponse.Parse(aiResponse);
+                var finalResponse = new AIResponse();
 
                 // _logger.LogInformation($"\n[AI-AR Input]: {_message}");
                 // _logger.LogInformation($"[AI-AR Response]: {aiResponse}");
 
                 if(string.IsNullOrEmpty(parsedResponse.Message)){
                     Console.WriteLine($"[AIUtil] Message empty, responding default unavailable message");
-                    return AIResponse.Unavailable();
+                    finalResponse = AIResponse.Unavailable();
                 } else {
-                    return parsedResponse;
+                    finalResponse =  parsedResponse;
                 }
+                return finalResponse;
             }
             catch (Exception ex)
             {

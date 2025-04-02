@@ -20,6 +20,7 @@ class SignalRService with ChangeNotifier {
   var logger = Logger();
   Function(List<MainTag>)? onTagUpdate;
   Function(Message, Chatroom)? onReceiveMessage;
+  Function(List<String>)? onPriorityUpdate;
   Function(List<FAQ>)? onFAQUpdate;
   Function(Chatroom)? onChatroomUpdate;
   Function(List<Chatroom>)? onChatroomsUpdate;
@@ -276,13 +277,18 @@ class SignalRService with ChangeNotifier {
         List<String> updatedStatus =
         (arguments[0]['status'] as List).map((status) => status.toString()).toList();
 
+        List<String> updatedPriorities =
+        (arguments[0]['priorities'] as List).map((priority) => priority.toString()).toList();
+
         logger.i("🔹 Updated Tags: ${updatedTags.length}\n"
             "🔹 Updated FAQs: ${updatedFAQs.length}\n"
             "🔹 Updated Chatrooms: ${updatedChatrooms.length}\n"
             "🔹 Updated Tickets: ${updatedTickets.length}\n"
-            "🔹 Updated Status: ${updatedStatus.length}"
+            "🔹 Updated Status: ${updatedStatus.length}\n"
+            "🔹 Updated Priorities: ${updatedPriorities.length}"
         );
         onTagUpdate?.call(updatedTags);
+        onPriorityUpdate?.call(updatedPriorities);
         onFAQUpdate?.call(updatedFAQs);
         onTicketsUpdate?.call(updatedTickets);
         onStatusUpdate?.call(updatedStatus);

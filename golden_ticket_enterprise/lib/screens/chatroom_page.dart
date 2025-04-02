@@ -87,12 +87,6 @@ class _ChatroomPageState extends State<ChatroomPage> {
           }
         };
 
-        dataManager.signalRService.onTicketUpdate = (ticket) {
-          if(ticket.chatroomID == chatroom!.chatroomID){
-            chatroom.ticket = ticket;
-          }
-        };
-
         dataManager.signalRService.onAllowMessage = () {
           setState(() {
             enableMessage = true;
@@ -120,7 +114,7 @@ class _ChatroomPageState extends State<ChatroomPage> {
               ),
             ],
           ),
-          endDrawer: ChatroomDetailsDrawer(chatroom: chatroom),
+          endDrawer: ChatroomDetailsDrawer(chatroom: dataManager.findChatroomByID(widget.chatroomID)!),
           body: Column(
             children: [
               Expanded(

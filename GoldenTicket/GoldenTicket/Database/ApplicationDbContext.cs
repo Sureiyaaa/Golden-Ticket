@@ -29,6 +29,8 @@ namespace GoldenTicket.Database {
         public DbSet<Entities.Action> Actions { get; set; }
         public DbSet<AIStats> AIStats { get; set; }
         public DbSet<Rating> Rating { get; set; }
+        public DbSet<Priority> Priorities { get; set;}
+        public DbSet<AssignedTag> AssignedTags { get; set; }
         
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -73,6 +75,7 @@ namespace GoldenTicket.Database {
             List<SubTagConfig>? subTags = config.GetSection("Tags:SubTags").Get<List<SubTagConfig>>();
             List<string>? actions = config.GetSection("Tags:Actions").Get<List<string>>();
             List<string>? status = config.GetSection("Tags:Status").Get<List<string>>();
+            List<string>? priority = config.GetSection("Tags:Priority").Get<List<string>>();
             List<string>? roles = config.GetSection("Tags:Roles").Get<List<string>>();
             List<string>? notification = config.GetSection("Tags:Notification").Get<List<string>>();
            
@@ -101,6 +104,13 @@ namespace GoldenTicket.Database {
                 for(int i = 0; i < status.Count; i++){
                     modelBuilder.Entity<Status>().HasData(
                         new  Status{StatusID = i + 1, StatusName = status[i]}
+                    );
+                }
+            }
+            if(priority != null){
+                for(int i = 0; i < priority.Count; i++){
+                    modelBuilder.Entity<Priority>().HasData(
+                        new  Priority{PriorityID = i + 1, PriorityName = priority[i]}
                     );
                 }
             }

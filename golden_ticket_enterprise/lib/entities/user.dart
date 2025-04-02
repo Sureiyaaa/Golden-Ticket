@@ -9,11 +9,17 @@ class User {
   String? email = "None Provided";
   String? phoneNumber = "None Provided";
   final DateTime? lastOnlineAt;
+  List<String>? assignedTags = [];
 
-  User({required this.userID, required this.username, required this.firstName, this.middleName, required this.lastName, required this.role, this.lastOnlineAt, this.email, this.phoneNumber});
+  User({required this.userID, required this.username, required this.firstName, this.assignedTags, this.middleName, required this.lastName, required this.role, this.lastOnlineAt, this.email, this.phoneNumber});
 
   factory User.fromJson(Map<String, dynamic> json) {
     dynamic userData = json;
+    List<String> assigned = [];
+    print(json);
+    for(var tag in userData['assignedTags']){
+      assigned.add(tag);
+    }
     return User(
         userID: userData['userID'] ?? "",
         username: userData['username'] ?? "",
@@ -23,7 +29,8 @@ class User {
         lastName: userData['lastName'] ?? "",
         lastOnlineAt: userData['lastOnlineAt'],
         email: userData['email'] ?? "None provided",
-        phoneNumber: userData['phoneNumber'] ?? "None provided"
+        phoneNumber: userData['phoneNumber'] ?? "None provided",
+        assignedTags: assigned
     );
   }
 

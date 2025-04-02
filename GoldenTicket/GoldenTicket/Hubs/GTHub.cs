@@ -57,7 +57,7 @@ namespace GoldenTicket.Hubs
                 chatrooms = DBUtil.GetChatrooms(userID, isEmployee), 
                 tickets = DBUtil.GetTickets(userID, isEmployee),
                 status = DBUtil.GetStatuses(),
-                priorities = DBUtil.GetPriority()
+                priorities = DBUtil.GetPriorities()
             });
         }
 
@@ -168,7 +168,7 @@ namespace GoldenTicket.Hubs
         public async Task AISendMessage(int chatroomID, string userMessage, int userID) 
         {
             int SenderID = 100000001;
-            var response = await AIUtil.GetJsonResponseAsync(chatroomID.ToString(), userMessage);
+            var response = await AIUtil.GetJsonResponseAsync(chatroomID.ToString(), userMessage, userID);
             if (response == null)
             {
                 response = AIResponse.Unavailable();
@@ -195,7 +195,7 @@ namespace GoldenTicket.Hubs
                     if (_connections.TryGetValue(userID, out var connectionIds)){
                         foreach (var connectionId in connectionIds)
                         {
-                            await AddTicket(response.Title, userID, response.MainTag, response.SubTags, chatroomID);
+                            await AddTicket(response.Title, userID, response.MainTag, response.SubTags, response.Priority, chatroomID);
                             chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(chatroomID)!);
                             await Clients.Client(connectionId).SendAsync("AllowMessage");
                         }
@@ -227,9 +227,9 @@ namespace GoldenTicket.Hubs
 
 
         #region Ticket
-        public async Task AddTicket(string TicketTitle, int AuthorID, string MainTagName, string SubTagName, int ChatroomID)
+        public async Task AddTicket(string TicketTitle, int AuthorID, string MainTagName, string SubTagName, string Priority, int ChatroomID)
         {
-            var newTicket = await DBUtil.AddTicket(TicketTitle, AuthorID, MainTagName, SubTagName, ChatroomID);
+            var newTicket = await DBUtil.AddTicket(TicketTitle, AuthorID, MainTagName, SubTagName, Priority, ChatroomID);
             var ticketDTO = new TicketDTO(DBUtil.GetTicket(newTicket.TicketID)!);
             var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID)!);
             var adminUser = DBUtil.GetAdminUsers();
@@ -249,6 +249,41 @@ namespace GoldenTicket.Hubs
             await Clients.Caller.SendAsync("TicketUpdate", new {ticket = ticketDTO});
             await Clients.Caller.SendAsync("ChatroomUpdate", new {chatroom = chatroomDTO});
                         
+        }
+        public async Task UpdateTicket(int TicketID, string Title, string Status, string Priority, int AssignedID)
+        {
+            var ticketDTO = new TicketDTO(DBUtil.GetTicket(TicketID)!);
+            var chatroomDTO = DBUtil.GetChatrooms(ticketDTO.Author!.UserID).Where(c => c.Ticket!.TicketID == TicketID).FirstOrDefault();
+            var updatedTicket = await DBUtil.UpdateTicket(TicketID, Title, Status, Priority, AssignedID);
+            ticketDTO = new TicketDTO(DBUtil.GetTicket(TicketID)!);
+
+            var adminUser = DBUtil.GetAdminUsers();
+            foreach (var user in adminUser)
+            {
+                if (user.Role == "Admin" || user.Role == "Staff")
+                {
+                    if (_connections.TryGetValue(user.UserID, out var connectionIds))
+                    {
+                        foreach (var connectionId in connectionIds)
+                        {
+                            await Clients.Client(connectionId).SendAsync("TicketUpdate", new { ticket = ticketDTO });
+                            await Clients.Client(connectionId).SendAsync("ChatroomUpdate", new { chatroom = chatroomDTO });
+                        }
+                    }
+                }
+            }
+
+            foreach (var member in chatroomDTO!.GroupMembers)
+            {
+                if (_connections.TryGetValue(member.User.UserID, out var connectionIds))
+                {
+                    foreach (var connectionId in connectionIds)
+                    {
+                        await Clients.Client(connectionId).SendAsync("TicketUpdate", new { ticket = ticketDTO });
+                        await Clients.Client(connectionId).SendAsync("ChatroomUpdate", new { chatroom = chatroomDTO });
+                    }
+                }
+            }
         }
         public async Task OpenTicket(int TicketID)
         {

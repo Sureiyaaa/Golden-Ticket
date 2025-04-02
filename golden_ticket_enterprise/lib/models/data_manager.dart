@@ -90,6 +90,7 @@ class DataManager extends ChangeNotifier {
   }
   void updateTickets(List<Ticket> updatedTickets){
     tickets = updatedTickets;
+    tickets.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     notifyListeners();
   }
   void updateChatrooms(List<Chatroom> chatroomList){
@@ -183,6 +184,7 @@ class DataManager extends ChangeNotifier {
       chatrooms[chatroomIndex].ticket = ticket;
       updateChatroom(chatrooms[chatroomIndex]);
     }
+    tickets.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     notifyListeners();
   }
 

@@ -222,6 +222,7 @@ class _ChatroomPageState extends State<ChatroomPage> {
               maxLines: 4, // Expands up to 4 lines, then scrolls
               minLines: 1,
               textInputAction: TextInputAction.newline, // Allows multi-line
+              enabled: enableMessage,
               decoration: InputDecoration(
                 hintText: "Type a message...",
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),

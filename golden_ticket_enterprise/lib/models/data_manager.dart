@@ -15,7 +15,7 @@ class DataManager extends ChangeNotifier {
   List<Chatroom> chatrooms = [];
   List<Ticket> tickets = [];
   List<User> users = [];
-
+  List<String> priorities = [];
   DataManager({required this.signalRService}) {
     _initializeSignalR();
   }
@@ -72,10 +72,18 @@ class DataManager extends ChangeNotifier {
       updateChatroom(chatroom);
 
     };
+    signalRService.onPriorityUpdate = (updatedPriorities){
+      updatePriorities(updatedPriorities);
+
+    };
   }
 
   void updateMainTags(List<MainTag> updatedTags) {
     mainTags = updatedTags;
+    notifyListeners();
+  }
+  void updatePriorities(List<String> updatedPriorities){
+    priorities = updatedPriorities;
     notifyListeners();
   }
 

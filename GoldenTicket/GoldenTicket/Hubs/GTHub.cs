@@ -57,6 +57,7 @@ namespace GoldenTicket.Hubs
                 chatrooms = DBUtil.GetChatrooms(userID, isEmployee), 
                 tickets = DBUtil.GetTickets(userID, isEmployee),
                 status = DBUtil.GetStatuses(),
+                priorities = DBUtil.GetPriority()
             });
         }
 

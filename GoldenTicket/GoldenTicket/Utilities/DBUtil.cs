@@ -212,6 +212,7 @@ namespace GoldenTicket.Utilities
                     .Include(u => u.Role)
                     .Include(m => m.AssignedTags)
                         .ThenInclude(a => a.MainTag)
+                    .Where(u => u.UserID != 100000000 || u.UserID != 100000001)
                     .ToList()
                     .Select(user => new UserDTO(user)).ToList();
 

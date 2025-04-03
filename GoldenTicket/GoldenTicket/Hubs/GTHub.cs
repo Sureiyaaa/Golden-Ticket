@@ -195,7 +195,7 @@ namespace GoldenTicket.Hubs
                     if (_connections.TryGetValue(userID, out var connectionIds)){
                         foreach (var connectionId in connectionIds)
                         {
-                            await AddTicket(response.Title, userID, response.MainTag, response.SubTags, response.Priority, chatroomID);
+                            await AddTicket(response.Title, userID, response.MainTag, response.SubTags, "Medium", chatroomID);
                             chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(chatroomID)!);
                             await Clients.Client(connectionId).SendAsync("AllowMessage");
                         }
@@ -250,7 +250,7 @@ namespace GoldenTicket.Hubs
             await Clients.Caller.SendAsync("ChatroomUpdate", new {chatroom = chatroomDTO});
                         
         }
-        public async Task UpdateTicket(int TicketID, string Title, string Status, string Priority, string MainTag, string SubTag, int AssignedID)
+        public async Task UpdateTicket(int TicketID, string Title, string Status, string Priority, string? MainTag, string? SubTag, int? AssignedID)
         {
             var ticketDTO = new TicketDTO(DBUtil.GetTicket(TicketID)!);
             var chatroomDTO = DBUtil.GetChatrooms(ticketDTO.Author!.UserID).Where(c => c.Ticket!.TicketID == TicketID).FirstOrDefault();

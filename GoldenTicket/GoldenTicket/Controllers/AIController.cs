@@ -33,13 +33,14 @@ namespace GoldenTicket.Controllers
             string message = requestData.Message;
             string promptType = requestData.PromptType ?? "GoldenTicket";
             string? additional = requestData.Additional ?? "";
+            int userID = requestData.userID;
 
             if (requestData?.Message == null || requestData.id == null)
             {
                 return BadRequest(new {status = 400, message = "Invalid JSON", errorType = "message and/or promptType not found."});
             }
 
-            var parsedResponse = await AIUtil.GetJsonResponseAsync(id, message, 0, promptType, additional) ?? null;
+            var parsedResponse = await AIUtil.GetJsonResponseAsync(id, message, userID, promptType, additional) ?? null;
 
             if (!string.IsNullOrWhiteSpace(parsedResponse?.Message))
                 return Ok(new {status = 200, message = "Request Response successfully", body = new {parsedResponse}}); 

@@ -488,6 +488,32 @@ namespace GoldenTicket.Utilities
             }
         }
         #endregion
+        #region CloseChatroom
+        public async static Task<Chatroom> CloseChatroom(int chatroomID)
+        {
+            using(var context = new ApplicationDbContext())
+            {
+                var chatroom = GetChatroom(chatroomID);
+                chatroom!.IsClosed = true;
+                context.Chatrooms.Attach(chatroom!);
+                await context.SaveChangesAsync();
+                return chatroom!;
+            }
+        }
+        #endregion
+        #region ReopenChatroom
+        public async static Task<Chatroom> ReopenChatroom(int chatroomID)
+        {
+            using(var context = new ApplicationDbContext())
+            {
+                var chatroom = GetChatroom(chatroomID);
+                chatroom!.IsClosed = false;
+                context.Chatrooms.Attach(chatroom!);
+                await context.SaveChangesAsync();
+                return chatroom!;
+            }
+        }
+        #endregion
         #region -   JoinChatroom
         public static ChatroomDTO JoinChatroom(int UserID, int ChatroomID)
         {

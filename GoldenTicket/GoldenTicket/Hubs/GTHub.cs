@@ -250,11 +250,11 @@ namespace GoldenTicket.Hubs
             await Clients.Caller.SendAsync("ChatroomUpdate", new {chatroom = chatroomDTO});
                         
         }
-        public async Task UpdateTicket(int TicketID, string Title, string Status, string Priority, int AssignedID)
+        public async Task UpdateTicket(int TicketID, string Title, string Status, string Priority, string MainTag, string SubTag, int AssignedID)
         {
             var ticketDTO = new TicketDTO(DBUtil.GetTicket(TicketID)!);
             var chatroomDTO = DBUtil.GetChatrooms(ticketDTO.Author!.UserID).Where(c => c.Ticket!.TicketID == TicketID).FirstOrDefault();
-            var updatedTicket = await DBUtil.UpdateTicket(TicketID, Title, Status, Priority, AssignedID);
+            var updatedTicket = await DBUtil.UpdateTicket(TicketID, Title, Status, Priority, MainTag, SubTag, AssignedID);
             ticketDTO = new TicketDTO(DBUtil.GetTicket(TicketID)!);
 
             var adminUser = DBUtil.GetAdminUsers();

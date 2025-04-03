@@ -158,6 +158,25 @@ namespace GoldenTicket.Hubs
                     }
                 }
             }
+
+            if(chatroomDTO.Ticket!.TicketID != null)
+            {
+                var adminUser = DBUtil.GetAdminUsers();
+                foreach(var user in adminUser){
+                    if(user.Role == "Admin" || user.Role == "Staff"){
+                        
+                        if (_connections.TryGetValue(user.UserID, out var connectionIds)){
+                            foreach (var connectionId in connectionIds)
+                            {
+                                await Clients.Client(connectionId).SendAsync("ReceiveMessage", new {chatroom = chatroomDTO, message = messageDTO});
+
+                            }
+                        }
+                    }
+                    
+                }
+            }
+            
             await UserSeen(SenderID, ChatroomID);
             if(chatroomDTO.Ticket == null)
             {
@@ -252,10 +271,17 @@ namespace GoldenTicket.Hubs
         }
         public async Task UpdateTicket(int TicketID, string Title, string Status, string Priority, string? MainTag, string? SubTag, int? AssignedID)
         {
-            var ticketDTO = new TicketDTO(DBUtil.GetTicket(TicketID)!);
             var updatedTicket = await DBUtil.UpdateTicket(TicketID, Title, Status, Priority, MainTag, SubTag, AssignedID);
-            ticketDTO = new TicketDTO(DBUtil.GetTicket(TicketID)!);
+            var ticketDTO = new TicketDTO(DBUtil.GetTicket(TicketID)!);
+            
             var chatroomDTO = DBUtil.GetChatrooms().Where(c => c.Ticket!.TicketID == TicketID).FirstOrDefault();
+            int chatroomID = chatroomDTO?.ChatroomID ?? throw new InvalidOperationException("ChatroomID cannot be null.");
+            if(Status == "Closed")
+            {
+                await DBUtil.CloseChatroom(chatroomID);
+                chatroomDTO = DBUtil.GetChatrooms().Where(c => c.Ticket!.TicketID == TicketID).FirstOrDefault();
+            }
+            
 
             var adminUser = DBUtil.GetAdminUsers();
             foreach (var user in adminUser)

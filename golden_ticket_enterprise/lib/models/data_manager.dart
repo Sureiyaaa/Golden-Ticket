@@ -74,7 +74,9 @@ class DataManager extends ChangeNotifier {
     };
     signalRService.onPriorityUpdate = (updatedPriorities){
       updatePriorities(updatedPriorities);
-
+    };
+    signalRService.onUsersUpdate = (updatedUsers){
+      updateUsers(updatedUsers);
     };
   }
 
@@ -89,6 +91,11 @@ class DataManager extends ChangeNotifier {
 
   void updateFAQs(List<FAQ> updatedFAQs) {
     faqs = updatedFAQs;
+    notifyListeners();
+  }
+
+  void updateUsers(List<User> updatedUsers) {
+    users = updatedUsers;
     notifyListeners();
   }
 
@@ -126,6 +133,7 @@ class DataManager extends ChangeNotifier {
 
     notifyListeners();
   }
+
   void addMessage(message, chatroom){
     int index = chatrooms.indexWhere((c) => c.chatroomID == chatroom.chatroomID);
 
@@ -188,6 +196,9 @@ class DataManager extends ChangeNotifier {
     closeConnection(); // Ensure cleanup
     super.dispose();
   }
+  List<User> getAgents(){
+    return users.where((user) => user.role != "Employee").toList();
+  }
 
   Chatroom? findChatroom(Chatroom chatroom) {
     return chatrooms.firstWhere(
@@ -198,6 +209,11 @@ class DataManager extends ChangeNotifier {
   Chatroom? findChatroomByID(int chatroomID) {
     return chatrooms.firstWhere(
             (c) => c.chatroomID == chatroomID);
+  }
+
+  Chatroom? findChatroomByTicketID(int ticketID){
+    return chatrooms.firstWhere(
+            (c) => c.ticket?.ticketID == ticketID);
   }
 
   Future<void> closeConnection() async {

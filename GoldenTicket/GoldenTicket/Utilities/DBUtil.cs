@@ -390,18 +390,31 @@ namespace GoldenTicket.Utilities
         }
         #endregion
         #region -   UpdateTicket
-        public async static Task<Tickets> UpdateTicket(int ticketID, string title, string statusName, string priorityName, int assignedID)
+        public async static Task<Tickets> UpdateTicket(int ticketID, string title, string statusName, string priorityName, string? MainTag, string? SubTag, int? assignedID)
         {
             using (var context = new ApplicationDbContext())
             {
                 int statusID = context.Status.Where(s => s.StatusName == statusName).Select(s => s.StatusID).FirstOrDefault();
                 int priorityID = context.Priorities.Where(p => p.PriorityName == priorityName).Select(p => p.PriorityID).FirstOrDefault();
+                int? mainTagID = 0;
+                int? subTagID = 0;
+                
+                if(MainTag != null)
+                    mainTagID = context.MainTag.Include(m => m.ChildTags).Where(m => m.TagName == MainTag).Select(m => m.TagID).FirstOrDefault();
+                if(SubTag != null && MainTag != null)
+                    subTagID = context.SubTag.Where(s => s.MainTagID == mainTagID! && s.TagName == SubTag).Select(s => s.TagID).FirstOrDefault();
 
                 var newticket = context.Tickets.FirstOrDefault(t => t.TicketID == ticketID);
                 newticket!.TicketTitle = title;
                 newticket.StatusID = statusID;
                 newticket.PriorityID = priorityID;
-                newticket.AssignedID = assignedID;
+
+                if(MainTag != null || MainTag != "") 
+                    newticket.MainTagID = mainTagID;
+                if(SubTag != null || SubTag != "") 
+                    newticket.SubTagID = subTagID;
+                if(assignedID != null || assignedID != 0)
+                    newticket.AssignedID = assignedID;
 
                 await context.SaveChangesAsync();
                 return newticket;

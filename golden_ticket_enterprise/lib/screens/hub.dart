@@ -36,7 +36,7 @@ class _HubPageState extends State<HubPage> {
     _dataManager = Provider.of<DataManager>(context, listen: false);
     if (!_isInitialized && !_dataManager.signalRService.isConnected) {
       log("HubPage: Initializing SignalR Connection...");
-      _dataManager.signalRService.initializeConnection(widget.session!.user);
+      _dataManager.signalRService.initializeConnection(widget.session!);
       _isInitialized = true;
     } else {
       log("HubPage: Another tab is already connected. Skipping initialization.");

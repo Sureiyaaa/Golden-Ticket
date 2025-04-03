@@ -42,3 +42,14 @@ Color getStatusColor(String status){
   }
   return Colors.black;
 }
+Color getPriorityColor(String status){
+  switch(status){
+    case 'High':
+      return Colors.redAccent;
+    case 'Medium':
+      return Colors.orangeAccent;
+    case 'Low':
+      return Colors.greenAccent;
+  }
+  return Colors.black;
+}

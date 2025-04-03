@@ -66,7 +66,7 @@ class _ChatroomPageState extends State<ChatroomPage> {
         log("HubPage: Initializing SignalR Connection...");
 
         var userSession = Hive.box<HiveSession>('sessionBox').get('user');
-        _dataManager.signalRService.initializeConnection(userSession!.user);
+        _dataManager.signalRService.initializeConnection(userSession!);
       }
 
       _isInitialized = true;
@@ -79,6 +79,7 @@ class _ChatroomPageState extends State<ChatroomPage> {
       builder: (context, dataManager, child) {
         Chatroom? chatroom = dataManager.findChatroomByID(widget.chatroomID);
         var userSession = Hive.box<HiveSession>('sessionBox').get('user');
+        String chatTitle = chatroom?.ticket != null ? chatroom?.ticket?.ticketTitle ?? "New Chat" : "New Chat";
 
         dataManager.signalRService.onReceiveMessage = (message, chatroom) {
           if (chatroom.chatroomID == widget.chatroomID) {
@@ -104,7 +105,7 @@ class _ChatroomPageState extends State<ChatroomPage> {
         return Scaffold(
           appBar: AppBar(
             backgroundColor: kPrimary,
-            title: Text('${chatroom.author.firstName}'),
+            title: Text('${chatTitle}'),
             actions: [
               Builder(
                 builder: (context) => IconButton(
@@ -198,7 +199,9 @@ class _ChatroomPageState extends State<ChatroomPage> {
                   },
                 ),
               ),
-              if (chatroom.groupMembers.any((u) => u.member?.userID == userSession?.user.userID))
+              if (chatroom.isClosed)
+                _buildClosedBar(dataManager, userSession, chatroom)
+              else if (chatroom.groupMembers.any((u) => u.member?.userID == userSession?.user.userID))
                 _buildMessageInput(chatroom)
               else
                 _buildJoinRoomButton(dataManager, userSession, chatroom),
@@ -267,6 +270,12 @@ class _ChatroomPageState extends State<ChatroomPage> {
         },
         child: Text("Join Room"),
       ),
+    );
+  }
+  Widget _buildClosedBar(DataManager dataManager, HiveSession? userSession, Chatroom chatroom) {
+    return Padding(
+      padding: const EdgeInsets.all(12.0),
+      child:  Text("Viewing archived chat"),
     );
   }
 

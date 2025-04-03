@@ -47,9 +47,22 @@ class ChatroomDetailsDrawer extends StatelessWidget {
                   subtitle: Text('${chatroom.ticket!.assigned!.firstName}')
               ),
               if(chatroom.ticket != null) ListTile(
-                  title: const Text("Status:"),
-                  subtitle: Chip(backgroundColor: getStatusColor(chatroom.ticket!.status),label: Text(chatroom.ticket!.status, style: TextStyle(fontWeight: FontWeight.bold, color: kSurface),))
+                title: const Text("Priority:"),
+                subtitle: Row(children: [Chip(backgroundColor: getPriorityColor(chatroom.ticket!.priority!),label: Text(chatroom.ticket!.priority!, style: TextStyle(fontWeight: FontWeight.bold, color: kSurface),))]),
               ),
+              if(chatroom.ticket != null) ListTile(
+                  title: const Text("Status:"),
+                  subtitle: Row(children: [Chip(backgroundColor: getStatusColor(chatroom.ticket!.status),label: Text(chatroom.ticket!.status, style: TextStyle(fontWeight: FontWeight.bold, color: kSurface),))]),
+              ),
+              if(chatroom.ticket != null) ListTile(
+                title: const Text("Tags:"),
+                subtitle: Row(
+                  children: [
+                      Chip(backgroundColor: Colors.redAccent,label: Text(chatroom.ticket!.mainTag?.tagName ?? "No Main Tag Provided", style: TextStyle(fontWeight: FontWeight.bold, color: kSurface),)),
+                      Chip(backgroundColor: Colors.blueAccent,label: Text(chatroom.ticket!.subTag?.subTagName ?? "No Sub Tag Provided", style: TextStyle(fontWeight: FontWeight.bold, color: kSurface),)),
+                  ],
+                )
+              )
             ],
           ),
           ExpansionTile(

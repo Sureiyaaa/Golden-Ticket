@@ -401,7 +401,7 @@ namespace GoldenTicket.Utilities
                 
                 if(MainTag != null)
                     mainTagID = context.MainTag.Include(m => m.ChildTags).Where(m => m.TagName == MainTag).Select(m => m.TagID).FirstOrDefault();
-                if(SubTag != null && MainTag != null)
+                if(SubTag != null)
                     subTagID = context.SubTag.Where(s => s.MainTagID == mainTagID! && s.TagName == SubTag).Select(s => s.TagID).FirstOrDefault();
 
                 var newticket = context.Tickets.FirstOrDefault(t => t.TicketID == ticketID);
@@ -409,12 +409,18 @@ namespace GoldenTicket.Utilities
                 newticket.StatusID = statusID;
                 newticket.PriorityID = priorityID;
 
-                if(MainTag != null || MainTag != "") 
+                if (!string.IsNullOrEmpty(MainTag))  
                     newticket.MainTagID = mainTagID;
-                if(SubTag != null || SubTag != "") 
+                else newticket.MainTagID = null;
+                
+                if (!string.IsNullOrEmpty(SubTag))  
                     newticket.SubTagID = subTagID;
-                if(assignedID != null || assignedID != 0)
+                else newticket.SubTagID = null;
+
+                if (assignedID != null && assignedID != 0)  
                     newticket.AssignedID = assignedID;
+                else newticket.AssignedID = null;
+
 
                 await context.SaveChangesAsync();
                 return newticket;

@@ -5,7 +5,8 @@ import 'package:golden_ticket_enterprise/entities/faq.dart';
 import 'package:golden_ticket_enterprise/entities/main_tag.dart';
 import 'package:golden_ticket_enterprise/entities/message.dart';
 import 'package:golden_ticket_enterprise/entities/ticket.dart';
-import 'package:golden_ticket_enterprise/models/hive_session.dart';
+import 'package:golden_ticket_enterprise/entities/user.dart' as UserDTO;
+import 'package:golden_ticket_enterprise/models/hive_session.dart' as UserSession;
 import 'package:golden_ticket_enterprise/models/user.dart';
 import 'package:golden_ticket_enterprise/secret.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -26,6 +27,8 @@ class SignalRService with ChangeNotifier {
   Function(List<Chatroom>)? onChatroomsUpdate;
   Function(List<Ticket>)? onTicketsUpdate;
   Function(Ticket)? onTicketUpdate;
+  Function(List<UserDTO.User>)? onUsersUpdate;
+  Function(UserDTO.User)? onUserUpdate;
   Function(Chatroom)? onReceiveSupport;
   Function(List<String>)? onStatusUpdate;
   Function(int, int)? onSeenUpdate;
@@ -44,7 +47,7 @@ class SignalRService with ChangeNotifier {
 
 
   /// Initializes the SignalR connection
-  Future<void> initializeConnection(User user) async {
+  Future<void> initializeConnection(UserSession.HiveSession user) async {
     _hubConnection = HubConnectionBuilder()
         .withUrl(
       serverUrl,
@@ -88,8 +91,7 @@ class SignalRService with ChangeNotifier {
       logger.i("✅ Reconnected: $connectionId");
       _retryCount = 0; // Reset retry count on successful reconnection
       _updateConnectionState(ConnectionType.connected);
-      var userSession = Hive.box<HiveSession>('sessionBox').get('user');
-      await _hubConnection!.invoke("Online", args: [userSession!.user.userID, userSession!.user.role]);
+      await _hubConnection!.invoke("Online", args: [user!.user.userID, user!.user.role]);
     });
 
     _setupEventHandlers();
@@ -118,6 +120,24 @@ class SignalRService with ChangeNotifier {
       logger.e("There was an error caught while saving tag:", error: err.toString().isEmpty ? "None provided" : err.toString().isEmpty);
     }
   }
+
+  void updateTicket(int ticketID, String title, String status, String priority, String? mainTag, String? subTag, int? assignedID) {
+    try {
+      _hubConnection!.invoke('UpdateTicket', args: [
+        ticketID,
+        title,
+        status,
+        priority,
+        mainTag?.isEmpty == true ? null : mainTag,  // Ensure null instead of empty string
+        subTag?.isEmpty == true ? null : subTag,    // Ensure null instead of empty string
+        assignedID == 0 ? null : assignedID         // Ensure null instead of 0
+      ]);
+    } catch (err) {
+      logger.e("Error while updating ticket:", error: err.toString().isEmpty ? "None provided" : err.toString());
+    }
+  }
+
+
   void addSubTag(String tagName, String mainTagName){
     try{
       _hubConnection!.invoke('AddSubTag', args: [tagName, mainTagName]);
@@ -196,7 +216,7 @@ class SignalRService with ChangeNotifier {
 
     _hubConnection!.on('StaffJoined', (arguments){
       if(arguments != null){
-        onStaffJoined?.call(User.fromJson(arguments[0]['user']), Chatroom.fromJson(arguments[0]['chatroom']));
+        onStaffJoined?.call(UserSession.HiveSession.fromJson(arguments[0]['user']) as User, Chatroom.fromJson(arguments[0]['chatroom']));
         notifyListeners();
       }
     });
@@ -230,6 +250,7 @@ class SignalRService with ChangeNotifier {
       }
     });
 
+
     _hubConnection!.on('FAQUpdate', (arguments){
       if(arguments != null){
         List<FAQ> updatedFAQs =
@@ -262,6 +283,7 @@ class SignalRService with ChangeNotifier {
       logger.i("🔔 SignalR Event: Online Received!");
 
       if (arguments != null) {
+        print(arguments);
         List<MainTag> updatedTags =
         (arguments[0]['tags'] as List).map((tag) => MainTag.fromJson(tag)).toList();
 
@@ -277,6 +299,9 @@ class SignalRService with ChangeNotifier {
         List<String> updatedStatus =
         (arguments[0]['status'] as List).map((status) => status.toString()).toList();
 
+        List<UserDTO.User> updatedUsers =
+        (arguments[0]['users'] as List).map((user) => UserDTO.User.fromJson(user)).toList();
+
         List<String> updatedPriorities =
         (arguments[0]['priorities'] as List).map((priority) => priority.toString()).toList();
 
@@ -284,6 +309,7 @@ class SignalRService with ChangeNotifier {
             "🔹 Updated FAQs: ${updatedFAQs.length}\n"
             "🔹 Updated Chatrooms: ${updatedChatrooms.length}\n"
             "🔹 Updated Tickets: ${updatedTickets.length}\n"
+            "🔹 Updated Users: ${updatedUsers.length}\n"
             "🔹 Updated Status: ${updatedStatus.length}\n"
             "🔹 Updated Priorities: ${updatedPriorities.length}"
         );
@@ -292,6 +318,7 @@ class SignalRService with ChangeNotifier {
         onFAQUpdate?.call(updatedFAQs);
         onTicketsUpdate?.call(updatedTickets);
         onStatusUpdate?.call(updatedStatus);
+        onUsersUpdate?.call(updatedUsers);
         onChatroomsUpdate?.call(updatedChatrooms);
       }
     });
@@ -310,7 +337,7 @@ class SignalRService with ChangeNotifier {
       onConnected?.call();
 
       logger.i("🔄 Invoking Online Event...");
-      var userSession = Hive.box<HiveSession>('sessionBox').get('user');
+      var userSession = Hive.box<UserSession.HiveSession>('sessionBox').get('user');
       await _hubConnection!.invoke("Online", args: [userSession!.user.userID, userSession!.user.role]);
     } catch (e) {
       logger.e("❌ Error connecting to SignalR:", error: e.toString());

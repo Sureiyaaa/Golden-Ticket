@@ -36,7 +36,7 @@ namespace GoldenTicket.Entities
         [Required]
         public int PriorityID { get; set; }
 
-        [ForeignKey("AssignedID")]
+        [ForeignKey("PriorityID")]
         public Priority? Priority { get; set; } = null;
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         public DateTime? DeadlineAt {get;set;}

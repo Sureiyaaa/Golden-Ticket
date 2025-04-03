@@ -29,7 +29,7 @@ namespace GoldenTicket.Utilities
             if (_message == null || _promptType == null || _id == null)
                 return "";
 
-            string additional = _additional ?? "";
+            string additional = _additional + FAQData(100000002) ?? "";
             string requestPrompt = _promptService.GetPrompt(_promptType, additional);
             string aiResponse = await _openAIService.GetAIResponse(_id, _message, requestPrompt);
 
@@ -68,11 +68,17 @@ namespace GoldenTicket.Utilities
                 } else {
                     finalResponse =  parsedResponse;
                 }
+                // DEBUG
+                Console.WriteLine($"Title       : {finalResponse.Title}");
+                Console.WriteLine($"MainTag     : {finalResponse.MainTag}");
+                Console.WriteLine($"SubTag      : {finalResponse.SubTags}");
+                Console.WriteLine($"CallAgent   : {finalResponse.CallAgent}");
+                Console.WriteLine($"Message     : {finalResponse.Message}");
                 return finalResponse;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in ProcessJsonResponseAsync: {ex}");
+                Console.WriteLine($"Error in ProcessJsonResponseAsync: {ex.Message}");
                 return null;
             }
         }
@@ -105,7 +111,7 @@ namespace GoldenTicket.Utilities
                 faqList += $"FAQ: {faq.Title}\nDescription: {faq.Description}\nSolution: {faq.Solution}\nMainTag: {faq.MainTag!.MainTagName}\n>{faq.SubTag!.SubTagName}\n\n";
             }
 
-            return $"\n[USER DETAIL]\nUser's Name: {userName} \n[FAQ DATA] \nTag List:\n{tagList}--------------------------------------------\n{faqList}";
+            return $"\n[USER DETAIL]\nUser's Name: {userName} \n[FAQ DATA] \nTag List:\n{tagList}\n--------------------------------------------\n{faqList}";
         }
 
         public static Dictionary<string, List<ChatMessage>> PopulateID()

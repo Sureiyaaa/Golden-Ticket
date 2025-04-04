@@ -114,7 +114,13 @@ namespace GoldenTicket.Hubs
 
         public async Task JoinChatroom(int UserID, int ChatroomID)
         {
-            var chatroomDTO = DBUtil.JoinChatroom(UserID, ChatroomID);
+            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID)!);
+            if (chatroomDTO!.GroupMembers.Any(m => m.User.UserID == UserID))
+            {
+                await Clients.Caller.SendAsync("AlreadyMember");
+                return;
+            }
+            chatroomDTO = DBUtil.JoinChatroom(UserID, ChatroomID);
             var userDTO = new UserDTO(DBUtil.FindUser(UserID));
             foreach(var member in chatroomDTO.GroupMembers)
             {

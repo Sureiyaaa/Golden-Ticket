@@ -157,10 +157,14 @@ namespace GoldenTicket.Hubs
             var messageDTO = new MessageDTO(DBUtil.GetMessage(message.MessageID)!);
             var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID)!);
             foreach(var member in chatroomDTO.GroupMembers){
-                if (_connections.TryGetValue(member.User!.UserID, out var connectionIds)){
-                    foreach (var connectionId in connectionIds)
+                if (member.User.Role == "Employee")
+                {
+                    if (_connections.TryGetValue(member.User!.UserID, out var connectionIds))
                     {
-                        await Clients.Client(connectionId).SendAsync("ReceiveMessage", new {chatroom = chatroomDTO, message = messageDTO});
+                        foreach (var connectionId in connectionIds)
+                        {
+                            await Clients.Client(connectionId).SendAsync("ReceiveMessage", new {chatroom = chatroomDTO, message = messageDTO});
+                        }
                     }
                 }
             }
@@ -282,12 +286,19 @@ namespace GoldenTicket.Hubs
             
             var chatroomDTO = DBUtil.GetChatrooms().Where(c => c.Ticket!.TicketID == TicketID).FirstOrDefault();
             int chatroomID = chatroomDTO?.ChatroomID ?? throw new InvalidOperationException("ChatroomID cannot be null.");
+
+            // Chatroom Close
             if(Status == "Closed")
             {
                 await DBUtil.CloseChatroom(chatroomID);
                 chatroomDTO = DBUtil.GetChatrooms().Where(c => c.Ticket!.TicketID == TicketID).FirstOrDefault();
             }
-            
+            // Chatroom Reopen
+            if(Status == "Open" && chatroomDTO!.IsClosed)
+            {
+                await DBUtil.ReopenChatroom(chatroomID);
+                chatroomDTO = DBUtil.GetChatrooms().Where(c => c.Ticket!.TicketID == TicketID).FirstOrDefault();
+            }
 
             var adminUser = DBUtil.GetAdminUsers();
             foreach (var user in adminUser)

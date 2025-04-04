@@ -9,6 +9,7 @@ public class AIResponse
     public string Message { get; set; } = "";
     public string MainTag { get; set; } = "";
     public string SubTags  { get; set; } = "";
+    public string Priority { get; set; } = "Medium";
     public bool CallAgent { get; set; } = false;
 
     public static AIResponse Parse(string rawResponse)
@@ -19,6 +20,7 @@ public class AIResponse
         var titleMatch = Regex.Match(rawResponse, @"TITLE:\s*(.+)");
         var tagMatch = Regex.Match(rawResponse, @"PTAG:\s*(.+)");
         var subTagMatch = Regex.Match(rawResponse, @"PSUBTAG:\s*(.+)");
+        var priorityMatch = Regex.Match(rawResponse, @"PRIORITY:\s*(.+)");
         var callAgentMatch = Regex.Match(rawResponse, @"SendToLiveAgent:\s*(true|false)", RegexOptions.IgnoreCase);
         var messageMatch = Regex.Match(rawResponse, @"Response:\s*(.+)", RegexOptions.Singleline); // Capture everything after "Response:"
 
@@ -26,16 +28,9 @@ public class AIResponse
         if (titleMatch.Success) response.Title = titleMatch.Groups[1].Value.Trim();
         if (tagMatch.Success) response.MainTag = tagMatch.Groups[1].Value.Trim();
         if (subTagMatch.Success) response.SubTags = subTagMatch.Groups[1].Value.Trim();
+        if (priorityMatch.Success) response.SubTags = subTagMatch.Groups[1].Value.Trim();
         if (callAgentMatch.Success) response.CallAgent = bool.Parse(callAgentMatch.Groups[1].Value.Trim());
         if (messageMatch.Success) response.Message = messageMatch.Groups[1].Value.Trim(); // This will now capture multi-line responses
-
-        // DEBUG
-        Console.WriteLine($"Title       : {response.Title}");
-        Console.WriteLine($"MainTag     : {response.MainTag}");
-        Console.WriteLine($"SubTag      : {response.SubTags}");
-        Console.WriteLine($"CallAgent   : {response.CallAgent}");
-        Console.WriteLine($"Message     : {response.Message}");
-
 
         return response;
     }
@@ -49,6 +44,7 @@ public class AIResponse
             Message = "Sorry, Chatbot service is currently down at the moment. Sending a live agent...",
             MainTag = "null",
             SubTags = "null",
+            Priority = "Medium",
             CallAgent = true
         };
     }

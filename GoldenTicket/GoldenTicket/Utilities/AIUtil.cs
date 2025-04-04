@@ -72,6 +72,7 @@ namespace GoldenTicket.Utilities
                 Console.WriteLine($"Title       : {finalResponse.Title}");
                 Console.WriteLine($"MainTag     : {finalResponse.MainTag}");
                 Console.WriteLine($"SubTag      : {finalResponse.SubTags}");
+                Console.WriteLine($"Priority    : {finalResponse.Priority}");
                 Console.WriteLine($"CallAgent   : {finalResponse.CallAgent}");
                 Console.WriteLine($"Message     : {finalResponse.Message}");
                 return finalResponse;

@@ -56,7 +56,7 @@ class ChatroomDetailsDrawer extends StatelessWidget {
               ),
               if(chatroom.ticket != null) ListTile(
                 title: const Text("Tags:"),
-                subtitle: Row(
+                subtitle: Column(
                   children: [
                       Chip(backgroundColor: Colors.redAccent,label: Text(chatroom.ticket!.mainTag?.tagName ?? "No Main Tag Provided", style: TextStyle(fontWeight: FontWeight.bold, color: kSurface),)),
                       Chip(backgroundColor: Colors.blueAccent,label: Text(chatroom.ticket!.subTag?.subTagName ?? "No Sub Tag Provided", style: TextStyle(fontWeight: FontWeight.bold, color: kSurface),)),

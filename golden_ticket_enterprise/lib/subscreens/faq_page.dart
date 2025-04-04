@@ -197,7 +197,7 @@ class _FAQPageState extends State<FAQPage> {
                                   selectable: true, // Allows users to copy text
                                 ),
                                 SizedBox(height: 8),
-                                Text(
+                                SelectableText(
                                   "Solution:",
                                   style: TextStyle(fontWeight: FontWeight.bold),
                                 ),

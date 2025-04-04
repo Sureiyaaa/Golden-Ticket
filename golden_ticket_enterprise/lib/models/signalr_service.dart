@@ -32,10 +32,11 @@ class SignalRService with ChangeNotifier {
   Function(Chatroom)? onReceiveSupport;
   Function(List<String>)? onStatusUpdate;
   Function(int, int)? onSeenUpdate;
-  Function(User, Chatroom)? onStaffJoined;
+  Function(UserDTO.User, Chatroom)? onStaffJoined;
   Function()? onAllowMessage;
   Function()? onMaximumChatroom;
   Function()? onExistingTag;
+  Function()? onAlreadyMember;
   ConnectionType _connectionState = ConnectionType.disconnected;
   ConnectionType get connectionState => _connectionState;
 
@@ -161,6 +162,14 @@ class SignalRService with ChangeNotifier {
     }
   }
 
+  void reopenChatroom(int userID, int chatroomID){
+    try{
+      _hubConnection!.invoke('ReopenChatroom', args: [userID, chatroomID]);
+    }catch(err){
+      logger.e("There was an error caught while saving tag:", error: err.toString());
+    }
+  }
+
   void sendMessage(int userID, int chatroomID, String messageContent) {
     try{
       _hubConnection!.invoke('SendMessage', args: [userID, chatroomID, messageContent]);
@@ -180,6 +189,11 @@ class SignalRService with ChangeNotifier {
 
     _hubConnection!.on('MaximumChatroom', (arguments){
       onMaximumChatroom?.call();
+      notifyListeners();
+    });
+
+    _hubConnection!.on('AlreadyMember', (arguments){
+      onAlreadyMember?.call();
       notifyListeners();
     });
 
@@ -214,9 +228,11 @@ class SignalRService with ChangeNotifier {
       notifyListeners();
     });
 
+
+
     _hubConnection!.on('StaffJoined', (arguments){
       if(arguments != null){
-        onStaffJoined?.call(UserSession.HiveSession.fromJson(arguments[0]['user']) as User, Chatroom.fromJson(arguments[0]['chatroom']));
+        onStaffJoined?.call(UserDTO.User.fromJson(arguments[0]['user']), Chatroom.fromJson(arguments[0]['chatroom']));
         notifyListeners();
       }
     });
@@ -283,7 +299,6 @@ class SignalRService with ChangeNotifier {
       logger.i("🔔 SignalR Event: Online Received!");
 
       if (arguments != null) {
-        print(arguments);
         List<MainTag> updatedTags =
         (arguments[0]['tags'] as List).map((tag) => MainTag.fromJson(tag)).toList();
 

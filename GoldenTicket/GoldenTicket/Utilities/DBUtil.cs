@@ -36,6 +36,23 @@ namespace GoldenTicket.Utilities
             }
         }
         #endregion
+        #region -   GetFAQ
+        public static FAQ? GetFAQ(int faqID)
+        {
+            using(var context = new ApplicationDbContext()){
+                var faq = context.Faq
+                    .Include(faq => faq.MainTag)
+                    .Include(faq => faq.SubTag)
+                    .FirstOrDefault(faq => faq.FaqID == faqID);
+                if(faq == null)
+                {
+                    Console.WriteLine($"[DBUtil] FAQ with {faqID} ID not found");
+                    return null;
+                }
+                return faq;
+            }
+        }
+        #endregion
         #region -   AddFAQ
         public static FAQ AddFAQ(string _title, string _description, string _solution, string _mainTagName, string _subTagName)
         {
@@ -76,6 +93,45 @@ namespace GoldenTicket.Utilities
                 context.Faq.Add(newFAQ);
                 context.SaveChanges();
                 return newFAQ;
+            }
+        }
+        #endregion
+        #region -   UpdateFAQ
+        public async static Task<FAQ?> UpdateFAQ(int faqID, string? Title, string? Description, string? Solution, string? Maintag, string? Subtag, bool IsArchived)
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                var faq = GetFAQ(faqID);
+                if (faq != null)
+                {
+                    faq.Title = Title ?? faq.Title;
+                    faq.Description = Description ?? faq.Description;
+                    faq.Solution = Solution ?? faq.Solution;
+                    int? mainTagID = 0;
+                    int? subTagID = 0;
+                    
+                    if(Maintag  != null)
+                        mainTagID = context.MainTag.Include(m => m.ChildTags).Where(m => m.TagName == Maintag).Select(m => m.TagID).FirstOrDefault();
+                    if(Subtag != null)
+                        subTagID = context.SubTag.Where(s => s.MainTagID == mainTagID! && s.TagName == Subtag).Select(s => s.TagID).FirstOrDefault();
+                    
+                    if (!string.IsNullOrEmpty(Maintag))  
+                        faq.MainTagID = mainTagID;
+                    else faq.MainTagID = null;
+                    
+                    if (!string.IsNullOrEmpty(Maintag))  
+                        faq.SubTagID = subTagID;
+                    else faq.SubTagID = null;
+
+                    faq.IsArchived = IsArchived;
+                    context.Faq.Attach(faq);
+                    await context.SaveChangesAsync();
+                    return faq;
+                } else
+                {
+                    Console.WriteLine($"[DBUtil] FAQ with {faqID} ID not found ");
+                    return null;
+                }
             }
         }
         #endregion

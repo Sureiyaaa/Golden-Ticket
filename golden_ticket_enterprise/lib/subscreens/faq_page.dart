@@ -206,7 +206,7 @@ class _FAQPageState extends State<FAQPage> {
                                   selectable: true,
                                 ),
                                 SizedBox(height: 8),
-                                Align(
+                                if(widget.session!.user.role != "Employee")Align(
                                   alignment: Alignment.centerRight,
                                   child: ElevatedButton(
                                     onPressed: () {},

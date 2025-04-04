@@ -165,7 +165,7 @@ namespace GoldenTicket.Hubs
                 }
             }
 
-            if(chatroomDTO.Ticket!.TicketID != null)
+            if(chatroomDTO.Ticket != null)
             {
                 var adminUser = DBUtil.GetAdminUsers();
                 foreach(var user in adminUser){

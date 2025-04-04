@@ -120,7 +120,7 @@ namespace GoldenTicket.Hubs
                 await Clients.Caller.SendAsync("AlreadyMember");
                 return;
             }
-            chatroomDTO = DBUtil.JoinChatroom(UserID, ChatroomID);
+            var chatroomDTO = DBUtil.JoinChatroom(UserID, ChatroomID);
             var userDTO = new UserDTO(DBUtil.FindUser(UserID));
             foreach(var member in chatroomDTO.GroupMembers)
             {

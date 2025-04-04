@@ -488,7 +488,7 @@ namespace GoldenTicket.Utilities
             }
         }
         #endregion
-        #region CloseChatroom
+        #region -   CloseChatroom
         public async static Task<Chatroom> CloseChatroom(int chatroomID)
         {
             using(var context = new ApplicationDbContext())
@@ -501,7 +501,7 @@ namespace GoldenTicket.Utilities
             }
         }
         #endregion
-        #region ReopenChatroom
+        #region -   ReopenChatroom
         public async static Task<Chatroom> ReopenChatroom(int chatroomID)
         {
             using(var context = new ApplicationDbContext())

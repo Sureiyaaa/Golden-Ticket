@@ -208,10 +208,10 @@ class _ChatroomPageState extends State<ChatroomPage> {
                   },
                 ),
               ),
-              if (chatroom.isClosed)
-                _buildClosedBar(dataManager, userSession, chatroom)
-              else if(chatroom.isClosed && chatroom.groupMembers.any((u) => u.member?.userID == userSession?.user.userID))
+              if(chatroom.isClosed && chatroom.groupMembers.any((u) => u.member?.userID == userSession?.user.userID))
                 _buildReopenRoom(dataManager, userSession, chatroom)
+              else if (chatroom.isClosed)
+                _buildClosedBar(dataManager, userSession, chatroom)
               else if (chatroom.groupMembers.any((u) => u.member?.userID == userSession?.user.userID))
                 _buildMessageInput(chatroom)
               else

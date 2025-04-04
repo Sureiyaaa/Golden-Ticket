@@ -60,16 +60,19 @@ namespace GoldenTicket.Hubs
                 priorities = DBUtil.GetPriorities()
             });
         }
-
-
         #endregion
         
 
         #region FAQ
         public async Task AddFAQ(string Title, string Description, string Solution, string MainTagName, string SubTagName) 
         {
-            var newFAQ = DBUtil.AddFAQ(Title, Description, Solution, MainTagName, SubTagName);
+            DBUtil.AddFAQ(Title, Description, Solution, MainTagName, SubTagName);
             await Clients.All.SendAsync("FAQUpdate", new {faq = DBUtil.GetFAQs()});
+        }
+        public async Task UpdateFAQ(int faqID, string Title, string Description, string Solution, string Maintag, string Subtag, bool IsArchived)
+        {
+            await DBUtil.UpdateFAQ(faqID,Title, Description, Solution, Maintag, Subtag, IsArchived);
+            await Clients.All.SendAsync("UpdateFAQ", new {faq = DBUtil.GetFAQs()});
         }
         #endregion
 

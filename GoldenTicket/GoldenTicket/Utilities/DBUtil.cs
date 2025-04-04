@@ -488,7 +488,7 @@ namespace GoldenTicket.Utilities
             }
         }
         #endregion
-        #region CloseChatroom
+        #region -   CloseChatroom
         public async static Task<Chatroom> CloseChatroom(int chatroomID)
         {
             using(var context = new ApplicationDbContext())
@@ -501,7 +501,7 @@ namespace GoldenTicket.Utilities
             }
         }
         #endregion
-        #region ReopenChatroom
+        #region -   ReopenChatroom
         public async static Task<Chatroom> ReopenChatroom(int chatroomID)
         {
             using(var context = new ApplicationDbContext())
@@ -520,11 +520,6 @@ namespace GoldenTicket.Utilities
             using(var context = new ApplicationDbContext()) 
             {
                 var chatroom = GetChatroom(ChatroomID);
-                if(chatroom.Members.Any(m => m.MemberID == UserID))
-                {
-                    _logger.LogWarning("[DBUtil] User {UserID} is already a member of chatroom {ChatroomID}", UserID, ChatroomID);
-                    return new ChatroomDTO(chatroom!);
-                }
                 var newMember = new GroupMember 
                 {
                     ChatroomID = ChatroomID,

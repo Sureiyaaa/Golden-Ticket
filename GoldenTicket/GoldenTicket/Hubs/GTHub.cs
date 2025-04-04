@@ -220,7 +220,7 @@ namespace GoldenTicket.Hubs
                     if (_connections.TryGetValue(userID, out var connectionIds)){
                         foreach (var connectionId in connectionIds)
                         {
-                            await AddTicket(response.Title, userID, response.MainTag, response.SubTags, "Medium", chatroomID);
+                            await AddTicket(response.Title, userID, response.MainTag, response.SubTags, response.Priority, chatroomID);
                             chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(chatroomID)!);
                             await Clients.Client(connectionId).SendAsync("AllowMessage");
                         }

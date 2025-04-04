@@ -306,21 +306,28 @@ namespace GoldenTicket.Utilities
             int? subTagID = null;
             int? priorityID = null;
 
+            // Checks if a Chatroom already have an existing ticket
+            if(GetChatroom(ChatroomID)?.TicketID == null)
+            {
+                Console.WriteLine($"[DBUtil] Chatroom {ChatroomID} already has an existing ticket.");
+                return null!;
+            }
+
             if (MainTagName != "null")
             {
-            var mainTag = GetTags().FirstOrDefault(x => x.MainTagName == MainTagName);
-            if (mainTag != null)
-            {
-                mainTagID = mainTag.MainTagID;
-                if (SubTagName != "null")
+                var mainTag = GetTags().FirstOrDefault(x => x.MainTagName == MainTagName);
+                if (mainTag != null)
                 {
-                var subTag = mainTag.SubTags?.FirstOrDefault(x => x.SubTagName == SubTagName);
-                if (subTag != null)
-                {
-                    subTagID = subTag.SubTagID;
+                    mainTagID = mainTag.MainTagID;
+                    if (SubTagName != "null")
+                    {
+                    var subTag = mainTag.SubTags?.FirstOrDefault(x => x.SubTagName == SubTagName);
+                    if (subTag != null)
+                    {
+                        subTagID = subTag.SubTagID;
+                    }
+                    }
                 }
-                }
-            }
             }
 
             using (var context = new ApplicationDbContext())

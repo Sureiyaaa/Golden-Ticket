@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:golden_ticket_enterprise/models/time_utils.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
 
 class TicketTile extends StatelessWidget {
@@ -8,6 +9,7 @@ class TicketTile extends StatelessWidget {
   final String status;
   final String priority;
   final String author;
+  final DateTime dateCreated;
   final VoidCallback onChatPressed;
   final VoidCallback onViewPressed;
   final VoidCallback onEditPressed;
@@ -20,6 +22,7 @@ class TicketTile extends StatelessWidget {
     required this.status,
     required this.priority,
     required this.author,
+    required this.dateCreated,
     required this.onChatPressed,
     required this.onViewPressed,
     required this.onEditPressed,
@@ -28,19 +31,19 @@ class TicketTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 4,
       child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         onTap: onViewPressed,
         hoverColor: kPrimaryContainer,
         child: Padding(
-          padding: const EdgeInsets.all(12.0),
+          padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 5),
+              Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 6),
               Wrap(
                 spacing: 8,
                 children: [
@@ -57,19 +60,24 @@ class TicketTile extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 5),
-              Text("Author: $author", style: TextStyle(fontSize: 12, color: Colors.grey[700])),
+              const SizedBox(height: 6),
+              Text("Author: $author", style: TextStyle(fontSize: 13, color: Colors.grey[700])),
               const SizedBox(height: 10),
-              Align(
-                alignment: Alignment.centerRight,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(icon: const Icon(Icons.chat_bubble_outline, color: Colors.blue), onPressed: onChatPressed),
-                    IconButton(icon: const Icon(Icons.visibility, color: Colors.blue), onPressed: onViewPressed),
-                    IconButton(icon: const Icon(Icons.edit, color: Colors.orange), onPressed: onEditPressed),
-                  ],
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    TimeUtil.formatCreationDate(dateCreated),
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600], fontStyle: FontStyle.italic),
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(icon: const Icon(Icons.chat_bubble_outline, color: Colors.blue), onPressed: onChatPressed),
+                      IconButton(icon: const Icon(Icons.edit, color: Colors.orange), onPressed: onEditPressed),
+                    ],
+                  ),
+                ],
               ),
             ],
           ),

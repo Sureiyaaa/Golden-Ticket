@@ -262,6 +262,10 @@ namespace GoldenTicket.Hubs
         public async Task AddTicket(string TicketTitle, int AuthorID, string MainTagName, string SubTagName, string Priority, int ChatroomID)
         {
             var newTicket = await DBUtil.AddTicket(TicketTitle, AuthorID, MainTagName, SubTagName, Priority, ChatroomID);
+            if (newTicket == null)
+            {
+                return;
+            }
             var ticketDTO = new TicketDTO(DBUtil.GetTicket(newTicket.TicketID)!);
             var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID)!);
             var adminUser = DBUtil.GetAdminUsers();

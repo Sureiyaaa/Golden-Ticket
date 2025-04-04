@@ -16,7 +16,8 @@ public class OpenAIService
     private ChatClient _client;
     private ApiKeyCredential _apiCredential;
     private OpenAIClientOptions _options;
-    private int _apiKeyIndex;
+    private Dictionary<string, int> _apiKeyIndex = new();
+    private Dictionary<string, int> _loopAmount = new();
     private readonly Dictionary<string, List<ChatMessage>> clientMessages = new(); // Per-client storage
     private readonly ILogger<OpenAIService> _logger;
     private readonly ApiConfig _apiConfig;
@@ -29,7 +30,6 @@ public class OpenAIService
     {
         _logger = logger;
         _apiConfig = apiConfig;
-        _apiKeyIndex = 0;
         string baseUrl = config.OpenAISettings.BaseUrl;
 
         _options = new OpenAIClientOptions()
@@ -38,7 +38,7 @@ public class OpenAIService
         };
 
         _logger.LogInformation("[OpenAIService] Using Base URL: {BaseUrl}", baseUrl);
-        _apiCredential = new ApiKeyCredential("Bearer " + _apiConfig.GetOpenAIKey(_apiKeyIndex));
+        _apiCredential = new ApiKeyCredential("Bearer " + _apiConfig.GetOpenAIKey(0));
         _client = new ChatClient("gpt-4o", _apiCredential, _options);
         
         PopulateMessages();
@@ -49,6 +49,14 @@ public class OpenAIService
         if (!clientMessages.ContainsKey(chatroomID))
         {
             clientMessages[chatroomID] = new List<ChatMessage>(); // Initialize storage for this client
+        }
+        if (!_loopAmount.ContainsKey(chatroomID))
+        {
+            _loopAmount[chatroomID] = 0;
+        }
+        if (!_apiKeyIndex.ContainsKey(chatroomID))
+        {
+            _apiKeyIndex[chatroomID] = 0;
         }
 
         List<ChatMessage> messages = clientMessages[chatroomID];
@@ -74,17 +82,18 @@ public class OpenAIService
             MaxOutputTokenCount = 2048,
         };
 
-        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
         try
         {
             var response = await _client.CompleteChatAsync(!isDirect ? messages : directMsg, requestOptions, cts.Token);
-            // // DEBUG
-            // foreach (var message in messages)
-            // {
-            //     Console.WriteLine($"Message Type: {message.GetType()}");
-            //     Console.WriteLine($"Content Type: {message.Content.FirstOrDefault()!.Text}");
-            // }
+
+            // DEBUG
+            foreach (var message in messages)
+            {
+                Console.WriteLine($"Message Type: {message.GetType()}");
+                Console.WriteLine($"Content Type: {message.Content.FirstOrDefault()!.Text}");
+            }
 
             if (response == null || response.Value == null || response.Value.Content.Count == 0)
             {
@@ -95,22 +104,30 @@ public class OpenAIService
             string content = response.Value.Content[0].Text;
             TotalCharactersUsed += content.Length;
             messages.Add(new AssistantChatMessage(content));
-            GetTotalTokenUsed(chatroomID);
 
+            // DEBUG
+            Console.WriteLine($"Message Type: {messages.LastOrDefault()!.GetType()}");
+            Console.WriteLine($"Content Type: {messages.LastOrDefault()!.Content.LastOrDefault()!.Text}");
+
+            GetTotalTokenUsed(chatroomID);
+            _loopAmount[chatroomID] = 0;
             return content;
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
+            _logger.LogWarning($"[OpenAIService] {ex.Message}");
             _logger.LogWarning("[OpenAIService] Request timeout detected. Possible rate limit reached. Trying to change API key...");
             return await HandleRateLimit(chatroomID, userInput, Prompt, isDirect);
         }
         catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
         {
+            _logger.LogWarning($"[OpenAIService] {httpEx.Message}");
             _logger.LogWarning("[OpenAIService] Rate Limit Exceeded: Too many requests. Trying to change API key...");
             return await HandleRateLimit(chatroomID, userInput, Prompt, isDirect);
         }
         catch (Exception ex)
         {
+            _logger.LogWarning(ex, $"[OpenAIService] {ex.Message}");
             _logger.LogError(ex, "[OpenAIService] Error processing OpenAI request. Trying to change API key...");
             return await HandleRateLimit(chatroomID, userInput, Prompt, isDirect);
         }
@@ -118,11 +135,17 @@ public class OpenAIService
 
     private async Task<string> HandleRateLimit(string chatroomID, string userInput, string Prompt, bool isDirect)
     {
-        if (_apiKeyIndex < ApiConfig.OpenAIKeys!.Count - 1)
+        if (_loopAmount[chatroomID] < ApiConfig.OpenAIKeys!.Count)
         {
-            _apiKeyIndex++;
-            _logger.LogWarning("[OpenAIService] Switching API key from API_{OldIndex} to API_{NewIndex}", _apiKeyIndex - 1, _apiKeyIndex);
-            _apiCredential = new ApiKeyCredential("Bearer " + _apiConfig.GetOpenAIKey(_apiKeyIndex));
+            _loopAmount[chatroomID]++;
+            int oldIndex = _apiKeyIndex[chatroomID];
+            _apiKeyIndex[chatroomID]++;
+            if(_apiKeyIndex[chatroomID] > ApiConfig.OpenAIKeys!.Count - 1)
+            {
+                _apiKeyIndex[chatroomID] = 0;
+            }
+            _logger.LogWarning("[OpenAIService] Switching API key from API_{OldIndex} to API_{NewIndex}", oldIndex, _apiKeyIndex[chatroomID]);
+            _apiCredential = new ApiKeyCredential("Bearer " + _apiConfig.GetOpenAIKey(_apiKeyIndex[chatroomID]));
             _client = new ChatClient("gpt-4o", _apiCredential, _options);
             return await GetAIResponse(chatroomID, userInput, Prompt, isDirect);
         }

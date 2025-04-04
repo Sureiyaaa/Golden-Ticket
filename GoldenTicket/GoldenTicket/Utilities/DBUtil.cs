@@ -15,16 +15,21 @@ namespace GoldenTicket.Utilities
         public static List<FAQDTO> GetFAQs()
         {
             using(var context = new ApplicationDbContext()){
-                var faqs = context.Faq.Include(faq => faq.MainTag).Include(faq => faq.SubTag).Select(faq => new FAQDTO{
-                    FaqID = faq.FaqID,
-                    Title = faq.Title,
-                    Description = faq.Description,
-                    Solution = faq.Solution,
-                    CreatedAt = faq.CreatedAt,
-                    IsArchived = faq.IsArchived,
-                    MainTag = new MainTagDTO(faq.MainTag!),
-                    SubTag = new SubTagDTO(faq.SubTag!)
-                }).ToList();
+                var faqs = context.Faq
+                    .Include(faq => faq.MainTag)
+                    .Include(faq => faq.SubTag)
+                    .Where(faq => faq.IsArchived == false)
+                    .Select(faq => new FAQDTO
+                    {
+                        FaqID = faq.FaqID,
+                        Title = faq.Title,
+                        Description = faq.Description,
+                        Solution = faq.Solution,
+                        CreatedAt = faq.CreatedAt,
+                        IsArchived = faq.IsArchived,
+                        MainTag = new MainTagDTO(faq.MainTag!),
+                        SubTag = new SubTagDTO(faq.SubTag!)
+                    }).ToList();
                 if(faqs.Count == 0 )
                     return [];
                 return faqs;

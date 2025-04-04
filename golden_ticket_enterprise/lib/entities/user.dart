@@ -16,7 +16,6 @@ class User {
   factory User.fromJson(Map<String, dynamic> json) {
     dynamic userData = json;
     List<String> assigned = [];
-    print(json);
     for(var tag in userData['assignedTags']){
       assigned.add(tag);
     }

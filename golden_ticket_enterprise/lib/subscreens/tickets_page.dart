@@ -138,6 +138,7 @@ class _TicketsPageState extends State<TicketsPage> {
                                   status: ticket.status,
                                   priority: ticket.priority!,
                                   author: '${ticket.author.firstName} ${ticket.author.lastName}',
+                                  dateCreated: ticket.createdAt,
                                   onViewPressed: () {
 
                                   },

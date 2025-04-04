@@ -87,7 +87,15 @@ class _ChatroomPageState extends State<ChatroomPage> {
             dataManager.addMessage(message, chatroom);
           }
         };
-
+        dataManager.signalRService.onAlreadyMember = (){
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("You are already a member!"),
+              backgroundColor: Colors.red,
+              duration: Duration(milliseconds: 1000),
+            ),
+          );
+        };
         dataManager.signalRService.onAllowMessage = () {
           setState(() {
             enableMessage = true;
@@ -178,6 +186,7 @@ class _ChatroomPageState extends State<ChatroomPage> {
                                           strong: const TextStyle(fontWeight: FontWeight.bold),
                                           blockquote: TextStyle(color: Colors.grey[600], fontStyle: FontStyle.italic),
                                         ),
+                                        selectable: true,
                                       ),
                                     ),
                                   );
@@ -201,6 +210,8 @@ class _ChatroomPageState extends State<ChatroomPage> {
               ),
               if (chatroom.isClosed)
                 _buildClosedBar(dataManager, userSession, chatroom)
+              else if(chatroom.isClosed && chatroom.groupMembers.any((u) => u.member?.userID == userSession?.user.userID))
+                _buildReopenRoom(dataManager, userSession, chatroom)
               else if (chatroom.groupMembers.any((u) => u.member?.userID == userSession?.user.userID))
                 _buildMessageInput(chatroom)
               else
@@ -266,6 +277,19 @@ class _ChatroomPageState extends State<ChatroomPage> {
         onPressed: () {
           if (userSession != null) {
             dataManager.signalRService.joinChatroom(userSession.user.userID, chatroom.chatroomID);
+          }
+        },
+        child: Text("Join Room"),
+      ),
+    );
+  }
+  Widget _buildReopenRoom(DataManager dataManager, HiveSession? userSession, Chatroom chatroom) {
+    return Padding(
+      padding: const EdgeInsets.all(12.0),
+      child: ElevatedButton(
+        onPressed: () {
+          if (userSession != null) {
+            dataManager.signalRService.reopenChatroom(userSession.user.userID, chatroom.chatroomID);
           }
         },
         child: Text("Join Room"),

@@ -10,14 +10,14 @@ class Ticket {
   final User author;
   User? assigned;
   final String status;
-  String? priority;
+  String priority;
   MainTag? mainTag;
   SubTag? subTag;
   List<TicketHistory>? ticketHistory = [];
   final DateTime createdAt;
   DateTime? deadlineAt;
 
-  Ticket({ required this.ticketID, required this.ticketTitle, this.priority, required this.author, this.ticketHistory, this.assigned, required this.status, this.mainTag, this.subTag, required this.createdAt, this.deadlineAt});
+  Ticket({ required this.ticketID, required this.ticketTitle, required this.priority, required this.author, this.ticketHistory, this.assigned, required this.status, this.mainTag, this.subTag, required this.createdAt, this.deadlineAt});
 
   factory Ticket.fromJson(Map<String, dynamic> json) {
     List<TicketHistory> tHistory = [];

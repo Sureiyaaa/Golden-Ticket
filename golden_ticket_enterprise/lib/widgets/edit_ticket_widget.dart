@@ -8,6 +8,7 @@ import 'package:golden_ticket_enterprise/models/hive_session.dart' as Session;
 class TicketModifyPopup extends StatefulWidget {
   final Ticket ticket;
 
+
   const TicketModifyPopup({super.key, required this.ticket});
 
   @override
@@ -54,6 +55,14 @@ class _TicketModifyPopupState extends State<TicketModifyPopup> {
       setState(() => errorMessage = "Cannot unassign while status is 'In Progress'. Set status to 'Open' first.");
       return;
     }
+    if (selectedStatus == "Closed" && (selectedAgentID == null || selectedAgentID == 0)) {
+      setState(() => errorMessage = "Cannot change the status of the ticket to 'Closed'. Assignee is required!");
+      return;
+    }
+    if (selectedStatus == "Unresolved" && (selectedAgentID == null || selectedAgentID == 0)) {
+      setState(() => errorMessage = "Cannot change the status of the ticket to 'Unresolved'. Assignee is required!");
+      return;
+    }
 
     dataManager.signalRService.updateTicket(
       widget.ticket.ticketID,
@@ -87,7 +96,7 @@ class _TicketModifyPopupState extends State<TicketModifyPopup> {
         // Restrict agent assignment for non-admins
         Map<int, String> agentMap = {0: "None Assigned"};
         if (isAdmin) {
-          for (var agent in dataManager.getAgents()) {
+          for (var agent in dataManager.getStaff()) {
             agentMap[agent.userID] = '${agent.firstName} ${agent.lastName}';
           }
         } else {
@@ -159,7 +168,14 @@ class _TicketModifyPopupState extends State<TicketModifyPopup> {
                       setState(() => errorMessage = "Cannot unassign while status is 'In Progress'. Set status to 'Open' first.");
                       return;
                     }
-
+                    if (selectedStatus == "Closed" && value == 0) {
+                      setState(() => errorMessage = "Cannot change the status of the ticket to 'Closed'. Assignee is required!");
+                      return;
+                    }
+                    if (selectedStatus == "Unresolved" && value == 0) {
+                      setState(() => errorMessage = "Cannot change the status of the ticket to 'Unresolved'. Assignee is required!");
+                      return;
+                    }
                     setState(() {
                       selectedAgentID = value;
                       if (value != 0) selectedStatus = "In Progress"; // Auto-update status

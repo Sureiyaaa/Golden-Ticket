@@ -1,8 +1,3 @@
-
-import 'package:golden_ticket_enterprise/entities/main_tag.dart';
-import 'package:golden_ticket_enterprise/entities/sub_tag.dart';
-import 'package:golden_ticket_enterprise/entities/user.dart';
-
 class TicketHistory {
   final String action;
   final String actionMessage;

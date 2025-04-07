@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:golden_ticket_enterprise/entities/ticket.dart';
 import 'package:golden_ticket_enterprise/widgets/edit_ticket_widget.dart';
+import 'package:golden_ticket_enterprise/widgets/ticket_detail_widget.dart';
 import 'package:golden_ticket_enterprise/widgets/ticket_tile_widget.dart';
 import 'package:provider/provider.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
@@ -20,7 +21,9 @@ class _TicketsPageState extends State<TicketsPage> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController scrollController = ScrollController();
   List<Ticket> _filteredTickets = [];
-
+  bool _assignedToMeOnly = false;
+  bool _includeClosed = false;
+  bool _includeUnresolved = false;
   String? selectedStatus = 'All';
   String? selectedMainTag = 'All';
   String? selectedPriority = 'All';
@@ -55,12 +58,25 @@ class _TicketsPageState extends State<TicketsPage> {
         bool matchesMainTag = selectedMainTag == 'All' || (ticket.mainTag?.tagName == selectedMainTag);
         bool matchesSubTag = selectedSubTag == 'All' || selectedSubTag == null || (ticket.subTag?.subTagName == selectedSubTag);
         bool matchesPriority = selectedPriority == 'All' || ticket.priority == selectedPriority;
+        bool matchesAssignedToMe = !_assignedToMeOnly || (ticket.assigned?.userID == widget.session?.user.userID);
 
-        return matchesSearch && matchesStatus && matchesMainTag && matchesSubTag && matchesPriority;
+        bool isClosed = ticket.status.toLowerCase() == 'closed';
+        bool isUnresolvedStatus = ticket.status.toLowerCase() == 'unresolved';
+
+        bool matchesClosed = _includeClosed || !isClosed;
+        bool matchesUnresolved = _includeUnresolved || !isUnresolvedStatus;
+
+        return matchesSearch &&
+            matchesStatus &&
+            matchesMainTag &&
+            matchesSubTag &&
+            matchesPriority &&
+            matchesAssignedToMe &&
+            matchesClosed &&
+            matchesUnresolved;
       }).toList();
     });
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -130,24 +146,17 @@ class _TicketsPageState extends State<TicketsPage> {
                               itemBuilder: (context, index) {
                                 final ticket = _filteredTickets[index];
                                 return TicketTile(
-                                  title: ticket.ticketTitle,
-                                  mainTag: ticket.mainTag?.tagName ??
-                                      'No main tag provided',
-                                  subTag: ticket.subTag?.subTagName ??
-                                      'No sub tag provided',
-                                  status: ticket.status,
-                                  priority: ticket.priority!,
-                                  author: '${ticket.author.firstName} ${ticket.author.lastName}',
-                                  dateCreated: ticket.createdAt,
+                                  ticket: ticket,
                                   onViewPressed: () {
-
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) => TicketDetailsPopup(ticket: ticket),
+                                    );
                                   },
                                   onChatPressed: () {
                                     try {
-                                      context.push(
-                                          '/hub/chatroom/${dataManager
-                                              .findChatroomByTicketID(
-                                              ticket.ticketID)!.chatroomID}');
+                                      context.push('/hub/chatroom/${dataManager.findChatroomByTicketID(
+                                          ticket.ticketID)!.chatroomID}');
                                       dataManager.signalRService.openChatroom(
                                           widget.session!.user.userID,
                                           dataManager.findChatroomByTicketID(
@@ -184,7 +193,7 @@ class _TicketsPageState extends State<TicketsPage> {
   Widget _buildFilters(Map<String, List<String>> tags, List<String> statuses, List<String> priorities, {bool isRow = false}) {
     bool isSubTagDisabled = selectedMainTag == 'All';
 
-    List<Widget> filterWidgets = [
+    List<Widget> dropdownFilters = [
       _buildDropdown("Status", selectedStatus, statuses, (value) {
         setState(() {
           selectedStatus = value;
@@ -200,7 +209,7 @@ class _TicketsPageState extends State<TicketsPage> {
       _buildDropdown("Main Tag", selectedMainTag, tags.keys.toList(), (value) {
         setState(() {
           selectedMainTag = value;
-          selectedSubTag = null; // Reset sub tag when main tag changes
+          selectedSubTag = null;
         });
         _applyFilters(Provider.of<DataManager>(context, listen: false));
       }),
@@ -214,23 +223,63 @@ class _TicketsPageState extends State<TicketsPage> {
           });
           _applyFilters(Provider.of<DataManager>(context, listen: false));
         },
-        isDisabled: isSubTagDisabled, // Pass the disable flag
+        isDisabled: isSubTagDisabled,
       ),
     ];
 
+    Widget checkboxRow = Wrap(
+      spacing: 20,
+      runSpacing: 10,
+      children: [
+        _buildCheckbox("Assigned to Me", _assignedToMeOnly, (val) {
+          setState(() => _assignedToMeOnly = val);
+          _applyFilters(Provider.of<DataManager>(context, listen: false));
+        }),
+        _buildCheckbox("Include Closed", _includeClosed, (val) {
+          setState(() => _includeClosed = val);
+          _applyFilters(Provider.of<DataManager>(context, listen: false));
+        }),
+        _buildCheckbox("Include Unresolved", _includeUnresolved, (val) {
+          setState(() => _includeUnresolved = val);
+          _applyFilters(Provider.of<DataManager>(context, listen: false));
+        }),
+      ],
+    );
+
     return isRow
-        ? Row(
-      children: filterWidgets
-          .expand((widget) => [Expanded(child: widget), SizedBox(width: 10)])
-          .toList()
-        ..removeLast(),
+        ? Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: dropdownFilters
+              .expand((widget) => [Expanded(child: widget), SizedBox(width: 10)])
+              .toList()
+            ..removeLast(),
+        ),
+        SizedBox(height: 10),
+        checkboxRow,
+      ],
     )
         : Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: filterWidgets
-          .expand((widget) => [widget, SizedBox(height: 10)])
-          .toList()
-        ..removeLast(),
+      children: [
+        ...dropdownFilters
+            .expand((widget) => [widget, SizedBox(height: 10)])
+            .toList()
+          ..removeLast(),
+        SizedBox(height: 10),
+        checkboxRow,
+      ],
+    );
+  }
+
+  Widget _buildCheckbox(String label, bool value, ValueChanged<bool> onChanged) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Checkbox(value: value, onChanged: (v) => onChanged(v ?? false)),
+        Text(label),
+      ],
     );
   }
 

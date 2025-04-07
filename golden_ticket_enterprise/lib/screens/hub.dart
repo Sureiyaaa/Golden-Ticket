@@ -18,21 +18,23 @@ import 'package:provider/provider.dart';
 
 class HubPage extends StatefulWidget {
   final HiveSession? session;
+  final StatefulNavigationShell child;
   List<MainTag> mainTags = [];
-  HubPage({super.key, required this.session});
+  HubPage({Key? key, required this.session, required this.child}) : super(key: key);
 
   @override
   State<HubPage> createState() => _HubPageState();
 }
 
-class _HubPageState extends State<HubPage> {
+class _HubPageState extends State<HubPage> with AutomaticKeepAliveClientMixin{
   int _selectedIndex = 0; // Track selected index
   bool _isInitialized = false;
   late DataManager _dataManager; // Store reference
+  @override
+  bool get wantKeepAlive => true; // Ensure the widget is kept alive
 
   @override
   void didChangeDependencies() {
-    super.didChangeDependencies();
     _dataManager = Provider.of<DataManager>(context, listen: false);
     if (!_isInitialized && !_dataManager.signalRService.isConnected) {
       log("HubPage: Initializing SignalR Connection...");
@@ -41,7 +43,7 @@ class _HubPageState extends State<HubPage> {
     } else {
       log("HubPage: Another tab is already connected. Skipping initialization.");
     }
-
+    super.didChangeDependencies();
   }
 
 
@@ -64,11 +66,8 @@ class _HubPageState extends State<HubPage> {
 
 
   void _onDrawerItemTapped(int index) {
-    if (_selectedIndex == index) return; // Prevent reloading the same screen
-    setState(() {
-      _selectedIndex = index;
-    });
-    Navigator.pop(context); // Close the drawer
+    _selectedIndex = index;
+    widget.child.goBranch(index, initialLocation: index == widget.child.currentIndex);
   }
 
   @override
@@ -124,17 +123,7 @@ class _HubPageState extends State<HubPage> {
                 ],
               ),
             ),
-            body: IndexedStack(
-              index: _selectedIndex,
-              children: [
-                DashboardPage(session: widget.session!),
-                ChatroomListPage(session: widget.session!),
-                TicketsPage(session: widget.session!), // TicketsPage is now properly integrated here
-                FAQPage(session: widget.session!),
-                UserManagementPage(session: widget.session!),
-                SettingsPage(session: widget.session!)
-              ],
-            ),
+            body: widget.child
           );
         }
     );

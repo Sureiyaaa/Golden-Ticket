@@ -32,7 +32,7 @@ class _LoginPage extends State<LoginPage> {
 
       if (userSession != null) {
         logger.i("User session found: ${userSession.user.username}");
-        context.go('/hub', extra: userSession.user);
+        context.go('/hub/dashboard', extra: userSession.user);
       }
     });
   }
@@ -64,7 +64,7 @@ class _LoginPage extends State<LoginPage> {
         User data = User.fromJson(response['body']['user']);
         var box = Hive.box<HiveSession>('sessionBox');
         box.put('user', HiveSession.fromJson(response['body']));
-        context.go('/hub', extra: data);
+        context.go('/hub/dashboard', extra: data);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Login failed: ${response['message']}")),
@@ -139,14 +139,6 @@ class _LoginPage extends State<LoginPage> {
                             EdgeInsets.symmetric(horizontal: 50, vertical: 12),
                       ),
                       child: Text("Login", style: TextStyle(fontSize: 16, color: kSurface)),
-                    ),
-                    SizedBox(height: 10),
-                    TextButton(
-                      onPressed: () {
-                        logger.d("Navigate to Forgot Password");
-                      },
-                      child: Text("Forgot Password?",
-                          style: TextStyle(color: Colors.blue)),
                     ),
                   ],
                 ),

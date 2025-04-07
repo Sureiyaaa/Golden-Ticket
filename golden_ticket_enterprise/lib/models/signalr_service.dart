@@ -138,6 +138,22 @@ class SignalRService with ChangeNotifier {
     }
   }
 
+  void updateFAQ(int faqID, String faqTitle, String faqDescription, String faqSolution, String? mainTag, String? subTag, bool faqArchive){
+    try {
+      _hubConnection!.invoke('UpdateFAQ', args: [
+        faqID,
+        faqTitle,
+        faqDescription,
+        faqSolution,   // Ensure null instead of empty string
+        mainTag?.isEmpty == true ? null : mainTag,  // Ensure null instead of empty string
+        subTag?.isEmpty == true ? null : subTag,
+        faqArchive
+      ]);
+    } catch (err) {
+      logger.e("Error while updating FAQ:", error: err.toString().isEmpty ? "None provided" : err.toString());
+    }
+  }
+
 
   void addSubTag(String tagName, String mainTagName){
     try{
@@ -295,6 +311,14 @@ class SignalRService with ChangeNotifier {
         onTagUpdate?.call(updatedTags);
       }
     });
+    _hubConnection!.on('UserUpdate', (arguments){
+
+      if(arguments != null) {
+        onUserUpdate?.call(UserDTO.User.fromJson(arguments[0]['user']));
+      }
+
+    });
+
     _hubConnection!.on('Online', (arguments) {
       logger.i("🔔 SignalR Event: Online Received!");
 

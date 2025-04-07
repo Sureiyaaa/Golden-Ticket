@@ -3,10 +3,12 @@ import 'package:golden_ticket_enterprise/models/data_manager.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
 import 'package:golden_ticket_enterprise/entities/ticket.dart';
 import 'package:golden_ticket_enterprise/models/time_utils.dart';
+import 'package:golden_ticket_enterprise/styles/colors.dart';
+import 'package:golden_ticket_enterprise/widgets/ticket_detail_widget.dart';
 import 'package:provider/provider.dart';
 
 class DashboardPage extends StatefulWidget {
-  final HiveSession session;
+  final HiveSession? session;
 
   const DashboardPage({super.key, required this.session});
 
@@ -37,22 +39,14 @@ class _DashboardPageState extends State<DashboardPage> {
               child: Consumer<DataManager>(
                 builder: (context, dataManager, _) {
                   // ✅ Get Tickets from DataManager
-                  List<Ticket> tickets = dataManager.tickets;
+                  List<Ticket> tickets = dataManager.getRecentTickets();
 
                   // ✅ Count tickets per category
                   Map<String, int> ticketCounts = {
-                    "Pending": tickets.where((t) => t.status == "Pending").length,
                     "Open": tickets.where((t) => t.status == "Open").length,
                     "In Progress": tickets.where((t) => t.status == "In Progress").length,
                     "Postponed": tickets.where((t) => t.status == "Postponed").length,
-                  };
-
-                  // ✅ Ticket Status Colors
-                  Map<String, Color> statusColors = {
-                    "Pending": Colors.orange,
-                    "Open": Colors.blue,
-                    "In Progress": Colors.green,
-                    "Postponed": Colors.purple,
+                    "Unresolved": tickets.where((t) => t.status == "Unresolved").length,
                   };
 
                   // ✅ Recent Tickets (Last 10)
@@ -61,7 +55,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   return Scrollbar(
                     controller: _scrollController,
                     thumbVisibility: true,
-                    child: SingleChildScrollView(
+                    child: SingleChildScrollView( // Wrap entire body in SingleChildScrollView
                       controller: _scrollController,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,7 +80,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                 itemBuilder: (context, index) {
                                   String status = ticketCounts.keys.elementAt(index);
                                   int count = ticketCounts[status] ?? 0;
-                                  Color color = statusColors[status] ?? Colors.grey;
+                                  Color color = getStatusColor(status) ?? Colors.grey;
 
                                   return Card(
                                     elevation: 2,
@@ -102,7 +96,9 @@ class _DashboardPageState extends State<DashboardPage> {
                                                 style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                                           ),
                                           SizedBox(height: 5),
-                                          Text(status, style: TextStyle(fontSize: 14)),
+                                          Flexible(
+                                              child: Text(status, style: TextStyle(fontSize: 14))
+                                          )
                                         ],
                                       ),
                                     ),
@@ -121,21 +117,33 @@ class _DashboardPageState extends State<DashboardPage> {
                           recentTickets.isEmpty
                               ? Center(child: Text("No recent tickets"))
                               : ListView.builder(
-                            shrinkWrap: true,
-                            physics: NeverScrollableScrollPhysics(),
+                            shrinkWrap: true, // Allow it to take only the space needed
+                            physics: NeverScrollableScrollPhysics(), // Avoid conflicts with parent scroll
                             itemCount: recentTickets.length,
                             itemBuilder: (context, index) {
                               Ticket ticket = recentTickets[index];
                               return Card(
                                 child: ListTile(
+                                  onTap: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) => TicketDetailsPopup(ticket: ticket),
+                                    );
+                                  },
                                   leading: Icon(Icons.confirmation_number, color: Colors.blue),
                                   title: Text("#${ticket.ticketID}: ${ticket.ticketTitle ?? "No title provided"}"),
                                   subtitle: Row(
                                     children: [
                                       Chip(
+                                        label: Text(ticket.priority!,
+                                            style: TextStyle(color: Colors.white, fontSize: 12)),
+                                        backgroundColor: getPriorityColor(ticket.priority!),
+                                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      ),
+                                      Chip(
                                         label: Text(ticket.status,
                                             style: TextStyle(color: Colors.white, fontSize: 12)),
-                                        backgroundColor: statusColors[ticket.status] ?? Colors.grey,
+                                        backgroundColor: getStatusColor(ticket.status),
                                         padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                       ),
                                       SizedBox(width: 10),
@@ -160,5 +168,6 @@ class _DashboardPageState extends State<DashboardPage> {
         ),
       ),
     );
+
   }
 }

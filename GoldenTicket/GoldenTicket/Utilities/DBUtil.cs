@@ -18,7 +18,6 @@ namespace GoldenTicket.Utilities
                 var faqs = context.Faq
                     .Include(faq => faq.MainTag)
                     .Include(faq => faq.SubTag)
-                    .Where(faq => faq.IsArchived == false)
                     .Select(faq => new FAQDTO
                     {
                         FaqID = faq.FaqID,

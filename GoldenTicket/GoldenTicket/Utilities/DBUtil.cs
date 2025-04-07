@@ -315,17 +315,17 @@ namespace GoldenTicket.Utilities
 
             if (MainTagName != "null")
             {
-                var mainTag = GetTags().FirstOrDefault(x => x.MainTagName == MainTagName);
-                if (mainTag != null)
+            var mainTag = GetTags().FirstOrDefault(x => x.MainTagName == MainTagName);
+            if (mainTag != null)
                 {
                     mainTagID = mainTag.MainTagID;
                     if (SubTagName != "null")
                     {
-                    var subTag = mainTag.SubTags?.FirstOrDefault(x => x.SubTagName == SubTagName);
-                    if (subTag != null)
-                    {
-                        subTagID = subTag.SubTagID;
-                    }
+                        var subTag = mainTag.SubTags?.FirstOrDefault(x => x.SubTagName == SubTagName);
+                        if (subTag != null)
+                        {
+                            subTagID = subTag.SubTagID;
+                        }
                     }
                 }
             }
@@ -458,10 +458,15 @@ namespace GoldenTicket.Utilities
         }
         #endregion
         #region -   UpdateTicket
-        public async static Task<Tickets> UpdateTicket(int ticketID, string title, string statusName, string priorityName, string? MainTag, string? SubTag, int? assignedID)
+        public async static Task<Tickets> UpdateTicket(int ticketID, string title, string statusName, string priorityName, string? MainTag, string? SubTag, int? assignedID, int EditorID)
         {
             using (var context = new ApplicationDbContext())
             {
+                string editorName = context.Users
+                    .Where(u => u.UserID == EditorID)
+                    .Select(u => u.FirstName + " " + u.LastName)
+                    .FirstOrDefault()!;
+
                 int statusID = context.Status.Where(s => s.StatusName == statusName).Select(s => s.StatusID).FirstOrDefault();
                 int priorityID = context.Priorities.Where(p => p.PriorityName == priorityName).Select(p => p.PriorityID).FirstOrDefault();
                 int? mainTagID = 0;
@@ -473,6 +478,41 @@ namespace GoldenTicket.Utilities
                     subTagID = context.SubTag.Where(s => s.MainTagID == mainTagID! && s.TagName == SubTag).Select(s => s.TagID).FirstOrDefault();
 
                 var newticket = context.Tickets.FirstOrDefault(t => t.TicketID == ticketID);
+
+                if(statusID != newticket!.StatusID)
+                {
+                    int Action = 1;
+                    string Message = "";
+                    switch(statusID)
+                    {
+                        case 1:
+                            Action = 8;
+                            Message = "Ticket Opened by " + editorName;
+                            break;
+                        case 2:
+                            Action = 3;
+                            Message = "Ticket In Progress by " + editorName;
+                            break;
+                        case 3:
+                            Action = 4;
+                            Message = "Ticket Closed by " + editorName;
+                            break;
+                        case 4:
+                            Action = 5;
+                            Message = "Ticket On Hold by " + editorName;
+                            break;
+                    }
+                    // Creates Ticket History
+                    var ticketHistory = new TicketHistory
+                    {
+                        TicketID = newticket.TicketID,
+                        ActionID = Action,
+                        ActionMessage = Message,
+                    };
+                    context.TicketHistory.Add(ticketHistory);
+                    await context.SaveChangesAsync();
+                }
+
                 newticket!.TicketTitle = title;
                 newticket.StatusID = statusID;
                 newticket.PriorityID = priorityID;
@@ -807,6 +847,73 @@ namespace GoldenTicket.Utilities
                     .Include(m => m.Sender)
                         .ThenInclude(s => s!.AssignedTags)
                     .FirstOrDefault(m => m.MessageID == MessageID);
+            }
+        }
+        #endregion
+        #endregion
+        #region Rating
+
+
+        
+        #region -   AddRating
+        public static Rating AddRating(int ChatroomID, int Score, string? Feedback)
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                var newRating = new Rating
+                {
+                    ChatroomID = ChatroomID,
+                    CreatedAt = DateTime.Now,
+                    Score = Score,
+                    Feedback = Feedback
+                };
+                context.Rating.Add(newRating);
+                context.SaveChanges();
+                return newRating;
+            }
+        }
+        #endregion
+        #region -   GetRatings
+        public static List<RatingDTO> GetRatings(int UserID)
+        {
+            var RatingList = new List<RatingDTO>();
+            using (var context = new ApplicationDbContext())
+            {
+                var ratings = context.Rating
+                    .Include(r => r.Chatroom)
+                        .ThenInclude(c => c!.Author)
+                            .ThenInclude(a => a!.Role)
+                    .Include(r => r.Chatroom)
+                        .ThenInclude(c => c!.Author)
+                            .ThenInclude(a => a!.AssignedTags)
+                    .Include(r => r.Chatroom)
+                        .ThenInclude(c => c!.Ticket)
+                            .ThenInclude(t => t!.Author)
+                                .ThenInclude(a => a!.Role)
+                    .Include(r => r.Chatroom)
+                        .ThenInclude(c => c!.Ticket)
+                            .ThenInclude(c => c!.Author)
+                                .ThenInclude(a => a!.AssignedTags)
+                    .Include(r => r.Chatroom)
+                        .ThenInclude(c => c!.Ticket)
+                            .ThenInclude(t => t!.Assigned)
+                                .ThenInclude(a => a!.Role)
+                    .Include(r => r.Chatroom)
+                        .ThenInclude(c => c!.Ticket)
+                            .ThenInclude(t => t!.Assigned)
+                                .ThenInclude(a => a!.AssignedTags)
+                    .Include(r => r.Chatroom)
+                        .ThenInclude(c => c!.Ticket)
+                            .ThenInclude(t => t!.Assigned)
+                                .ThenInclude(a => a!.AssignedTags)
+                                    .ThenInclude(a => a.MainTag)
+                    .Where(r => r.Chatroom!.Ticket!.AssignedID == UserID)
+                    .ToList();
+                foreach (var rating in ratings)
+                {
+                    RatingList.Add(new RatingDTO(rating));
+                }
+                return RatingList;
             }
         }
         #endregion

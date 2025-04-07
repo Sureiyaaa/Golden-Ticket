@@ -1,28 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:golden_ticket_enterprise/entities/ticket.dart';
 import 'package:golden_ticket_enterprise/models/time_utils.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
 
 class TicketTile extends StatelessWidget {
-  final String title;
-  final String mainTag;
-  final String? subTag;
-  final String status;
-  final String priority;
-  final String author;
-  final DateTime dateCreated;
+  final Ticket ticket;
   final VoidCallback onChatPressed;
   final VoidCallback onViewPressed;
   final VoidCallback onEditPressed;
 
   const TicketTile({
     Key? key,
-    required this.title,
-    required this.mainTag,
-    this.subTag,
-    required this.status,
-    required this.priority,
-    required this.author,
-    required this.dateCreated,
+    required this.ticket,
     required this.onChatPressed,
     required this.onViewPressed,
     required this.onEditPressed,
@@ -42,32 +31,33 @@ class TicketTile extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text(ticket.ticketTitle, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
               Wrap(
                 spacing: 8,
                 children: [
-                  Chip(label: Text(mainTag), backgroundColor: Colors.blue[100]),
-                  if (subTag != null)
-                    Chip(label: Text(subTag!), backgroundColor: Colors.green[100]),
+                  Chip(label: Text(ticket.mainTag?.tagName ?? "No main tag", style: const TextStyle(color: Colors.white)), backgroundColor: Colors.redAccent),
+                  Chip(label: Text(ticket.subTag?.subTagName ?? "No sub tag", style: const TextStyle(color: Colors.white)), backgroundColor: Colors.blueAccent),
                   Chip(
-                    label: Text(status, style: const TextStyle(color: Colors.white)),
-                    backgroundColor: getStatusColor(status),
+                    label: Text(ticket.status, style: const TextStyle(color: Colors.white)),
+                    backgroundColor: getStatusColor(ticket.status),
                   ),
                   Chip(
-                    label: Text(priority, style: const TextStyle(color: Colors.white)),
-                    backgroundColor: getPriorityColor(priority),
+                    label: Text(ticket.priority, style: const TextStyle(color: Colors.white)),
+                    backgroundColor: getPriorityColor(ticket.priority),
                   ),
                 ],
               ),
               const SizedBox(height: 6),
-              Text("Author: $author", style: TextStyle(fontSize: 13, color: Colors.grey[700])),
+              Text("Author: ${ticket.author.firstName} ${ticket.author.lastName}", style: TextStyle(fontSize: 13, color: Colors.grey[700])),
+              const SizedBox(height: 6),
+              Text("Assignee: ${ticket.assigned != null ? '${ticket.assigned!.firstName} ${ticket.assigned!.lastName}' : "None assigned"}", style: TextStyle(fontSize: 13, color: Colors.grey[700])),
               const SizedBox(height: 10),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    TimeUtil.formatCreationDate(dateCreated),
+                    TimeUtil.formatCreationDate(ticket.createdAt),
                     style: TextStyle(fontSize: 12, color: Colors.grey[600], fontStyle: FontStyle.italic),
                   ),
                   Row(

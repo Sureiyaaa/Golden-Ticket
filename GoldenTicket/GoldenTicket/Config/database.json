@@ -2,7 +2,7 @@
     "Tags": {
         "Status": ["Open", "In Progress", "Postponed", "Closed", "Unresolved"],
         "Priority": ["High", "Medium", "Low"],
-        "Actions": ["Created", "Assigned", "Re-Assigned", "In Progress", "Postponed", "Closed", "Unresolved","Re-opened"],
+        "Actions": ["Created", "Assigned", "Re-Assigned", "In Progress", "Postponed", "Closed", "Unresolved", "Re-opened", "Title", "MainTag", "SubTag", "Priority"],
         "Notification": ["New Ticket", "Replied", "Closed", "Opened", "Assigned", "In Progress", "Re-assigned", "Postponed"],
         "Roles": ["Admin", "Staff", "Employee"],
         "MainTags": ["MaxHub", "Printer", "NOAH"],

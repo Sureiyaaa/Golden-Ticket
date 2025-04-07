@@ -483,19 +483,23 @@ namespace GoldenTicket.Utilities
                     {
                         case 1:
                             Action = 8;
-                            Message = "Ticket Opened by " + editorName;
+                            Message = $"Ticket Opened by {editorName}";
                             break;
                         case 2:
                             Action = 3;
-                            Message = "Ticket In Progress by " + editorName;
+                            Message = $"Ticket set In Progress by {editorName}";
                             break;
                         case 3:
-                            Action = 4;
-                            Message = "Ticket Closed by " + editorName;
+                            Action = 5;
+                            Message = $"Ticket On Hold by {editorName}";
                             break;
                         case 4:
-                            Action = 5;
-                            Message = "Ticket On Hold by " + editorName;
+                            Action = 4;
+                            Message = $"Ticket Closed by {editorName}";
+                            break;
+                        case 5:
+                            Action = 7;
+                            Message = $"Ticket set as Unresolved by {editorName}";
                             break;
                     }
                     // Creates Ticket History
@@ -508,6 +512,7 @@ namespace GoldenTicket.Utilities
                     context.TicketHistory.Add(ticketHistory);
                     await context.SaveChangesAsync();
                 }
+                
 
                 newticket!.TicketTitle = title;
                 newticket.StatusID = statusID;

@@ -21,6 +21,35 @@ namespace GoldenTicket.Utilities
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
+        public static List<FAQDTO>? GetRelevantFAQs(string _message)
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                var userInput = _message;
+                var faqs = context.Faq
+                    .FromSqlInterpolated($@"
+                        SELECT f.*
+                        FROM tblFAQ f
+                        JOIN tblMainTag m ON f.MainTagID = m.TagID
+                        WHERE MATCH(f.Title, f.Description, f.Solution) AGAINST ({userInput} IN NATURAL LANGUAGE MODE)
+                        OR m.TagName LIKE {userInput}
+                    ")
+                    .Where(f => !f.IsArchived)
+                    .Select(faq => new FAQDTO
+                    {
+                        FaqID = faq.FaqID,
+                        Title = faq.Title,
+                        Description = faq.Description,
+                        Solution = faq.Solution,
+                        CreatedAt = faq.CreatedAt,
+                        IsArchived = faq.IsArchived,
+                        MainTag = new MainTagDTO(faq.MainTag!),
+                        SubTag = new SubTagDTO(faq.SubTag!)
+                    }).ToList();
+                return faqs;
+            }
+        }
+
         public static async Task<string> GetAIResponseAsync(string _id, string _message, string _promptType = "GoldenTicket", string _additional = "")
         {
             if (_openAIService == null || _promptService == null || _logger == null)
@@ -106,7 +135,7 @@ namespace GoldenTicket.Utilities
                 }
             }
 
-            var faqData = DBUtil.GetFAQs();
+            var faqData = DBUtil.GetFAQs().Where(f => !f.IsArchived).ToList();
             foreach (var faq in faqData)
             {
                 faqList += $"FAQ: {faq.Title}\nDescription: {faq.Description}\nSolution: {faq.Solution}\nMainTag: {faq.MainTag!.MainTagName}\n>{faq.SubTag!.SubTagName}\n\n";
@@ -178,7 +207,7 @@ namespace GoldenTicket.Utilities
             return MessageList;
         }
 
-
+        
 
 
 

@@ -533,7 +533,7 @@ namespace GoldenTicket.Utilities
                     var ticketHistory = new TicketHistory
                     {
                         TicketID = newticket.TicketID,
-                        ActionID = 9,
+                        ActionID = 12,
                         ActionMessage = $"Ticket Title changed from {newticket!.TicketTitle} to {title} by {editorName}",
                     };
                     context.TicketHistory.Add(ticketHistory);

@@ -29,10 +29,8 @@ const Color kOutlineVariant = Color(0xFFD9D9D9);
 
 Color getStatusColor(String status){
   switch(status){
-    case 'Pending':
-      return Colors.yellowAccent;
-    case 'Assigned':
-      return Colors.blueAccent;
+    case 'Open':
+      return Colors.green;
     case 'In Progress':
       return Colors.lightBlueAccent;
     case 'Postponed':
@@ -41,6 +39,17 @@ Color getStatusColor(String status){
       return Colors.red;
     case 'Unresolved':
       return Colors.redAccent;
+  }
+  return Colors.black;
+}
+Color getPriorityColor(String status){
+  switch(status){
+    case 'High':
+      return Colors.redAccent;
+    case 'Medium':
+      return Colors.orangeAccent;
+    case 'Low':
+      return Colors.greenAccent;
   }
   return Colors.black;
 }

@@ -13,6 +13,8 @@ class ChatroomDetailsDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    print("Building ChatroomDetailsDrawer - Ticket Status: ${chatroom.ticket?.status}");
+
     return Drawer(
       backgroundColor: kPrimaryContainer,
       child: ListView(
@@ -38,16 +40,29 @@ class ChatroomDetailsDrawer extends StatelessWidget {
             children: [
               if(chatroom.ticket != null) ListTile(
                 title: const Text("Ticket Title:"),
-                subtitle: Text('${chatroom.ticket!.ticketTitle}')
+                subtitle: Text('${chatroom.ticket?.ticketTitle ?? "No Title Provided"}')
               ),
               if(chatroom.ticket != null && chatroom.ticket?.assigned != null) ListTile(
                   title: const Text("Assigned Agent:"),
                   subtitle: Text('${chatroom.ticket!.assigned!.firstName}')
               ),
               if(chatroom.ticket != null) ListTile(
-                  title: const Text("Status:"),
-                  subtitle: Chip(backgroundColor: getStatusColor(chatroom.ticket!.status),label: Text(chatroom.ticket!.status, style: TextStyle(fontWeight: FontWeight.bold, color: kSurface),))
+                title: const Text("Priority:"),
+                subtitle: Row(children: [Chip(backgroundColor: getPriorityColor(chatroom.ticket!.priority!),label: Text(chatroom.ticket!.priority!, style: TextStyle(fontWeight: FontWeight.bold, color: kSurface),))]),
               ),
+              if(chatroom.ticket != null) ListTile(
+                  title: const Text("Status:"),
+                  subtitle: Row(children: [Chip(backgroundColor: getStatusColor(chatroom.ticket!.status),label: Text(chatroom.ticket!.status, style: TextStyle(fontWeight: FontWeight.bold, color: kSurface),))]),
+              ),
+              if(chatroom.ticket != null) ListTile(
+                title: const Text("Tags:"),
+                subtitle: Column(
+                  children: [
+                      Chip(backgroundColor: Colors.redAccent,label: Text(chatroom.ticket!.mainTag?.tagName ?? "No Main Tag Provided", style: TextStyle(fontWeight: FontWeight.bold, color: kSurface),)),
+                      Chip(backgroundColor: Colors.blueAccent,label: Text(chatroom.ticket!.subTag?.subTagName ?? "No Sub Tag Provided", style: TextStyle(fontWeight: FontWeight.bold, color: kSurface),)),
+                  ],
+                )
+              )
             ],
           ),
           ExpansionTile(

@@ -57,7 +57,7 @@ public class PromptService
         string formatted = $"Your name: {promptData.Name}\nAttribute: {attributes}\nPrompt: {promptData.Prompt}";
 
         if (!string.IsNullOrEmpty(additional))
-            formatted += $"\nAdditional Info: {additional}";
+            formatted += $"\n----Additional Info(NOT PART OF FORMAT)---- {additional}";
 
         return formatted;
     }

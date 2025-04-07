@@ -19,6 +19,6 @@ namespace GoldenTicket.Entities
         [ForeignKey("NotificationTypeID")]
         public NotificationType? NotificationType { get; set; } = null;
         public int? ReferenceID { get; set; }
-        
+        public bool IsRead { get; set;} = false;
     }
 }

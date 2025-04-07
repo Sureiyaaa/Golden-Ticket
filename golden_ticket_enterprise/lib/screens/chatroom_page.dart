@@ -44,7 +44,6 @@ class _ChatroomPageState extends State<ChatroomPage> {
       setState(() {
         enableMessage = false;
       });
-
     }else{
       messageFocusNode.requestFocus();
     }
@@ -67,7 +66,7 @@ class _ChatroomPageState extends State<ChatroomPage> {
         log("HubPage: Initializing SignalR Connection...");
 
         var userSession = Hive.box<HiveSession>('sessionBox').get('user');
-        _dataManager.signalRService.initializeConnection(userSession!.user);
+        _dataManager.signalRService.initializeConnection(userSession!);
       }
 
       _isInitialized = true;
@@ -80,6 +79,7 @@ class _ChatroomPageState extends State<ChatroomPage> {
       builder: (context, dataManager, child) {
         Chatroom? chatroom = dataManager.findChatroomByID(widget.chatroomID);
         var userSession = Hive.box<HiveSession>('sessionBox').get('user');
+        String chatTitle = chatroom?.ticket != null ? chatroom?.ticket?.ticketTitle ?? "New Chat" : "New Chat";
 
         dataManager.signalRService.onReceiveMessage = (message, chatroom) {
           if (chatroom.chatroomID == widget.chatroomID) {
@@ -87,10 +87,19 @@ class _ChatroomPageState extends State<ChatroomPage> {
             dataManager.addMessage(message, chatroom);
           }
         };
-
+        dataManager.signalRService.onAlreadyMember = (){
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("You are already a member!"),
+              backgroundColor: Colors.red,
+              duration: Duration(milliseconds: 1000),
+            ),
+          );
+        };
         dataManager.signalRService.onAllowMessage = () {
           setState(() {
             enableMessage = true;
+            messageFocusNode.requestFocus();
           });
         };
 
@@ -104,7 +113,7 @@ class _ChatroomPageState extends State<ChatroomPage> {
         return Scaffold(
           appBar: AppBar(
             backgroundColor: kPrimary,
-            title: Text('${chatroom.author.firstName}'),
+            title: Text('${chatTitle}'),
             actions: [
               Builder(
                 builder: (context) => IconButton(
@@ -114,7 +123,7 @@ class _ChatroomPageState extends State<ChatroomPage> {
               ),
             ],
           ),
-          endDrawer: ChatroomDetailsDrawer(chatroom: chatroom),
+          endDrawer: ChatroomDetailsDrawer(chatroom: dataManager.findChatroomByID(widget.chatroomID)!),
           body: Column(
             children: [
               Expanded(
@@ -177,6 +186,7 @@ class _ChatroomPageState extends State<ChatroomPage> {
                                           strong: const TextStyle(fontWeight: FontWeight.bold),
                                           blockquote: TextStyle(color: Colors.grey[600], fontStyle: FontStyle.italic),
                                         ),
+                                        selectable: true,
                                       ),
                                     ),
                                   );
@@ -198,7 +208,11 @@ class _ChatroomPageState extends State<ChatroomPage> {
                   },
                 ),
               ),
-              if (chatroom.groupMembers.any((u) => u.member?.userID == userSession?.user.userID))
+              if(chatroom.isClosed && chatroom.groupMembers.any((u) => u.member?.userID == userSession?.user.userID))
+                _buildReopenRoom(dataManager, userSession, chatroom)
+              else if (chatroom.isClosed)
+                _buildClosedBar(dataManager, userSession, chatroom)
+              else if (chatroom.groupMembers.any((u) => u.member?.userID == userSession?.user.userID))
                 _buildMessageInput(chatroom)
               else
                 _buildJoinRoomButton(dataManager, userSession, chatroom),
@@ -222,6 +236,7 @@ class _ChatroomPageState extends State<ChatroomPage> {
               maxLines: 4, // Expands up to 4 lines, then scrolls
               minLines: 1,
               textInputAction: TextInputAction.newline, // Allows multi-line
+              enabled: enableMessage,
               decoration: InputDecoration(
                 hintText: "Type a message...",
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
@@ -231,7 +246,7 @@ class _ChatroomPageState extends State<ChatroomPage> {
                 // Ensures the message is sent when Enter is pressed
                 sendMessage(messageController.text.trim(), chatroom);
                 messageController.clear();
-                messageFocusNode.requestFocus();
+                enableMessage = false;
               },
               inputFormatters: [
                 TextInputFormatter.withFunction((oldValue, newValue) {
@@ -266,6 +281,25 @@ class _ChatroomPageState extends State<ChatroomPage> {
         },
         child: Text("Join Room"),
       ),
+    );
+  }
+  Widget _buildReopenRoom(DataManager dataManager, HiveSession? userSession, Chatroom chatroom) {
+    return Padding(
+      padding: const EdgeInsets.all(12.0),
+      child: ElevatedButton(
+        onPressed: () {
+          if (userSession != null) {
+            dataManager.signalRService.reopenChatroom(userSession.user.userID, chatroom.chatroomID);
+          }
+        },
+        child: Text("Join Room"),
+      ),
+    );
+  }
+  Widget _buildClosedBar(DataManager dataManager, HiveSession? userSession, Chatroom chatroom) {
+    return Padding(
+      padding: const EdgeInsets.all(12.0),
+      child:  Text("Viewing archived chat"),
     );
   }
 

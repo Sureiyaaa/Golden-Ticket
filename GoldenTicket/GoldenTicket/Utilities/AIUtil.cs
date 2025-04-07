@@ -21,6 +21,35 @@ namespace GoldenTicket.Utilities
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
+        public static List<FAQDTO>? GetRelevantFAQs(string _message)
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                var userInput = _message;
+                var faqs = context.Faq
+                    .FromSqlInterpolated($@"
+                        SELECT f.*
+                        FROM tblFAQ f
+                        JOIN tblMainTag m ON f.MainTagID = m.TagID
+                        WHERE MATCH(f.Title, f.Description, f.Solution) AGAINST ({userInput} IN NATURAL LANGUAGE MODE)
+                        OR m.TagName LIKE {userInput}
+                    ")
+                    .Where(f => !f.IsArchived)
+                    .Select(faq => new FAQDTO
+                    {
+                        FaqID = faq.FaqID,
+                        Title = faq.Title,
+                        Description = faq.Description,
+                        Solution = faq.Solution,
+                        CreatedAt = faq.CreatedAt,
+                        IsArchived = faq.IsArchived,
+                        MainTag = new MainTagDTO(faq.MainTag!),
+                        SubTag = new SubTagDTO(faq.SubTag!)
+                    }).ToList();
+                return faqs;
+            }
+        }
+
         public static async Task<string> GetAIResponseAsync(string _id, string _message, string _promptType = "GoldenTicket", string _additional = "")
         {
             if (_openAIService == null || _promptService == null || _logger == null)
@@ -29,7 +58,7 @@ namespace GoldenTicket.Utilities
             if (_message == null || _promptType == null || _id == null)
                 return "";
 
-            string additional = _additional ?? "";
+            string additional = _additional + FAQData(100000002) ?? "";
             string requestPrompt = _promptService.GetPrompt(_promptType, additional);
             string aiResponse = await _openAIService.GetAIResponse(_id, _message, requestPrompt);
 
@@ -39,7 +68,7 @@ namespace GoldenTicket.Utilities
             return aiResponse;
         }
 
-        public static async Task<AIResponse?> GetJsonResponseAsync(string _id, string _message, string _promptType = "GoldenTicket", string _additional = "")
+        public static async Task<AIResponse?> GetJsonResponseAsync(string _id, string _message, int _userID = 0, string _promptType = "GoldenTicket", string _additional = "")
         {
             try
             {
@@ -48,33 +77,54 @@ namespace GoldenTicket.Utilities
 
                 if (_message == null || _promptType == null)
                 {
-                    _logger.LogError("[AIUtil]: Message cant be empty");
+                    Console.WriteLine("[AIUtil]: Message cant be empty");
                     return AIResponse.Unavailable();
                 }
                     
-                string additional = _additional + FAQData() ?? "";
+                string additional = _additional + FAQData(_userID) ?? "";
                 string requestPrompt = _promptService.GetPrompt(_promptType, additional);
 
                 string aiResponse = await _openAIService.GetAIResponse(_id, _message, requestPrompt);
                 var parsedResponse = AIResponse.Parse(aiResponse);
+                var finalResponse = new AIResponse();
 
                 // _logger.LogInformation($"\n[AI-AR Input]: {_message}");
                 // _logger.LogInformation($"[AI-AR Response]: {aiResponse}");
 
-                return string.IsNullOrWhiteSpace(parsedResponse.Message) ? parsedResponse : AIResponse.Unavailable();
+                if(string.IsNullOrEmpty(parsedResponse.Message)){
+                    Console.WriteLine($"[AIUtil] Message empty, responding default unavailable message");
+                    finalResponse = AIResponse.Unavailable();
+                } else {
+                    finalResponse =  parsedResponse;
+                }
+                // DEBUG
+                Console.WriteLine($"Title       : {finalResponse.Title}");
+                Console.WriteLine($"MainTag     : {finalResponse.MainTag}");
+                Console.WriteLine($"SubTag      : {finalResponse.SubTags}");
+                Console.WriteLine($"Priority    : {finalResponse.Priority}");
+                Console.WriteLine($"CallAgent   : {finalResponse.CallAgent}");
+                Console.WriteLine($"Message     : {finalResponse.Message}");
+                return finalResponse;
             }
             catch (Exception ex)
             {
-                _logger!.LogError(ex, "Error in ProcessJsonResponseAsync");
+                Console.WriteLine($"Error in ProcessJsonResponseAsync: {ex.Message}");
                 return null;
             }
         }
 
-        private static string FAQData()
+        private static string FAQData(int _userID = 0)
         {
+            string userName = "Not provided yet";
             string tagList = "";
             string faqList = "";
 
+            if(_userID != 0)
+            {
+                var user = DBUtil.FindUser(_userID);
+                if(user != null) userName = user.FirstName!;
+            }
+            
             var mainTags = DBUtil.GetTags();
             foreach (var mainTag in mainTags)
             {
@@ -85,13 +135,13 @@ namespace GoldenTicket.Utilities
                 }
             }
 
-            var faqData = DBUtil.GetFAQs();
+            var faqData = DBUtil.GetFAQs().Where(f => !f.IsArchived).ToList();
             foreach (var faq in faqData)
             {
                 faqList += $"FAQ: {faq.Title}\nDescription: {faq.Description}\nSolution: {faq.Solution}\nMainTag: {faq.MainTag!.MainTagName}\n>{faq.SubTag!.SubTagName}\n\n";
             }
 
-            return $"\n[FAQ DATA] \nTag List:\n{tagList}--------------------------------------------\n{faqList}";
+            return $"\n[USER DETAIL]\nUser's Name: {userName} \n[FAQ DATA] \nTag List:\n{tagList}\n--------------------------------------------\n{faqList}";
         }
 
         public static Dictionary<string, List<ChatMessage>> PopulateID()
@@ -127,7 +177,7 @@ namespace GoldenTicket.Utilities
                         .ThenInclude(t => t!.Role)
                     .ToList();
 
-                foreach (var chatroom in chatrooms.Where(c => c.TicketID != 99))
+                foreach (var chatroom in chatrooms.Where(c => c.TicketID == null))
                 {
                     dtos.Add(new ChatroomDTO(chatroom, true));
                 }
@@ -142,6 +192,10 @@ namespace GoldenTicket.Utilities
                         {
                             chatMessages.Add(new UserChatMessage(message.MessageContent));
                         }
+                        else
+                        {
+                            // chatMessages.Add(new AssistantChatMessage(message.MessageContent));
+                        }
                     }
                     if (!MessageList.ContainsKey(chatroom.ChatroomID.ToString()!))
                     {
@@ -153,7 +207,7 @@ namespace GoldenTicket.Utilities
             return MessageList;
         }
 
-
+        
 
 
 

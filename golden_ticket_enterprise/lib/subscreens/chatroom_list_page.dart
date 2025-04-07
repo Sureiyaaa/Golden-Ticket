@@ -25,8 +25,9 @@ class _ChatroomListPageState extends State<ChatroomListPage> {
   Widget build(BuildContext context) {
     return Consumer<DataManager>(
       builder: (context, dataManager, child) {
+
         List<Chatroom> filteredChatrooms = dataManager.chatrooms.where((chatroom) {
-          String chatTitle = chatroom.ticket != null ? chatroom.ticket!.ticketTitle : "No title provided";
+          String chatTitle = chatroom.ticket != null ? chatroom.ticket?.ticketTitle ?? "No title provided" : "No title provided";
           String chatroomAuthor = chatroom.author != null
               ? "${chatroom.author!.firstName} ${chatroom.author!.lastName}"
               : "Unknown Author";
@@ -36,6 +37,14 @@ class _ChatroomListPageState extends State<ChatroomListPage> {
         }).toList();
 
         return Scaffold(
+          floatingActionButton: widget.session!.user.role == "Employee" ? FloatingActionButton(
+            heroTag: "chat_request",
+            onPressed: () {
+                dataManager.signalRService.requestChat(widget.session!.user.userID);
+            },
+            child: Icon(Icons.chat),
+            backgroundColor: kPrimary,
+          ) : null,
           backgroundColor: kSurface,
           appBar: AppBar(
             backgroundColor: kPrimaryContainer,
@@ -71,7 +80,10 @@ class _ChatroomListPageState extends State<ChatroomListPage> {
               ? Center(
             child: Text(
               "No chatrooms found",
-              style: TextStyle(fontSize: 16, color: Colors.grey),
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey),
             ),
           )
               : ListView.builder(
@@ -79,7 +91,7 @@ class _ChatroomListPageState extends State<ChatroomListPage> {
             itemBuilder: (context, index) {
               Chatroom chatroom = filteredChatrooms[index];
               String chatTitle = chatroom.ticket != null
-                  ? chatroom.ticket!.ticketTitle
+                  ? chatroom.ticket?.ticketTitle ?? "No Title Provided"
                   : "No title provided";
               String chatroomAuthor = chatroom.author != null
                   ? "${chatroom.author!.firstName} ${chatroom.author!.lastName}"

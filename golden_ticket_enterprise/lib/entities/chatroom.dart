@@ -13,8 +13,8 @@ class Chatroom {
   LastMessage? lastMessage;
   List<GroupMember> groupMembers;
   DateTime createdAt;
-
-  Chatroom({required this.chatroomID, required this.chatroomName, required this.author, this.ticket, required this.createdAt, required this.messages, required this.groupMembers, required this.lastMessage});
+  bool isClosed;
+  Chatroom({required this.chatroomID, required this.chatroomName, required this.isClosed, required this.author, this.ticket, required this.createdAt, required this.messages, required this.groupMembers, required this.lastMessage});
 
   factory Chatroom.fromJson(Map<String, dynamic> json) {
     List<Message> msgs = [];
@@ -43,6 +43,7 @@ class Chatroom {
       groupMembers: members.isNotEmpty ? members : [], // Ensure it never remains null
       lastMessage: json['lastMessage'] != null ? LastMessage.fromJson(json['lastMessage']) : null,
       ticket: json['ticket'] != null ? Ticket.fromJson(json['ticket']) : null,
+      isClosed: json['isClosed']
     );
 
   }

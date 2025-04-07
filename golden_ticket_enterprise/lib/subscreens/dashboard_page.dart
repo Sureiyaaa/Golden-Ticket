@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
+import 'package:golden_ticket_enterprise/entities/ticket.dart';
+import 'package:golden_ticket_enterprise/models/time_utils.dart';
+import 'package:golden_ticket_enterprise/styles/colors.dart';
+import 'package:golden_ticket_enterprise/widgets/ticket_detail_widget.dart';
+import 'package:provider/provider.dart';
 
 class DashboardPage extends StatefulWidget {
-  final HiveSession session;
+  final HiveSession? session;
 
-  DashboardPage({super.key, required this.session});
+  const DashboardPage({super.key, required this.session});
 
   @override
   State<DashboardPage> createState() => _DashboardPageState();
@@ -13,21 +18,6 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   final ScrollController _scrollController = ScrollController();
-
-  final List<Map<String, dynamic>> ticketStats = [
-    {"status": "Pending", "count": 5, "color": Colors.orange},
-    {"status": "Open", "count": 12, "color": Colors.blue},
-    {"status": "In Progress", "count": 7, "color": Colors.green},
-    {"status": "Postponed", "count": 3, "color": Colors.purple}
-  ];
-
-  final List<Map<String, String>> recentTickets = List.generate(8, (index) {
-    return {
-      "title": "Ticket #${index + 1}",
-      "status": ["Open", "Closed", "Pending", "In Progress"][index % 4],
-      "date": "2025-03-20"
-    };
-  });
 
   @override
   Widget build(BuildContext context) {
@@ -43,20 +33,34 @@ class _DashboardPageState extends State<DashboardPage> {
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: maxWidth), // Fixes desktop stretching
+            constraints: BoxConstraints(maxWidth: maxWidth),
             child: Padding(
               padding: EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // **Scrollable Content**
-                  Expanded(
-                    child: SingleChildScrollView(
+              child: Consumer<DataManager>(
+                builder: (context, dataManager, _) {
+                  // ✅ Get Tickets from DataManager
+                  List<Ticket> tickets = dataManager.getRecentTickets();
+
+                  // ✅ Count tickets per category
+                  Map<String, int> ticketCounts = {
+                    "Open": tickets.where((t) => t.status == "Open").length,
+                    "In Progress": tickets.where((t) => t.status == "In Progress").length,
+                    "Postponed": tickets.where((t) => t.status == "Postponed").length,
+                    "Unresolved": tickets.where((t) => t.status == "Unresolved").length,
+                  };
+
+                  // ✅ Recent Tickets (Last 10)
+                  List<Ticket> recentTickets = tickets.take(10).toList();
+
+                  return Scrollbar(
+                    controller: _scrollController,
+                    thumbVisibility: true,
+                    child: SingleChildScrollView( // Wrap entire body in SingleChildScrollView
                       controller: _scrollController,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Ticket Overview
+                          // **Ticket Overview**
                           Text("Ticket Overview", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                           SizedBox(height: 10),
 
@@ -64,9 +68,9 @@ class _DashboardPageState extends State<DashboardPage> {
                           LayoutBuilder(
                             builder: (context, constraints) {
                               return GridView.builder(
-                                shrinkWrap: true, // Prevents infinite height issue
-                                physics: NeverScrollableScrollPhysics(), // Prevents nested scroll conflicts
-                                itemCount: ticketStats.length,
+                                shrinkWrap: true,
+                                physics: NeverScrollableScrollPhysics(),
+                                itemCount: ticketCounts.length,
                                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                                   crossAxisCount: columns,
                                   crossAxisSpacing: 10,
@@ -74,21 +78,27 @@ class _DashboardPageState extends State<DashboardPage> {
                                   childAspectRatio: 2.5,
                                 ),
                                 itemBuilder: (context, index) {
+                                  String status = ticketCounts.keys.elementAt(index);
+                                  int count = ticketCounts[status] ?? 0;
+                                  Color color = getStatusColor(status) ?? Colors.grey;
+
                                   return Card(
                                     elevation: 2,
-                                    color: ticketStats[index]["color"].withOpacity(0.2),
+                                    color: color.withOpacity(0.2),
                                     child: Padding(
                                       padding: EdgeInsets.symmetric(vertical: 16),
                                       child: Column(
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
                                           CircleAvatar(
-                                            backgroundColor: ticketStats[index]["color"],
-                                            child: Text(ticketStats[index]["count"].toString(),
+                                            backgroundColor: color,
+                                            child: Text("$count",
                                                 style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                                           ),
                                           SizedBox(height: 5),
-                                          Text(ticketStats[index]["status"], style: TextStyle(fontSize: 14)),
+                                          Flexible(
+                                              child: Text(status, style: TextStyle(fontSize: 14))
+                                          )
                                         ],
                                       ),
                                     ),
@@ -104,17 +114,45 @@ class _DashboardPageState extends State<DashboardPage> {
                           Text("Recent Tickets", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                           SizedBox(height: 10),
 
-                          ListView.builder(
-                            shrinkWrap: true,
-                            physics: NeverScrollableScrollPhysics(),
+                          recentTickets.isEmpty
+                              ? Center(child: Text("No recent tickets"))
+                              : ListView.builder(
+                            shrinkWrap: true, // Allow it to take only the space needed
+                            physics: NeverScrollableScrollPhysics(), // Avoid conflicts with parent scroll
                             itemCount: recentTickets.length,
                             itemBuilder: (context, index) {
+                              Ticket ticket = recentTickets[index];
                               return Card(
                                 child: ListTile(
+                                  onTap: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) => TicketDetailsPopup(ticket: ticket),
+                                    );
+                                  },
                                   leading: Icon(Icons.confirmation_number, color: Colors.blue),
-                                  title: Text(recentTickets[index]["title"]!),
-                                  subtitle: Text("Status: ${recentTickets[index]["status"]!}"),
-                                  trailing: Text(recentTickets[index]["date"]!, style: TextStyle(color: Colors.grey)),
+                                  title: Text("#${ticket.ticketID}: ${ticket.ticketTitle ?? "No title provided"}"),
+                                  subtitle: Row(
+                                    children: [
+                                      Chip(
+                                        label: Text(ticket.priority!,
+                                            style: TextStyle(color: Colors.white, fontSize: 12)),
+                                        backgroundColor: getPriorityColor(ticket.priority!),
+                                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      ),
+                                      Chip(
+                                        label: Text(ticket.status,
+                                            style: TextStyle(color: Colors.white, fontSize: 12)),
+                                        backgroundColor: getStatusColor(ticket.status),
+                                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      ),
+                                      SizedBox(width: 10),
+                                      Text(
+                                        TimeUtil.formatTimestamp(ticket.createdAt), // Show only date
+                                        style: TextStyle(color: Colors.grey),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               );
                             },
@@ -122,13 +160,14 @@ class _DashboardPageState extends State<DashboardPage> {
                         ],
                       ),
                     ),
-                  ),
-                ],
+                  );
+                },
               ),
             ),
           ),
         ),
       ),
     );
+
   }
 }

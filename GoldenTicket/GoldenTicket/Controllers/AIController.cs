@@ -31,17 +31,18 @@ namespace GoldenTicket.Controllers
 
             string id = requestData.id;
             string message = requestData.Message;
-            string promptType = requestData.PromptType;
-            string additional = requestData.Additional ?? "";
+            string promptType = requestData.PromptType ?? "GoldenTicket";
+            string? additional = requestData.Additional ?? "";
+            int userID = requestData.userID;
 
-            if (requestData?.Message == null || requestData.PromptType == null || requestData.id == null)
+            if (requestData?.Message == null || requestData.id == null)
             {
                 return BadRequest(new {status = 400, message = "Invalid JSON", errorType = "message and/or promptType not found."});
             }
 
-            var parsedResponse = await AIUtil.GetJsonResponseAsync(id, message, promptType, additional);
+            var parsedResponse = await AIUtil.GetJsonResponseAsync(id, message, userID, promptType, additional) ?? null;
 
-            if (!string.IsNullOrWhiteSpace(parsedResponse!.Message))
+            if (!string.IsNullOrWhiteSpace(parsedResponse?.Message))
                 return Ok(new {status = 200, message = "Request Response successfully", body = new {parsedResponse}}); 
             else
                 return StatusCode(202, new {status = 202, message = "OpenAI is currently having trouble.", body = new {unavailableResponse}});

@@ -6,6 +6,7 @@ import 'package:golden_ticket_enterprise/models/data_manager.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:golden_ticket_enterprise/widgets/add_faq_widget.dart';
+import 'package:golden_ticket_enterprise/widgets/edit_faq_widget.dart';
 import 'package:provider/provider.dart';
 
 class FAQPage extends StatefulWidget {
@@ -41,9 +42,10 @@ class _FAQPageState extends State<FAQPage> {
 
         List<FAQ> filteredFAQs = dataManager.faqs.where((faq) {
           bool matchesSearch = searchQuery.isEmpty || faq.title.toLowerCase().contains(searchQuery.toLowerCase());
-          bool matchesMainTag = selectedMainTag == "All" || faq.mainTag!.tagName == selectedMainTag;
+          bool matchesMainTag = selectedMainTag == "All" || faq.mainTag?.tagName == selectedMainTag;
           bool matchesSubTag = selectedSubTag == null || faq.subTag?.subTagName == selectedSubTag;
-          return matchesSearch && matchesMainTag && matchesSubTag;
+          bool includeArchived = widget.session?.user.role != "Employee" || faq.isArchived == false;
+          return matchesSearch && matchesMainTag && matchesSubTag && includeArchived;
         }).toList();
 
         void addFAQ(String title, String description, String solution, String mainTag, String subTag) {
@@ -147,7 +149,11 @@ class _FAQPageState extends State<FAQPage> {
                 // FAQ List
                 Expanded(
                   child: filteredFAQs.isEmpty
-                      ? Center(child: Text("No FAQs found"))
+                      ? Center(child: Text("No FAQs found", style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey),
+                  ))
                       : ListView.builder(
                     itemCount: filteredFAQs.length,
                     itemBuilder: (context, index) {
@@ -165,20 +171,45 @@ class _FAQPageState extends State<FAQPage> {
                                 ),
                               ),
                             ),
-                            Row(
-                              children: [
-                                if (faq.mainTag != null)
-                                  Chip(
-                                    backgroundColor: Colors.redAccent,
-                                    label: Text(faq.mainTag!.tagName, style: TextStyle(fontWeight: FontWeight.bold, color: kSurface)),
-                                  ),
-                                SizedBox(width: 5),
-                                if (faq.subTag != null)
-                                  Chip(
-                                    backgroundColor: Colors.blueAccent,
-                                    label: Text(faq.subTag!.subTagName, style: TextStyle(fontWeight: FontWeight.bold, color: kSurface)),
-                                  ),
-                              ],
+                            // LayoutBuilder to adjust for screen size
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                if (constraints.maxWidth < 600) {
+                                  // Mobile layout: Chips below the title
+                                  return Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      if (faq.mainTag != null)
+                                        Chip(
+                                          backgroundColor: Colors.redAccent,
+                                          label: Text(faq.mainTag!.tagName, style: TextStyle(fontWeight: FontWeight.bold, color: kSurface)),
+                                        ),
+                                      if (faq.subTag != null)
+                                        Chip(
+                                          backgroundColor: Colors.blueAccent,
+                                          label: Text(faq.subTag!.subTagName, style: TextStyle(fontWeight: FontWeight.bold, color: kSurface)),
+                                        ),
+                                    ],
+                                  );
+                                } else {
+                                  // Desktop layout: Chips beside the title
+                                  return Row(
+                                    children: [
+                                      if (faq.mainTag != null)
+                                        Chip(
+                                          backgroundColor: Colors.redAccent,
+                                          label: Text(faq.mainTag!.tagName, style: TextStyle(fontWeight: FontWeight.bold, color: kSurface)),
+                                        ),
+                                      SizedBox(width: 5),
+                                      if (faq.subTag != null)
+                                        Chip(
+                                          backgroundColor: Colors.blueAccent,
+                                          label: Text(faq.subTag!.subTagName, style: TextStyle(fontWeight: FontWeight.bold, color: kSurface)),
+                                        ),
+                                    ],
+                                  );
+                                }
+                              },
                             ),
                           ],
                         ),
@@ -193,7 +224,7 @@ class _FAQPageState extends State<FAQPage> {
                                   selectable: true, // Allows users to copy text
                                 ),
                                 SizedBox(height: 8),
-                                Text(
+                                SelectableText(
                                   "Solution:",
                                   style: TextStyle(fontWeight: FontWeight.bold),
                                 ),
@@ -202,12 +233,29 @@ class _FAQPageState extends State<FAQPage> {
                                   selectable: true,
                                 ),
                                 SizedBox(height: 8),
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: ElevatedButton(
-                                    onPressed: () {},
-                                    child: Text("View Ticket Related"),
-                                  ),
+                                if(widget.session!.user.role != "Employee")Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    Align(
+                                      alignment: Alignment.centerRight,
+                                      child: ElevatedButton(
+                                        onPressed: () {
+                                          showDialog(
+                                            context: context,
+                                            builder: (context) => FAQEditWidget(faq: faq),
+                                          );
+                                        },
+                                        child: Text("Edit"),
+                                      ),
+                                    ),
+                                    if(widget.session!.user.role != "Employee") Align(
+                                      alignment: Alignment.centerRight,
+                                      child: ElevatedButton(
+                                        onPressed: () {},
+                                        child: Text("View Ticket Related"),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),

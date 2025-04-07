@@ -15,7 +15,7 @@ class DataManager extends ChangeNotifier {
   List<Chatroom> chatrooms = [];
   List<Ticket> tickets = [];
   List<User> users = [];
-
+  List<String> priorities = [];
   DataManager({required this.signalRService}) {
     _initializeSignalR();
   }
@@ -72,15 +72,43 @@ class DataManager extends ChangeNotifier {
       updateChatroom(chatroom);
 
     };
+    signalRService.onPriorityUpdate = (updatedPriorities){
+      updatePriorities(updatedPriorities);
+    };
+    signalRService.onUsersUpdate = (updatedUsers){
+      updateUsers(updatedUsers);
+    };
+
+    signalRService.onUserUpdate = (updatedUser){
+      updateUser(updatedUser);
+    };
   }
 
   void updateMainTags(List<MainTag> updatedTags) {
     mainTags = updatedTags;
     notifyListeners();
   }
+  void updatePriorities(List<String> updatedPriorities){
+    priorities = updatedPriorities;
+    notifyListeners();
+  }
 
   void updateFAQs(List<FAQ> updatedFAQs) {
     faqs = updatedFAQs;
+    notifyListeners();
+  }
+
+  void updateUsers(List<User> updatedUsers) {
+    users = updatedUsers;
+    notifyListeners();
+  }
+  void updateUser(User updatedUser) {
+    int index = users.indexWhere((c) => c.userID == updatedUser.userID);
+    if (index != -1) {
+      users[index] = updatedUser; // Update ticket
+    } else {
+      users.add(updatedUser);
+    }
     notifyListeners();
   }
 
@@ -90,21 +118,33 @@ class DataManager extends ChangeNotifier {
   }
   void updateTickets(List<Ticket> updatedTickets){
     tickets = updatedTickets;
+
+    const priorityOrder = {'High': 0, 'Medium': 1, 'Low': 2};
+    const statusOrder = {
+      'Open': 0,
+      'Assigned': 1,
+      'Postponed': 2,
+      'Closed': 3,
+      'Unresolved': 4,
+    };
+
+    tickets.sort((a, b) {
+      int priorityCompare = (priorityOrder[a.priority] ?? 99)
+          .compareTo(priorityOrder[b.priority] ?? 99);
+      if (priorityCompare != 0) return priorityCompare;
+
+      int statusCompare =
+      (statusOrder[a.status] ?? 99).compareTo(statusOrder[b.status] ?? 99);
+      if (statusCompare != 0) return statusCompare;
+
+      return b.createdAt.compareTo(a.createdAt); // Newest first
+    });
+
     notifyListeners();
   }
   void updateChatrooms(List<Chatroom> chatroomList){
     chatrooms = chatroomList;
-    chatrooms.sort((a, b) {
-      DateTime? aTime = a.lastMessage?.createdAt;
-      DateTime? bTime = b.lastMessage?.createdAt;
-
-      // If one of the messages is null, place the chatroom without messages at the bottom
-      if (aTime == null && bTime == null) return 0;
-      if (aTime == null) return 1;
-      if (bTime == null) return -1;
-
-      return bTime.compareTo(aTime); // Newest first
-    });
+    chatrooms.sort((a, b) => b.lastMessage?.createdAt?.compareTo(a.lastMessage?.createdAt ?? DateTime(0)) ?? 0);
     notifyListeners();
   }
   void updateLastMessage(Chatroom chatroom){
@@ -126,8 +166,8 @@ class DataManager extends ChangeNotifier {
     });
 
     notifyListeners();
-    print("Chatrooms list updated. Total chatrooms: ${chatrooms.length}");
   }
+
   void addMessage(message, chatroom){
     int index = chatrooms.indexWhere((c) => c.chatroomID == chatroom.chatroomID);
 
@@ -155,12 +195,14 @@ class DataManager extends ChangeNotifier {
 
   void updateChatroom(Chatroom chatroom) {
     int index = chatrooms.indexWhere((c) => c.chatroomID == chatroom.chatroomID);
-
     if (index != -1) {
       // Keep existing messages if the new chatroom's messages are null
       List<Message>? existingMessages = chatrooms[index].messages;
-
-      chatrooms[index] = chatroom;  // Update chatroom
+      Ticket? existingTicket = chatrooms[index].ticket;
+      chatrooms[index] = chatroom;
+      if (chatroom.ticket == null) {
+        chatrooms[index].ticket = existingTicket;
+      }
 
       if (chatroom.messages!.length == 0) {
         chatrooms[index].messages = existingMessages; // Retain old messages
@@ -168,28 +210,65 @@ class DataManager extends ChangeNotifier {
     } else {
       chatrooms.add(chatroom);
     }
-    chatrooms.sort((a, b) => b.lastMessage!.createdAt!.compareTo(a.lastMessage!.createdAt!));
+    chatrooms.sort((a, b) => b.lastMessage?.createdAt?.compareTo(a.lastMessage?.createdAt ?? DateTime(0)) ?? 0);
     notifyListeners();
   }
   void updateTicket(Ticket ticket) {
     int index = tickets.indexWhere((c) => c.ticketID == ticket.ticketID);
-    int chatroomIndex = chatrooms.indexWhere((c) => c.chatroomID == ticket.chatroomID);
     if (index != -1) {
-      tickets[index] = ticket;  // Update chatroom
+      tickets[index] = ticket; // Update ticket
     } else {
       tickets.add(ticket);
     }
-    if(chatroomIndex != -1){
-      chatrooms[chatroomIndex].ticket = ticket;
-      updateChatroom(chatrooms[chatroomIndex]);
-    }
+
+    const priorityOrder = {'High': 0, 'Medium': 1, 'Low': 2};
+    const statusOrder = {
+      'Open': 0,
+      'Assigned': 1,
+      'Postponed': 2,
+      'Closed': 3,
+      'Unresolved': 4,
+    };
+
+    tickets.sort((a, b) {
+      int priorityCompare = (priorityOrder[a.priority] ?? 99)
+          .compareTo(priorityOrder[b.priority] ?? 99);
+      if (priorityCompare != 0) return priorityCompare;
+
+      int statusCompare =
+      (statusOrder[a.status] ?? 99).compareTo(statusOrder[b.status] ?? 99);
+      if (statusCompare != 0) return statusCompare;
+
+      return b.createdAt.compareTo(a.createdAt); // Newest first
+    });
+
     notifyListeners();
   }
 
   @override
   void dispose() {
-    signalRService.stopConnection(); // Ensure cleanup
+    closeConnection(); // Ensure cleanup
     super.dispose();
+  }
+  List<User> getAdmins(){
+    return users.where((user) => user.role == "Admin").toList();
+  }
+  List<User> getAgents(){
+    return users.where((user) => user.role == "Staff").toList();
+  }
+
+  List<User> getStaff(){
+    return users.where((user) => user.role != "Employee").toList();
+  }
+
+  List<User> getEmployees(){
+    return users.where((user) => user.role == "Employee").toList();
+  }
+  List<Ticket> getRecentTickets(){
+
+    List<Ticket> ticketList = tickets;
+    ticketList.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return ticketList;
   }
 
   Chatroom? findChatroom(Chatroom chatroom) {
@@ -201,5 +280,20 @@ class DataManager extends ChangeNotifier {
   Chatroom? findChatroomByID(int chatroomID) {
     return chatrooms.firstWhere(
             (c) => c.chatroomID == chatroomID);
+  }
+
+  Chatroom? findChatroomByTicketID(int ticketID){
+    return chatrooms.firstWhere(
+            (c) => c.ticket?.ticketID == ticketID);
+  }
+
+  Future<void> closeConnection() async {
+    tickets = [];
+    mainTags = [];
+    status = [];
+    chatrooms = [];
+    users = [];
+    faqs = [];
+    await signalRService.stopConnection();
   }
 }

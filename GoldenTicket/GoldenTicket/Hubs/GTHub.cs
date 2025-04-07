@@ -72,7 +72,7 @@ namespace GoldenTicket.Hubs
         public async Task UpdateFAQ(int faqID, string Title, string Description, string Solution, string Maintag, string Subtag, bool IsArchived)
         {
             await DBUtil.UpdateFAQ(faqID,Title, Description, Solution, Maintag, Subtag, IsArchived);
-            await Clients.All.SendAsync("UpdateFAQ", new {faq = DBUtil.GetFAQs()});
+            await Clients.All.SendAsync("FAQUpdate", new {faq = DBUtil.GetFAQs()});
         }
         #endregion
 
@@ -288,11 +288,14 @@ namespace GoldenTicket.Hubs
         }
         public async Task UpdateTicket(int TicketID, string Title, string Status, string Priority, string? MainTag, string? SubTag, int? AssignedID)
         {
-            var updatedTicket = await DBUtil.UpdateTicket(TicketID, Title, Status, Priority, MainTag, SubTag, AssignedID);
+            int EditorID = _connections.FirstOrDefault(kvp => kvp.Value.Contains(Context.ConnectionId)).Key;
+
+            var updatedTicket = await DBUtil.UpdateTicket(TicketID, Title, Status, Priority, MainTag, SubTag, AssignedID, EditorID);
             var ticketDTO = new TicketDTO(DBUtil.GetTicket(TicketID)!);
             
             var chatroomDTO = DBUtil.GetChatrooms().Where(c => c.Ticket!.TicketID == TicketID).FirstOrDefault();
             int chatroomID = chatroomDTO?.ChatroomID ?? throw new InvalidOperationException("ChatroomID cannot be null.");
+
 
             // Chatroom Close
             if(Status == "Closed")

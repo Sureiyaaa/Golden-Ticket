@@ -475,6 +475,20 @@ namespace GoldenTicket.Utilities
 
                 var newticket = context.Tickets.FirstOrDefault(t => t.TicketID == ticketID);
 
+                //TicketHistory Title Creation
+                if(title != newticket!.TicketTitle)
+                {
+                    var ticketHistory = new TicketHistory
+                    {
+                        TicketID = newticket.TicketID,
+                        ActionID = 9,
+                        ActionMessage = $"Ticket Title changed from {newticket!.TicketTitle} to {title} by {editorName}",
+                    };
+                    context.TicketHistory.Add(ticketHistory);
+                    await context.SaveChangesAsync();
+                }
+
+                // TicketHistory Status Creation
                 if(statusID != newticket!.StatusID)
                 {
                     int Action = 1;
@@ -511,6 +525,62 @@ namespace GoldenTicket.Utilities
                     };
                     context.TicketHistory.Add(ticketHistory);
                     await context.SaveChangesAsync();
+                }
+
+                // TicketHistory Priority Creation
+                if(priorityID != newticket!.PriorityID)
+                {
+                    var ticketHistory = new TicketHistory
+                    {
+                        TicketID = newticket.TicketID,
+                        ActionID = 9,
+                        ActionMessage = $"Ticket Title changed from {newticket!.TicketTitle} to {title} by {editorName}",
+                    };
+                    context.TicketHistory.Add(ticketHistory);
+                    await context.SaveChangesAsync();
+                }
+
+                // TicketHistory MainTag Creation
+                if(mainTagID != newticket!.MainTagID)
+                {
+                    var ticketHistory = new TicketHistory {TicketID = newticket.TicketID, ActionID = 10};
+                    ticketHistory.ActionMessage = (newticket!.MainTagID != null) ?
+                        $"Ticket Maintag changed from {newticket!.MainTag!.TagName} to {MainTag} by {editorName}" :
+                        $"Ticket Maintag changed to {MainTag} by {editorName}";
+                    context.TicketHistory.Add(ticketHistory);
+                    await context.SaveChangesAsync();
+                }
+
+                // TicketHistory SubTag Creation
+                if(subTagID != newticket!.SubTagID)
+                {
+                    var ticketHistory = new TicketHistory{ TicketID = newticket.TicketID, ActionID = 11 };
+                    ticketHistory.ActionMessage = (newticket!.SubTagID != null) ? 
+                        $"Ticket Subtag changed from {newticket!.SubTag!.TagName} to {SubTag} by {editorName}" : 
+                        $"Ticket Subtag changed to {SubTag} by {editorName}";
+                    context.TicketHistory.Add(ticketHistory);
+                    await context.SaveChangesAsync();
+                }
+                
+                // TicketHistory Assign Creation
+                if(assignedID != newticket!.AssignedID)
+                {
+                    if(newticket!.AssignedID == null)
+                    {
+                        var ticketHistory = new TicketHistory 
+                        {
+                            TicketID = newticket.TicketID,
+                            ActionID = 2,
+                            ActionMessage = $"Ticket Assigned to {context.Users.FirstOrDefault(u => u.UserID == assignedID)!.FirstName} by {editorName}",
+                        };
+                    } else {
+                        var ticketHistory = new TicketHistory 
+                        {
+                            TicketID = newticket.TicketID,
+                            ActionID = 3,
+                            ActionMessage = $"Ticket Re-Assigned From {context.Users.FirstOrDefault(u => u.UserID == newticket!.AssignedID)!.FirstName} to {context.Users.FirstOrDefault(u => u.UserID == assignedID)!.FirstName} by {editorName}",
+                        };
+                    }
                 }
                 
 

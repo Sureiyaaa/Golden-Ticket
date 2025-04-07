@@ -284,7 +284,7 @@ namespace GoldenTicket.Utilities
                     .Include(u => u.Role)
                     .Include(u => u.AssignedTags)
                         .ThenInclude(a => a.MainTag)
-                    .Where(user => user.Role!.RoleName == "Admin")
+                    .Where(user => user.Role!.RoleName == "Admin" && (user.UserID != 100000000 || user.UserID != 100000001))
                     .Select(user => new UserDTO(user)).ToList();
             }
         }
@@ -303,7 +303,7 @@ namespace GoldenTicket.Utilities
             int? priorityID = null;
 
             // Checks if a Chatroom already have an existing ticket
-            if(GetChatroom(ChatroomID)?.TicketID == null)
+            if(GetChatroom(ChatroomID)?.TicketID != null)
             {
                 Console.WriteLine($"[DBUtil] Chatroom {ChatroomID} already has an existing ticket.");
                 return null!;

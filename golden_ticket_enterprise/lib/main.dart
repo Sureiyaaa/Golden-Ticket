@@ -16,14 +16,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await _initializeHive();
 
-  final signalRService = SignalRService();
-
-  // Ensure SignalR disconnects when the page is refreshed
-  html.window.onBeforeUnload.listen((event) {
-    signalRService.stopConnection();
-  });
-
-  runApp(AppInitializer(signalRService: signalRService));
+  runApp(AppInitializer());
 }
 
 Future<void> _initializeHive() async {
@@ -42,13 +35,16 @@ Future<void> _initializeHive() async {
 }
 
 class AppInitializer extends StatelessWidget {
-  final SignalRService signalRService;
-  AppInitializer({required this.signalRService});
+  SignalRService signalRService = new SignalRService();
+  AppInitializer();
 
   @override
   Widget build(BuildContext context) {
-    final dataManager = DataManager(signalRService: signalRService);
+    DataManager dataManager = new DataManager(signalRService: signalRService);
 
+    html.window.onBeforeUnload.listen((event) {
+      signalRService.stopConnection();
+    });
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => dataManager),

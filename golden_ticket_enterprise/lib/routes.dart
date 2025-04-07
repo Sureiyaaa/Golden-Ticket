@@ -5,20 +5,133 @@ import 'package:golden_ticket_enterprise/screens/hub.dart';
 import 'package:golden_ticket_enterprise/screens/error.dart';
 import 'package:golden_ticket_enterprise/screens/login.dart';
 import 'package:golden_ticket_enterprise/screens/chatroom_page.dart';
+import 'package:golden_ticket_enterprise/subscreens/chatroom_list_page.dart';
+import 'package:golden_ticket_enterprise/subscreens/dashboard_page.dart';
+import 'package:golden_ticket_enterprise/subscreens/faq_page.dart';
+import 'package:golden_ticket_enterprise/subscreens/settings_page.dart';
+import 'package:golden_ticket_enterprise/subscreens/tickets_page.dart';
+import 'package:golden_ticket_enterprise/subscreens/user_management.dart';
 import 'package:hive/hive.dart';
 
 class AppRoutes {
   static GoRouter getRoutes() {
     return GoRouter(
-      initialLocation: Hive.box<HiveSession>('sessionBox').get('user') == null ? '/login' : '/hub',
+      initialLocation: Hive.box<HiveSession>('sessionBox').get('user') == null ? '/login' : '/hub/dashboard',
       routes: [
         GoRoute(path: '/login', builder: (context, state) => LoginPage()),
-        GoRoute(
-          path: '/hub',
-          redirect: (context, state) => Hive.box<HiveSession>('sessionBox').get('user') == null ? '/login' : null, // ✅ Redirect before building
-          builder: (context, state) {
+        StatefulShellRoute.indexedStack(
+          redirect: (context, state) => Hive.box<HiveSession>('sessionBox').get('user') == null ? '/login' : null,
+          builder: (context, state, navigationShell){
             var userSession = Hive.box<HiveSession>('sessionBox').get('user');
-            return HubPage(session: userSession);
+            return HubPage(session: userSession, child: navigationShell);
+          },
+          branches: <StatefulShellBranch>[
+            StatefulShellBranch(
+                routes: <RouteBase>[
+                  GoRoute(
+                    path: '/hub/dashboard',
+                    redirect: (context, state) => Hive.box<HiveSession>('sessionBox').get('user') == null ? '/login' : null, // ✅ Redirect before building
+                    name: "Dashboard",
+                    pageBuilder: (context, state){
+                      var userSession = Hive.box<HiveSession>('sessionBox').get('user');
+                      return NoTransitionPage(
+                          key: state.pageKey,
+                          child: DashboardPage(session: userSession)
+                      );
+                    },
+                  ),
+                ]
+            ),
+            StatefulShellBranch(
+                routes: <RouteBase>[
+                  GoRoute(
+                      path: '/hub/chatrooms',
+                      redirect: (context, state) => Hive.box<HiveSession>('sessionBox').get('user') == null ? '/login' : null, // ✅ Redirect before building
+                      name: "Chatrooms",
+                      pageBuilder: (context, state){
+                        var userSession = Hive.box<HiveSession>('sessionBox').get('user');
+                        return NoTransitionPage(
+                            key: state.pageKey,
+                            child: ChatroomListPage(session: userSession)
+                        );
+                      }
+                  ),
+                ]
+            ),
+            StatefulShellBranch(
+                routes: <RouteBase>[
+                  GoRoute(
+                      path: '/hub/tickets',
+                      redirect: (context, state) => Hive.box<HiveSession>('sessionBox').get('user') == null ? '/login' : null, // ✅ Redirect before building
+                      name: "Tickets",
+                      pageBuilder: (context, state){
+                        var userSession = Hive.box<HiveSession>('sessionBox').get('user');
+                        return NoTransitionPage(
+                            key: state.pageKey,
+                            child: TicketsPage(session: userSession)
+                        );
+                      }
+                  )
+                ]
+            ),
+            StatefulShellBranch(
+                routes: <RouteBase>[
+                  GoRoute(
+                      path: '/hub/faq',
+                      redirect: (context, state) => Hive.box<HiveSession>('sessionBox').get('user') == null ? '/login' : null, // ✅ Redirect before building
+                      name: "FAQ",
+                      pageBuilder: (context, state){
+                        var userSession = Hive.box<HiveSession>('sessionBox').get('user');
+                        return NoTransitionPage(
+                            key: state.pageKey,
+                            child: FAQPage(session: userSession)
+                        );
+                      }
+                  )
+                ]
+            ),
+            StatefulShellBranch(
+                routes: <RouteBase>[
+                  GoRoute(
+                      path: '/hub/usermanagement',
+                      redirect: (context, state) => Hive.box<HiveSession>('sessionBox').get('user') == null ? '/login' : null, // ✅ Redirect before building
+                      name: "User Management",
+                      pageBuilder: (context, state){
+                        var userSession = Hive.box<HiveSession>('sessionBox').get('user');
+                        return NoTransitionPage(
+                            key: state.pageKey,
+                            child: UserManagementPage(session: userSession)
+                        );
+                      }
+                  )
+                ]
+            ),
+            StatefulShellBranch(
+                routes: <RouteBase>[
+                  GoRoute(
+                      path: '/hub/settings',
+                      redirect: (context, state) => Hive.box<HiveSession>('sessionBox').get('user') == null ? '/login' : null, // ✅ Redirect before building
+                      name: "Settings",
+                      pageBuilder: (context, state){
+                        var userSession = Hive.box<HiveSession>('sessionBox').get('user');
+                        return NoTransitionPage(
+                            key: state.pageKey,
+                            child: SettingsPage(session: userSession)
+                        );
+                      }
+                  )
+                ]
+            )
+          ],
+        ),
+        GoRoute(
+          path: '/hub/chatroom/:chatroomID',
+          builder: (context, state) {
+            final chatroomID = int.tryParse(state.pathParameters['chatroomID']!);
+            if (chatroomID == null) {
+              return ErrorPage(errorMessage: 'Invalid chatroom ID');
+            }
+            return ChatroomPage(chatroomID: chatroomID);
           },
         ),
         GoRoute(
@@ -26,17 +139,6 @@ class AppRoutes {
           builder: (context, state) {
             final errorMessage = state.extra as String? ?? 'An unknown error occurred';
             return ErrorPage(errorMessage: errorMessage);
-          },
-        ),
-        GoRoute(
-          path: '/hub/chatroom/:chatroomID',
-          redirect: (context, state) => Hive.box<HiveSession>('sessionBox').get('user') == null ? '/login' : null, // ✅ Redirect before building
-          builder: (context, state) {
-            final chatroomID = int.tryParse(state.pathParameters['chatroomID']!);
-            if (chatroomID == null) {
-              return ErrorPage(errorMessage: 'Invalid chatroom ID');
-            }
-            return ChatroomPage(chatroomID: chatroomID);
           },
         ),
       ],

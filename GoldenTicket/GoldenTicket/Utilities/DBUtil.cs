@@ -41,8 +41,6 @@ namespace GoldenTicket.Utilities
         {
             using(var context = new ApplicationDbContext()){
                 var faq = context.Faq
-                    .Include(faq => faq.MainTag)
-                    .Include(faq => faq.SubTag)
                     .FirstOrDefault(faq => faq.FaqID == faqID);
                 if(faq == null)
                 {
@@ -101,7 +99,7 @@ namespace GoldenTicket.Utilities
         {
             using (var context = new ApplicationDbContext())
             {
-                var faq = GetFAQ(faqID);
+                var faq = context.Faq.FirstOrDefault(f => f.FaqID == faqID);
                 if (faq != null)
                 {
                     faq.Title = Title ?? faq.Title;
@@ -124,7 +122,6 @@ namespace GoldenTicket.Utilities
                     else faq.SubTagID = null;
 
                     faq.IsArchived = IsArchived;
-                    context.Faq.Attach(faq);
                     await context.SaveChangesAsync();
                     return faq;
                 } else

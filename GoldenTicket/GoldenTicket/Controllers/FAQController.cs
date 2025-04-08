@@ -11,15 +11,15 @@ namespace GoldenTicket.Controllers
     public class FAQController : Controller
     {
         [HttpGet("GetFAQs")]
-        public async Task<IActionResult> GetFAQs()
+        public IActionResult GetFAQs()
         {
-            using(var _context = new ApplicationDbContext())
+            using (var _context = new ApplicationDbContext())
             {
-                var faqs = await _context.Faq.ToListAsync();
-                if(faqs.Count == 0 )
-                    return NotFound(new {status = 404, message = "No FAQs found", errorType = "faq is empty" });
+                var faqs = DBUtil.GetFAQs();
+                if (faqs.Count == 0)
+                    return NotFound(new { status = 404, message = "No FAQs found", errorType = "faq is empty" });
 
-                return Ok(new {status= 200, message = "Retrieved successfully!", body = new {faqs}});
+                return Ok(new { status = 200, message = "Retrieved successfully!", body = new { faqs } });
             }
         }
         [HttpPost("AddFAQ")]

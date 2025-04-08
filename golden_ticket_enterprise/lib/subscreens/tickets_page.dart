@@ -178,7 +178,7 @@ class _TicketsPageState extends State<TicketsPage> {
                                   },
                                   onEditPressed: () {
                                     if(ticket.assigned != null){
-                                      if(ticket.assigned!.userID != widget.session!.user.userID){
+                                      if(ticket.assigned!.userID == widget.session!.user.userID){
                                         TopNotification.show(
                                             context: context,
                                             message: "This ticket is not assigned to you",

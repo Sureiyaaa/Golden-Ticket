@@ -111,7 +111,7 @@ namespace GoldenTicket.Hubs
                     if (_connections.TryGetValue(user.UserID, out var connectionIds)){
                         foreach (var connectionId in connectionIds)
                         {
-                            await Clients.Client(connectionId).SendAsync("UserUpdate", new {users = DBUtil.GetUsersByRole()});
+                            await Clients.Client(connectionId).SendAsync("UserUpdate", new {user = new UserDTO(newUser)});
                         }
                     }
                 }

@@ -490,14 +490,17 @@ namespace GoldenTicket.Utilities
             await context.SaveChangesAsync();
 
             // Creates Ticket History if there is an assignedID
-            var ticketHistory2 = new TicketHistory
+            if(AssignedID != 0)
             {
-                TicketID = newTicket.TicketID,
-                ActionID = 1,
-                ActionMessage = "Ticket Created",
-            };
-            context.TicketHistory.Add(ticketHistory2);
-            await context.SaveChangesAsync();
+                var ticketHistory2 = new TicketHistory
+                {
+                    TicketID = newTicket.TicketID,
+                    ActionID = 2,
+                    ActionMessage = $"Ticket is automatically assigned to {newTicket.Assigned!.FirstName} by Golden AI",
+                };
+                context.TicketHistory.Add(ticketHistory2);
+                await context.SaveChangesAsync();
+            }
 
             // Updates the Chatroom with the TicketID
             var chatroom = GetChatroom(ChatroomID);

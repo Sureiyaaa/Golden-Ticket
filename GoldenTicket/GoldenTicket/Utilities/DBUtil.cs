@@ -1029,6 +1029,7 @@ namespace GoldenTicket.Utilities
                         .ThenInclude(s => s!.Role)
                     .Include(m => m.Sender)
                         .ThenInclude(s => s!.AssignedTags)
+                            .ThenInclude(t => t!.MainTag)
                     .FirstOrDefault(m => m.MessageID == MessageID);
             }
         }

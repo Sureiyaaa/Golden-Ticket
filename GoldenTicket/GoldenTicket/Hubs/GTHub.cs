@@ -60,6 +60,18 @@ namespace GoldenTicket.Hubs
                 priorities = DBUtil.GetPriorities()
             });
         }
+        // public async Task AssignAvailableStaff(string MainTagName)
+        // {
+        //     if(MainTagName != "null" || MainTagName != null)
+        //     {
+        //         var adminUser = DBUtil.GetAdminUsers();
+        //         foreach(var user in adminUser){
+        //             if(user.Role == "Admin" || user.Role == "Staff"){
+
+        //             }
+        //         }
+        //     }
+        // }
         #endregion
 
         #region User
@@ -83,9 +95,9 @@ namespace GoldenTicket.Hubs
                 }
             }
         }
-        public async Task AddUser(string Username, string Password, string FirstName, string? MiddleName, string LastName, int RoleID)
+        public async Task AddUser(string Username, string Password, string FirstName, string? MiddleName, string LastName, int RoleID, List<string?> AssignedTags)
         {
-            var newUser = await DBUtil.AddUser(Username, Password, FirstName, MiddleName, LastName, RoleID);
+            var newUser = await DBUtil.AddUser(Username, Password, FirstName, MiddleName, LastName, RoleID, AssignedTags);
             if(newUser == null)
             {
                 await Clients.Caller.SendAsync("UserExist");

@@ -60,32 +60,46 @@ namespace GoldenTicket.Hubs
                 priorities = DBUtil.GetPriorities()
             });
         }
+        // public async Task AssignAvailableStaff(string MainTagName)
+        // {
+        //     if(MainTagName != "null" || MainTagName != null)
+        //     {
+        //         var adminUser = DBUtil.GetAdminUsers();
+        //         foreach(var user in adminUser){
+        //             if(user.Role == "Admin" || user.Role == "Staff"){
+
+        //             }
+        //         }
+        //     }
+        // }
         #endregion
 
         #region User
-        public async Task UpdateUser(int _userID, string? _username, string? _firstname, string? _middlename, string? _lastname, int? _roleID, List<string> _assignedTags, string Password)
+        public async Task UpdateUser(int _userID, string? _username, string? _firstname, string? _middlename, string? _lastname, string? _role, List<string?> _assignedTags, string? Password)
         {
-            await DBUtil.UpdateUser(_userID, _username, _firstname, _middlename, _lastname, _roleID, _assignedTags);
-            if (string.IsNullOrEmpty(Password) == false)
+            var updatedUser = await DBUtil.UpdateUser(_userID, _username, _firstname, _middlename, _lastname, _role, _assignedTags);
+            if(updatedUser != null)
             {
-                await DBUtil.ChangePassword(_userID, Password);
-            }
+                if (Password != null && Password != ""){
+                    await DBUtil.ChangePassword(_userID, Password);
+                }
 
-            var adminUser = DBUtil.GetAdminUsers();
-            foreach(var user in adminUser){
-                if(user.Role == "Admin" || user.Role == "Staff" || user.UserID == _userID){
-                    if (_connections.TryGetValue(user.UserID, out var connectionIds)){
-                        foreach (var connectionId in connectionIds)
-                        {
-                            await Clients.Client(connectionId).SendAsync("UserUpdate", new {users = DBUtil.GetUsersByRole()});
+                var adminUser = DBUtil.GetAdminUsers();
+                foreach(var user in adminUser) {
+                    if(user.Role == "Admin" || user.Role == "Staff" || user.UserID == _userID){
+                        if (_connections.TryGetValue(user.UserID, out var connectionIds)){
+                            foreach (var connectionId in connectionIds)
+                            {
+                                await Clients.Client(connectionId).SendAsync("UserUpdate", new {user = new UserDTO(updatedUser)});
+                            }
                         }
                     }
                 }
             }
         }
-        public async Task AddUser(string Username, string Password, string FirstName, string? MiddleName, string LastName, int RoleID)
+        public async Task AddUser(string Username, string Password, string FirstName, string? MiddleName, string LastName, string Role, List<string?> AssignedTags)
         {
-            var newUser = await DBUtil.AddUser(Username, Password, FirstName, MiddleName, LastName, RoleID);
+            var newUser = await DBUtil.AddUser(Username, Password, FirstName, MiddleName, LastName, Role, AssignedTags);
             if(newUser == null)
             {
                 await Clients.Caller.SendAsync("UserExist");
@@ -97,7 +111,7 @@ namespace GoldenTicket.Hubs
                     if (_connections.TryGetValue(user.UserID, out var connectionIds)){
                         foreach (var connectionId in connectionIds)
                         {
-                            await Clients.Client(connectionId).SendAsync("UserUpdate", new {users = DBUtil.GetUsersByRole()});
+                            await Clients.Client(connectionId).SendAsync("UserUpdate", new {user = new UserDTO(newUser)});
                         }
                     }
                 }

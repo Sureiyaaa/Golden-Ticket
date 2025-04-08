@@ -269,7 +269,7 @@ namespace GoldenTicket.Utilities
                     .Include(u => u.Role)
                     .Include(m => m.AssignedTags)
                         .ThenInclude(a => a.MainTag)
-                    .Where(u => u.UserID != 100000000 || u.UserID != 100000001)
+                    .Where(u => u.UserID != 100000001)
                     .ToList()
                     .Select(user => new UserDTO(user)).ToList();
 
@@ -284,13 +284,13 @@ namespace GoldenTicket.Utilities
                     .Include(u => u.Role)
                     .Include(u => u.AssignedTags)
                         .ThenInclude(a => a.MainTag)
-                    .Where(user => user.Role!.RoleName == "Admin" && (user.UserID != 100000000 || user.UserID != 100000001))
+                    .Where(user => (user.Role!.RoleName == "Admin" || user.Role!.RoleName == "Staff") && user.UserID != 100000001)
                     .Select(user => new UserDTO(user)).ToList();
             }
         }
         #endregion
         #region -   UpdateUser
-        public async static Task<User?> UpdateUser(int _userID, string? _username, string? _firstname, string? _middlename, string? _lastname, int? _roleID, List<string> _assignedTags) {
+        public async static Task<User?> UpdateUser(int _userID, string? _username, string? _firstname, string? _middlename, string? _lastname, string? _role, List<string?> _assignedTags) {
             using(var context = new ApplicationDbContext()){
                 var user = context.Users
                     .Include(u => u.Role)
@@ -300,12 +300,14 @@ namespace GoldenTicket.Utilities
 
                 if(user != null)
                 {
+                    var roleID = context.Roles.FirstOrDefault(role => role.RoleName == _role);
+
                     // My eye hurts
                     user.Username = _username ?? user.Username;
                     user.FirstName = _firstname ?? user.FirstName;
                     user.MiddleName = _middlename ?? user.MiddleName;
                     user.LastName = _lastname ?? user.LastName;
-                    user.RoleID = _roleID ?? user.RoleID;
+                    user.RoleID = roleID!.RoleID;
                     if(_assignedTags != null) 
                     {
                         // Emptys User's assignedTags so that database dont go crazy
@@ -323,6 +325,15 @@ namespace GoldenTicket.Utilities
                             UserID = _userID,
                             MainTag = context.MainTag.FirstOrDefault(tag => tag.TagName == tagName)
                         }).ToList();
+                    } else {
+                        // Emptys User's assignedTags so that database dont go crazy
+                        user.AssignedTags = [];
+                        await context.SaveChangesAsync();
+
+                        // Removes existing AssignedTags of UserID
+                        var existingTags = context.AssignedTags.Where(tag => tag.UserID == _userID).ToList();
+                        context.AssignedTags.RemoveRange(existingTags);
+                        await context.SaveChangesAsync();
                     }
                 } 
                 else 
@@ -353,7 +364,7 @@ namespace GoldenTicket.Utilities
         }
         #endregion
         #region -   AddUser
-        public async static Task<User?> AddUser(string Username, string Password, string FirstName, string? MiddleName, string LastName, int RoleID)
+        public async static Task<User?> AddUser(string Username, string Password, string FirstName, string? MiddleName, string LastName, string Role, List<string?> AssignedTags)
         {
             using(var context = new ApplicationDbContext()) 
             {
@@ -362,6 +373,7 @@ namespace GoldenTicket.Utilities
                     Console.WriteLine($"[DBUtil] User {Username} already exists.");
                     return null;
                 }
+                var roleID = context.Roles.FirstOrDefault(role => role.RoleName == Role);
 
                 var HashedPassword = AuthUtils.HashPassword(Password, out string salt);
                 var NewUser = new User
@@ -371,9 +383,19 @@ namespace GoldenTicket.Utilities
                     FirstName = FirstName,
                     MiddleName = MiddleName ?? "",
                     LastName = LastName,
-                    RoleID = RoleID
+                    RoleID = roleID!.RoleID,
                 };
                 context.Add(NewUser);
+                await context.SaveChangesAsync();
+
+                if(AssignedTags != null)
+                {
+                    NewUser.AssignedTags = AssignedTags.Select(tagName => new AssignedTag
+                    {
+                        UserID = NewUser.UserID,
+                        MainTag = context.MainTag.FirstOrDefault(tag => tag.TagName == tagName)
+                    }).ToList();
+                }
                 await context.SaveChangesAsync();
                 return NewUser;
             }

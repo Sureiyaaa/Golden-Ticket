@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
+import 'package:golden_ticket_enterprise/widgets/notification_widget.dart';
 import 'package:provider/provider.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
 import 'package:golden_ticket_enterprise/entities/main_tag.dart';
@@ -47,11 +48,15 @@ class _SettingsPageState extends State<SettingsPage> {
     return Consumer<DataManager>(
       builder: (context, dataManager, child) {
         dataManager.signalRService.onExistingTag = () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text("The tag you added already exists!"),
-              backgroundColor: Colors.red,
-            ),
+          TopNotification.show(
+              context: context,
+              message: "The tag that you're trying to add is already existing!",
+              backgroundColor: Colors.redAccent,
+              duration: Duration(seconds: 2),
+              textColor: Colors.white,
+              onTap: () {
+                TopNotification.dismiss();
+              }
           );
         };
 

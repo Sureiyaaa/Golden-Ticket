@@ -75,9 +75,9 @@ namespace GoldenTicket.Hubs
         #endregion
 
         #region User
-        public async Task UpdateUser(int _userID, string? _username, string? _firstname, string? _middlename, string? _lastname, int? _roleID, List<string?> _assignedTags, string? Password)
+        public async Task UpdateUser(int _userID, string? _username, string? _firstname, string? _middlename, string? _lastname, string? _role, List<string?> _assignedTags, string? Password)
         {
-            await DBUtil.UpdateUser(_userID, _username, _firstname, _middlename, _lastname, _roleID, _assignedTags);
+            await DBUtil.UpdateUser(_userID, _username, _firstname, _middlename, _lastname, _role, _assignedTags);
             if (string.IsNullOrEmpty(Password) == false)
             {
                 await DBUtil.ChangePassword(_userID, Password);
@@ -95,9 +95,9 @@ namespace GoldenTicket.Hubs
                 }
             }
         }
-        public async Task AddUser(string Username, string Password, string FirstName, string? MiddleName, string LastName, int RoleID, List<string?> AssignedTags)
+        public async Task AddUser(string Username, string Password, string FirstName, string? MiddleName, string LastName, string Role, List<string?> AssignedTags)
         {
-            var newUser = await DBUtil.AddUser(Username, Password, FirstName, MiddleName, LastName, RoleID, AssignedTags);
+            var newUser = await DBUtil.AddUser(Username, Password, FirstName, MiddleName, LastName, Role, AssignedTags);
             if(newUser == null)
             {
                 await Clients.Caller.SendAsync("UserExist");

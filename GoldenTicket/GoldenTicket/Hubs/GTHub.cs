@@ -78,17 +78,20 @@ namespace GoldenTicket.Hubs
         public async Task UpdateUser(int _userID, string? _username, string? _firstname, string? _middlename, string? _lastname, string? _role, List<string?> _assignedTags, string? Password)
         {
             var updatedUser = await DBUtil.UpdateUser(_userID, _username, _firstname, _middlename, _lastname, _role, _assignedTags);
-            if (Password != null && Password != ""){
-                await DBUtil.ChangePassword(_userID, Password);
-            }
+            if(updatedUser != null)
+            {
+                if (Password != null && Password != ""){
+                    await DBUtil.ChangePassword(_userID, Password);
+                }
 
-            var adminUser = DBUtil.GetAdminUsers();
-            foreach(var user in adminUser) {
-                if(user.Role == "Admin" || user.Role == "Staff" || user.UserID == _userID){
-                    if (_connections.TryGetValue(user.UserID, out var connectionIds)){
-                        foreach (var connectionId in connectionIds)
-                        {
-                            await Clients.Client(connectionId).SendAsync("UserUpdate", new {user = updatedUser});
+                var adminUser = DBUtil.GetAdminUsers();
+                foreach(var user in adminUser) {
+                    if(user.Role == "Admin" || user.Role == "Staff" || user.UserID == _userID){
+                        if (_connections.TryGetValue(user.UserID, out var connectionIds)){
+                            foreach (var connectionId in connectionIds)
+                            {
+                                await Clients.Client(connectionId).SendAsync("UserUpdate", new {user = new UserDTO(updatedUser)});
+                            }
                         }
                     }
                 }

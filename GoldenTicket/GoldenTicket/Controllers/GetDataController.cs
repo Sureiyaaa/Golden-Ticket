@@ -36,5 +36,25 @@ namespace GoldenTicket.Controllers
                 return BadRequest(new {status = 400, message = "Invalid request, check your body format.", errorType = "invalid" });
             }
         }
+        [HttpPost("GetRelevantFAQs")]
+        public IActionResult RevelavantFAQs([FromBody] RevelavantFAQ userInput)
+        {
+            try
+            {
+                Console.WriteLine(userInput.Message);
+                var faqs = AIUtil.GetRelevantFAQs(userInput.Message);
+                return Ok(new {status = 200, message = "FAQs received successfully", body = faqs});
+            }
+            catch (Exception err)
+            {
+                Console.WriteLine(err);
+                return BadRequest(new {status = 400, message = "Invalid request", errorType = "invalid"});
+            }
+        }
+
+        public class RevelavantFAQ
+        {
+            public required string Message { get; set; }
+        }
     }
 }

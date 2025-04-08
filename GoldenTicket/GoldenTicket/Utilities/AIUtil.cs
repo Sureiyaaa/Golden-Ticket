@@ -58,7 +58,7 @@ namespace GoldenTicket.Utilities
             if (_message == null || _promptType == null || _id == null)
                 return "";
 
-            string additional = _additional + FAQData(100000002) ?? "";
+            string additional = _additional + FAQData(100000002, "MaxHub Request Noah Printer") ?? "";
             string requestPrompt = _promptService.GetPrompt(_promptType, additional);
             string aiResponse = await _openAIService.GetAIResponse(_id, _message, requestPrompt);
 
@@ -81,7 +81,7 @@ namespace GoldenTicket.Utilities
                     return AIResponse.Unavailable();
                 }
                     
-                string additional = _additional + FAQData(_userID) ?? "";
+                string additional = _additional + FAQData(_userID, _message) ?? "";
                 string requestPrompt = _promptService.GetPrompt(_promptType, additional);
 
                 string aiResponse = await _openAIService.GetAIResponse(_id, _message, requestPrompt);
@@ -113,7 +113,7 @@ namespace GoldenTicket.Utilities
             }
         }
 
-        private static string FAQData(int _userID = 0)
+        private static string FAQData(int _userID = 0, string _message = "MaxHub Request Noah Printer")
         {
             string userName = "Not provided yet";
             string tagList = "";
@@ -135,7 +135,7 @@ namespace GoldenTicket.Utilities
                 }
             }
 
-            var faqData = DBUtil.GetFAQs().Where(f => !f.IsArchived).ToList();
+            var faqData = GetRelevantFAQs(_message)!.ToList();
             foreach (var faq in faqData)
             {
                 faqList += $"FAQ: {faq.Title}\nDescription: {faq.Description}\nSolution: {faq.Solution}\nMainTag: {faq.MainTag!.MainTagName}\n>{faq.SubTag!.SubTagName}\n\n";

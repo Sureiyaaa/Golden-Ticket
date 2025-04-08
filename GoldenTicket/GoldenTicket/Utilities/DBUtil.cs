@@ -300,16 +300,30 @@ namespace GoldenTicket.Utilities
 
                 if(user != null)
                 {
+                    // My eye hurts
                     user.Username = _username ?? user.Username;
                     user.FirstName = _firstname ?? user.FirstName;
                     user.MiddleName = _middlename ?? user.MiddleName;
                     user.LastName = _lastname ?? user.LastName;
                     user.RoleID = _roleID ?? user.RoleID;
-                    user.AssignedTags = _assignedTags.Select(tagName => new AssignedTag
+                    if(_assignedTags != null) 
                     {
-                        UserID = _userID,
-                        MainTag = context.MainTag.FirstOrDefault(tag => tag.TagName == tagName)
-                    }).ToList();
+                        // Emptys User's assignedTags so that database dont go crazy
+                        user.AssignedTags = [];
+                        await context.SaveChangesAsync();
+
+                        // Removes existing AssignedTags of UserID
+                        var existingTags = context.AssignedTags.Where(tag => tag.UserID == _userID).ToList();
+                        context.AssignedTags.RemoveRange(existingTags);
+                        await context.SaveChangesAsync();
+
+                        // Adds new AssignedTags to UserID
+                        user.AssignedTags = _assignedTags.Select(tagName => new AssignedTag
+                        {
+                            UserID = _userID,
+                            MainTag = context.MainTag.FirstOrDefault(tag => tag.TagName == tagName)
+                        }).ToList();
+                    }
                 } 
                 else 
                 {

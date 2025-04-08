@@ -42,9 +42,9 @@ class AppInitializer extends StatelessWidget {
   Widget build(BuildContext context) {
     DataManager dataManager = new DataManager(signalRService: signalRService);
 
-    html.window.onBeforeUnload.listen((event) {
-      signalRService.stopConnection();
-    });
+    // html.window.onBeforeUnload.listen((event) {
+    //   signalRService.stopConnection();
+    // });
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => dataManager),

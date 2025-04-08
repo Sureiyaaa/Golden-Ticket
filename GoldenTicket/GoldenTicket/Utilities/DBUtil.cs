@@ -269,7 +269,7 @@ namespace GoldenTicket.Utilities
                     .Include(u => u.Role)
                     .Include(m => m.AssignedTags)
                         .ThenInclude(a => a.MainTag)
-                    .Where(u => u.UserID != 100000000 || u.UserID != 100000001)
+                    .Where(u => u.UserID != 100000001)
                     .ToList()
                     .Select(user => new UserDTO(user)).ToList();
 
@@ -284,7 +284,7 @@ namespace GoldenTicket.Utilities
                     .Include(u => u.Role)
                     .Include(u => u.AssignedTags)
                         .ThenInclude(a => a.MainTag)
-                    .Where(user => (user.Role!.RoleName == "Admin" || user.Role!.RoleName == "Staff") && (user.UserID != 100000000 || user.UserID != 100000001))
+                    .Where(user => (user.Role!.RoleName == "Admin" || user.Role!.RoleName == "Staff") && user.UserID != 100000001)
                     .Select(user => new UserDTO(user)).ToList();
             }
         }

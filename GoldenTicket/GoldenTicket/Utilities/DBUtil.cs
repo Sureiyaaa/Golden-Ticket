@@ -270,7 +270,6 @@ namespace GoldenTicket.Utilities
                     .Include(m => m.AssignedTags)
                         .ThenInclude(a => a.MainTag)
                     .Where(u => u.UserID != 100000001)
-                    .ToList()
                     .Select(user => new UserDTO(user)).ToList();
 
                 return users;
@@ -408,7 +407,7 @@ namespace GoldenTicket.Utilities
 
 
         #region -   AddTicket
-        public async static Task<Tickets> AddTicket(string TicketTitle, int AuthorID, string MainTagName, string SubTagName, string Priority, int ChatroomID)
+        public async static Task<Tickets> AddTicket(string TicketTitle, int AuthorID, string MainTagName, string SubTagName, string Priority, int ChatroomID, int? AssignedID = 0)
         {
             int? mainTagID = null;
             int? subTagID = null;
@@ -455,8 +454,13 @@ namespace GoldenTicket.Utilities
             {
                 TicketTitle = TicketTitle,
                 AuthorID = AuthorID,
-                StatusID = 1
+                StatusID = 1,
             };
+            if (AssignedID != 0)
+            {
+                newTicket.StatusID = 2;
+                newTicket.AssignedID = AssignedID;
+            }
 
             // Only assign MainTagID, SubTagID, and PriorityID if they are not null
             if (mainTagID.HasValue)
@@ -483,6 +487,16 @@ namespace GoldenTicket.Utilities
                 ActionMessage = "Ticket Created",
             };
             context.TicketHistory.Add(ticketHistory);
+            await context.SaveChangesAsync();
+
+            // Creates Ticket History if there is an assignedID
+            var ticketHistory2 = new TicketHistory
+            {
+                TicketID = newTicket.TicketID,
+                ActionID = 1,
+                ActionMessage = "Ticket Created",
+            };
+            context.TicketHistory.Add(ticketHistory2);
             await context.SaveChangesAsync();
 
             // Updates the Chatroom with the TicketID

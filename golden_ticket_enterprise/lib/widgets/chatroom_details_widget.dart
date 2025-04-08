@@ -68,8 +68,8 @@ class ChatroomDetailsDrawer extends StatelessWidget {
           ExpansionTile(
             leading: const Icon(Icons.people),
             title: const Text("Members"),
-            subtitle: Text("${chatroom.groupMembers.length} members"),
-            children: chatroom.groupMembers.map((member) {
+            subtitle: Text("${chatroom.groupMembers!.length} members"),
+            children: chatroom.groupMembers!.map((member) {
               return ListTile(
                 leading: const Icon(Icons.person),
                 title: Text("${member.member!.firstName} ${member.member!.lastName}"),

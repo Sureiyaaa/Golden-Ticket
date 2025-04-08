@@ -289,6 +289,82 @@ namespace GoldenTicket.Utilities
             }
         }
         #endregion
+        #region -   UpdateUser
+        public async static Task<User?> UpdateUser(int _userID, string? _username, string? _firstname, string? _middlename, string? _lastname, int? _roleID, List<string> _assignedTags) {
+            using(var context = new ApplicationDbContext()){
+                var user = context.Users
+                    .Include(u => u.Role)
+                    .Include(u => u.AssignedTags)
+                        .ThenInclude(a => a.MainTag)
+                    .FirstOrDefault(user => user.UserID == _userID);
+
+                if(user != null)
+                {
+                    user.Username = _username ?? user.Username;
+                    user.FirstName = _firstname ?? user.FirstName;
+                    user.MiddleName = _middlename ?? user.MiddleName;
+                    user.LastName = _lastname ?? user.LastName;
+                    user.RoleID = _roleID ?? user.RoleID;
+                    user.AssignedTags = _assignedTags.Select(tagName => new AssignedTag
+                    {
+                        UserID = _userID,
+                        MainTag = context.MainTag.FirstOrDefault(tag => tag.TagName == tagName)
+                    }).ToList();
+                } 
+                else 
+                {
+                    Console.WriteLine($"[DBUtil] UserID {_userID} not found");
+                }
+                await context.SaveChangesAsync();
+                return user;
+            }
+        }
+        #endregion
+        #region -   ChangePassword
+        public async static Task ChangePassword(int _userID, string _newPassword)
+        {
+            using(var context = new ApplicationDbContext())
+            {
+                var user = context.Users
+                    .Include(u => u.Role)
+                    .Include(u => u.AssignedTags)
+                        .ThenInclude(a => a.MainTag)
+                    .FirstOrDefault(user => user.UserID == _userID);
+                if(user != null) {
+                    var HashedPassword = AuthUtils.HashPassword(_newPassword, out string salt);
+                    user.Password = $"{salt}:{HashedPassword}";
+                    await context.SaveChangesAsync();
+                }
+            }
+        }
+        #endregion
+        #region -   AddUser
+        public async static Task<User?> AddUser(string Username, string Password, string FirstName, string? MiddleName, string LastName, int RoleID)
+        {
+            using(var context = new ApplicationDbContext()) 
+            {
+                if(context.Users.FirstOrDefault(user => user.Username == Username) != null)
+                {
+                    Console.WriteLine($"[DBUtil] User {Username} already exists.");
+                    return null;
+                }
+
+                var HashedPassword = AuthUtils.HashPassword(Password, out string salt);
+                var NewUser = new User
+                {
+                    Username = Username,
+                    Password = $"{salt}:{HashedPassword}",
+                    FirstName = FirstName,
+                    MiddleName = MiddleName ?? "",
+                    LastName = LastName,
+                    RoleID = RoleID
+                };
+                context.Add(NewUser);
+                await context.SaveChangesAsync();
+                return NewUser;
+            }
+        }
+        #endregion
         #endregion
         #region Ticket
 

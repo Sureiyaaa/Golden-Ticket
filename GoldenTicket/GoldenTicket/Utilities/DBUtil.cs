@@ -290,7 +290,7 @@ namespace GoldenTicket.Utilities
         }
         #endregion
         #region -   UpdateUser
-        public async static Task<User?> UpdateUser(int _userID, string? _username, string? _firstname, string? _middlename, string? _lastname, int? _roleID, List<string> _assignedTags) {
+        public async static Task<User?> UpdateUser(int _userID, string? _username, string? _firstname, string? _middlename, string? _lastname, int? _roleID, List<string?> _assignedTags) {
             using(var context = new ApplicationDbContext()){
                 var user = context.Users
                     .Include(u => u.Role)
@@ -323,6 +323,15 @@ namespace GoldenTicket.Utilities
                             UserID = _userID,
                             MainTag = context.MainTag.FirstOrDefault(tag => tag.TagName == tagName)
                         }).ToList();
+                    } else {
+                        // Emptys User's assignedTags so that database dont go crazy
+                        user.AssignedTags = [];
+                        await context.SaveChangesAsync();
+
+                        // Removes existing AssignedTags of UserID
+                        var existingTags = context.AssignedTags.Where(tag => tag.UserID == _userID).ToList();
+                        context.AssignedTags.RemoveRange(existingTags);
+                        await context.SaveChangesAsync();
                     }
                 } 
                 else 

@@ -63,7 +63,7 @@ namespace GoldenTicket.Hubs
         #endregion
 
         #region User
-        public async Task UpdateUser(int _userID, string? _username, string? _firstname, string? _middlename, string? _lastname, int? _roleID, List<string> _assignedTags, string Password)
+        public async Task UpdateUser(int _userID, string? _username, string? _firstname, string? _middlename, string? _lastname, int? _roleID, List<string?> _assignedTags, string? Password)
         {
             await DBUtil.UpdateUser(_userID, _username, _firstname, _middlename, _lastname, _roleID, _assignedTags);
             if (string.IsNullOrEmpty(Password) == false)

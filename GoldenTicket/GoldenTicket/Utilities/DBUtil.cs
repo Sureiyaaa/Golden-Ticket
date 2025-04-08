@@ -284,7 +284,7 @@ namespace GoldenTicket.Utilities
                     .Include(u => u.Role)
                     .Include(u => u.AssignedTags)
                         .ThenInclude(a => a.MainTag)
-                    .Where(user => user.Role!.RoleName == "Admin" && (user.UserID != 100000000 || user.UserID != 100000001))
+                    .Where(user => (user.Role!.RoleName == "Admin" || user.Role!.RoleName == "Staff") && (user.UserID != 100000000 || user.UserID != 100000001))
                     .Select(user => new UserDTO(user)).ToList();
             }
         }
@@ -362,7 +362,7 @@ namespace GoldenTicket.Utilities
         }
         #endregion
         #region -   AddUser
-        public async static Task<User?> AddUser(string Username, string Password, string FirstName, string? MiddleName, string LastName, int RoleID)
+        public async static Task<User?> AddUser(string Username, string Password, string FirstName, string? MiddleName, string LastName, int RoleID, List<string?> AssignedTags)
         {
             using(var context = new ApplicationDbContext()) 
             {
@@ -380,9 +380,19 @@ namespace GoldenTicket.Utilities
                     FirstName = FirstName,
                     MiddleName = MiddleName ?? "",
                     LastName = LastName,
-                    RoleID = RoleID
+                    RoleID = RoleID,
                 };
                 context.Add(NewUser);
+                await context.SaveChangesAsync();
+
+                if(AssignedTags != null)
+                {
+                    NewUser.AssignedTags = AssignedTags.Select(tagName => new AssignedTag
+                    {
+                        UserID = NewUser.UserID,
+                        MainTag = context.MainTag.FirstOrDefault(tag => tag.TagName == tagName)
+                    }).ToList();
+                }
                 await context.SaveChangesAsync();
                 return NewUser;
             }

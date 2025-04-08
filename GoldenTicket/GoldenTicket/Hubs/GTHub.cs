@@ -78,8 +78,7 @@ namespace GoldenTicket.Hubs
         public async Task UpdateUser(int _userID, string? _username, string? _firstname, string? _middlename, string? _lastname, string? _role, List<string?> _assignedTags, string? Password)
         {
             await DBUtil.UpdateUser(_userID, _username, _firstname, _middlename, _lastname, _role, _assignedTags);
-            if (string.IsNullOrEmpty(Password) == false)
-            {
+            if (Password != null && Password != ""){
                 await DBUtil.ChangePassword(_userID, Password);
             }
 

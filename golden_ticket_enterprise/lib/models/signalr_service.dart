@@ -7,7 +7,6 @@ import 'package:golden_ticket_enterprise/entities/message.dart';
 import 'package:golden_ticket_enterprise/entities/ticket.dart';
 import 'package:golden_ticket_enterprise/entities/user.dart' as UserDTO;
 import 'package:golden_ticket_enterprise/models/hive_session.dart' as UserSession;
-import 'package:golden_ticket_enterprise/models/user.dart';
 import 'package:golden_ticket_enterprise/secret.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:logger/logger.dart';
@@ -29,6 +28,7 @@ class SignalRService with ChangeNotifier {
   Function(Ticket)? onTicketUpdate;
   Function(List<UserDTO.User>)? onUsersUpdate;
   Function(UserDTO.User)? onUserUpdate;
+  Function()? onNotificationReceive;
   Function(Chatroom)? onReceiveSupport;
   Function(List<String>)? onStatusUpdate;
   Function(int, int)? onSeenUpdate;
@@ -37,6 +37,8 @@ class SignalRService with ChangeNotifier {
   Function()? onMaximumChatroom;
   Function()? onExistingTag;
   Function()? onAlreadyMember;
+  Function()? onRegistrationError;
+
   ConnectionType _connectionState = ConnectionType.disconnected;
   ConnectionType get connectionState => _connectionState;
 
@@ -178,6 +180,23 @@ class SignalRService with ChangeNotifier {
     }
   }
 
+  void updateUser(int userID, String? username, String? password, String? firstName, String? middleName, String? lastName, String? role, List<String?> assignedTags){
+      try{
+      _hubConnection!.invoke('UpdateUser', args: [userID, username, firstName, middleName, lastName, role, assignedTags, password]);
+    }catch(err){
+      logger.e("There was an error caught while saving tag:", error: err.toString());
+    }
+  }
+
+  void addUser(String username, String password, String firstName, String? middleName, String lastName, String role, List<String> assignedTags){
+    try{
+      _hubConnection!.invoke('AddUser', args: [username, password, firstName, middleName,lastName, role, assignedTags]);
+    }catch(err){
+      logger.e("There was an error caught while saving tag:", error: err.toString());
+    }
+  }
+
+
   void reopenChatroom(int userID, int chatroomID){
     try{
       _hubConnection!.invoke('ReopenChatroom', args: [userID, chatroomID]);
@@ -215,6 +234,11 @@ class SignalRService with ChangeNotifier {
 
     _hubConnection!.on('ExistingTag', (arguments){
       onExistingTag?.call();
+      notifyListeners();
+    });
+
+    _hubConnection!.on('UserExist', (arguments){
+      onRegistrationError?.call();
       notifyListeners();
     });
 
@@ -260,7 +284,6 @@ class SignalRService with ChangeNotifier {
     });
     _hubConnection!.on('TicketClosed', (arguments) {
       if(arguments != null){
-
         notifyListeners();
       }
     });
@@ -311,13 +334,29 @@ class SignalRService with ChangeNotifier {
         onTagUpdate?.call(updatedTags);
       }
     });
+
     _hubConnection!.on('UserUpdate', (arguments){
-
       if(arguments != null) {
-        onUserUpdate?.call(UserDTO.User.fromJson(arguments[0]['user']));
-      }
 
+        UserDTO.User user = UserDTO.User.fromJson(arguments[0]['user']);
+        onUserUpdate?.call(user);
+
+
+        var userSession = Hive.box<UserSession.HiveSession>('sessionBox').get('user')!.user;
+
+        if(user.userID == userSession.userID){
+          userSession.username = user.username;
+          userSession.firstName = user.firstName;
+          userSession.middleName = user.middleName ?? "";
+          userSession.lastName = user.lastName;
+          userSession.role = user.role;
+        }
+
+        notifyListeners();
+      }
     });
+
+
 
     _hubConnection!.on('Online', (arguments) {
       logger.i("🔔 SignalR Event: Online Received!");
@@ -390,6 +429,7 @@ class SignalRService with ChangeNotifier {
     if (!_shouldReconnect || _connectionState == ConnectionType.connected) return;
 
     _retryCount++;
+    if(_retryCount > 3) _shouldReconnect = false;
     int delay = (5 * _retryCount).clamp(5, 30); // Delay increases but max 30 sec
     logger.i("🕐 Retrying in $delay seconds... (Attempt: $_retryCount)");
 

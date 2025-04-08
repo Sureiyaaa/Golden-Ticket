@@ -11,7 +11,7 @@ class Chatroom {
   Ticket? ticket;
   List<Message>? messages = [];
   LastMessage? lastMessage;
-  List<GroupMember> groupMembers;
+  List<GroupMember>? groupMembers;
   DateTime createdAt;
   bool isClosed;
   Chatroom({required this.chatroomID, required this.chatroomName, required this.isClosed, required this.author, this.ticket, required this.createdAt, required this.messages, required this.groupMembers, required this.lastMessage});

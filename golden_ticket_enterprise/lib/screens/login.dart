@@ -6,9 +6,10 @@ import 'package:golden_ticket_enterprise/models/hive_session.dart';
 import 'package:golden_ticket_enterprise/secret.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:golden_ticket_enterprise/models/http_request.dart' as http;
+import 'package:golden_ticket_enterprise/widgets/notification_widget.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:logger/logger.dart';
-import 'package:provider/provider.dart';
+
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -43,8 +44,16 @@ class _LoginPage extends State<LoginPage> {
       String password = passwordController.text;
 
       if (username.isEmpty || password.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text("Please enter both fields")));
+        TopNotification.show(
+            context: context,
+            message: "Fill out all the fields!",
+            backgroundColor: Colors.redAccent,
+            duration: Duration(seconds: 2),
+            textColor: Colors.black,
+            onTap: () {
+              TopNotification.dismiss();
+            }
+        );
         return;
       }
 
@@ -66,13 +75,27 @@ class _LoginPage extends State<LoginPage> {
         box.put('user', HiveSession.fromJson(response['body']));
         context.go('/hub/dashboard', extra: data);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Login failed: ${response['message']}")),
+        TopNotification.show(
+            context: context,
+            message: "Login failed: ${response['message']}",
+            backgroundColor: Colors.redAccent,
+            duration: Duration(seconds: 2),
+            textColor: Colors.white,
+            onTap: () {
+              TopNotification.dismiss();
+            }
         );
       }
     }catch(Exception){
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Login failed: Can't connect to webserver")),
+      TopNotification.show(
+          context: context,
+          message: "Login failed: Can't connect to webserver",
+          backgroundColor: Colors.redAccent,
+          duration: Duration(seconds: 2),
+          textColor: Colors.white,
+          onTap: () {
+            TopNotification.dismiss();
+          }
       );
     }
   }

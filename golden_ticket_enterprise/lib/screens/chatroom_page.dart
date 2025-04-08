@@ -9,6 +9,7 @@ import 'package:golden_ticket_enterprise/models/hive_session.dart';
 import 'package:golden_ticket_enterprise/models/time_utils.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:golden_ticket_enterprise/widgets/chatroom_details_widget.dart';
+import 'package:golden_ticket_enterprise/widgets/notification_widget.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 
@@ -83,17 +84,22 @@ class _ChatroomPageState extends State<ChatroomPage> {
 
         dataManager.signalRService.onReceiveMessage = (message, chatroom) {
           if (chatroom.chatroomID == widget.chatroomID) {
-            dataManager.signalRService.sendSeen(userSession!.user.userID, widget.chatroomID);
-            dataManager.addMessage(message, chatroom);
+            if (!chatroom.messages!.any((msg) => msg.messageID == message.messageID)) {
+              dataManager.signalRService.sendSeen(userSession!.user.userID, widget.chatroomID);
+              dataManager.addMessage(message, chatroom);
+            }
           }
         };
         dataManager.signalRService.onAlreadyMember = (){
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text("You are already a member!"),
-              backgroundColor: Colors.red,
-              duration: Duration(milliseconds: 1000),
-            ),
+          TopNotification.show(
+              context: context,
+              message: "You are already a member of this group chat!",
+              backgroundColor: Colors.redAccent,
+              duration: Duration(seconds: 2),
+              textColor: Colors.white,
+              onTap: () {
+                TopNotification.dismiss();
+              }
           );
         };
         dataManager.signalRService.onAllowMessage = () {
@@ -132,7 +138,7 @@ class _ChatroomPageState extends State<ChatroomPage> {
                   itemCount: chatroom.messages!.length,
                   itemBuilder: (context, index) {
                     final message = chatroom.messages![index];
-                    final seenByMembers = chatroom.groupMembers
+                    final seenByMembers = chatroom.groupMembers!
                         .where((m) => m.lastSeenAt != null && m.lastSeenAt!.isAfter(message.createdAt))
                         .toList();
 
@@ -208,11 +214,11 @@ class _ChatroomPageState extends State<ChatroomPage> {
                   },
                 ),
               ),
-              if(chatroom.isClosed && chatroom.groupMembers.any((u) => u.member?.userID == userSession?.user.userID))
+              if(chatroom.isClosed && chatroom.groupMembers!.any((u) => u.member?.userID == userSession?.user.userID))
                 _buildReopenRoom(dataManager, userSession, chatroom)
               else if (chatroom.isClosed)
                 _buildClosedBar(dataManager, userSession, chatroom)
-              else if (chatroom.groupMembers.any((u) => u.member?.userID == userSession?.user.userID))
+              else if (chatroom.groupMembers!.any((u) => u.member?.userID == userSession?.user.userID))
                 _buildMessageInput(chatroom)
               else
                 _buildJoinRoomButton(dataManager, userSession, chatroom),
@@ -292,7 +298,7 @@ class _ChatroomPageState extends State<ChatroomPage> {
             dataManager.signalRService.reopenChatroom(userSession.user.userID, chatroom.chatroomID);
           }
         },
-        child: Text("Join Room"),
+        child: Text("Reopen Chatroom"),
       ),
     );
   }

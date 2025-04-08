@@ -7,6 +7,7 @@ import 'package:golden_ticket_enterprise/models/hive_session.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:golden_ticket_enterprise/widgets/add_faq_widget.dart';
 import 'package:golden_ticket_enterprise/widgets/edit_faq_widget.dart';
+import 'package:golden_ticket_enterprise/widgets/notification_widget.dart';
 import 'package:provider/provider.dart';
 
 class FAQPage extends StatefulWidget {
@@ -23,6 +24,7 @@ class _FAQPageState extends State<FAQPage> {
   String? selectedMainTag = "All";
   String? selectedSubTag;
 
+
   @override
   Widget build(BuildContext context) {
     return Consumer<DataManager>(
@@ -32,12 +34,16 @@ class _FAQPageState extends State<FAQPage> {
         };
 
         dataManager.signalRService.onMaximumChatroom = () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text("You can only have a maximum of 3 chatrooms with no tickets!"),
-              backgroundColor: Colors.red,
-            ),
-          );
+            TopNotification.show(
+                context: context,
+                message: "Maximum Chatroom has been reached",
+                backgroundColor: Colors.redAccent,
+                duration: Duration(seconds: 2),
+                textColor: Colors.white,
+                onTap: () {
+                  TopNotification.dismiss();
+                }
+            );
         };
 
         List<FAQ> filteredFAQs = dataManager.faqs.where((faq) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:golden_ticket_enterprise/entities/ticket.dart';
 import 'package:golden_ticket_enterprise/widgets/edit_ticket_widget.dart';
+import 'package:golden_ticket_enterprise/widgets/notification_widget.dart';
 import 'package:golden_ticket_enterprise/widgets/ticket_detail_widget.dart';
 import 'package:golden_ticket_enterprise/widgets/ticket_tile_widget.dart';
 import 'package:provider/provider.dart';
@@ -147,6 +148,7 @@ class _TicketsPageState extends State<TicketsPage> {
                                 final ticket = _filteredTickets[index];
                                 return TicketTile(
                                   ticket: ticket,
+                                  session: widget.session,
                                   onViewPressed: () {
                                     showDialog(
                                       context: context,
@@ -162,15 +164,34 @@ class _TicketsPageState extends State<TicketsPage> {
                                           dataManager.findChatroomByTicketID(
                                               ticket.ticketID)!.chatroomID);
                                     }catch(err){
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Text("Error chatroom could not be found!"),
-                                          backgroundColor: Colors.red,
-                                        ),
+                                      TopNotification.show(
+                                          context: context,
+                                          message: "Error chatroom could not be found!",
+                                          backgroundColor: Colors.redAccent,
+                                          duration: Duration(seconds: 2),
+                                          textColor: Colors.white,
+                                          onTap: () {
+                                            TopNotification.dismiss();
+                                          }
                                       );
                                     }
                                   },
                                   onEditPressed: () {
+                                    if(ticket.assigned != null){
+                                      if(ticket.assigned!.userID != widget.session!.user.userID){
+                                        TopNotification.show(
+                                            context: context,
+                                            message: "This ticket is not assigned to you",
+                                            backgroundColor: Colors.redAccent,
+                                            duration: Duration(seconds: 2),
+                                            textColor: Colors.white,
+                                            onTap: () {
+                                              TopNotification.dismiss();
+                                            }
+                                        );
+                                        return;
+                                      }
+                                    }
                                     showDialog(
                                       context: context,
                                       builder: (context) => TicketModifyPopup(ticket: ticket),

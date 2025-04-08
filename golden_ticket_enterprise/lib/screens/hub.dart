@@ -6,12 +6,6 @@ import 'package:golden_ticket_enterprise/entities/main_tag.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
 import 'package:golden_ticket_enterprise/screens/connectionstate.dart';
-import 'package:golden_ticket_enterprise/subscreens/chatroom_list_page.dart';
-import 'package:golden_ticket_enterprise/subscreens/dashboard_page.dart';
-import 'package:golden_ticket_enterprise/subscreens/faq_page.dart';
-import 'package:golden_ticket_enterprise/subscreens/settings_page.dart';
-import 'package:golden_ticket_enterprise/subscreens/tickets_page.dart';
-import 'package:golden_ticket_enterprise/subscreens/user_management.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
@@ -19,29 +13,33 @@ import 'package:provider/provider.dart';
 class HubPage extends StatefulWidget {
   final HiveSession? session;
   final StatefulNavigationShell child;
+  final DataManager dataManager;
   List<MainTag> mainTags = [];
-  HubPage({Key? key, required this.session, required this.child}) : super(key: key);
+  HubPage({Key? key, required this.session, required this.child, required this.dataManager}) : super(key: key);
 
   @override
   State<HubPage> createState() => _HubPageState();
 }
 
 class _HubPageState extends State<HubPage> with AutomaticKeepAliveClientMixin{
-  int _selectedIndex = 0; // Track selected index
+  late int _selectedIndex; // Track selected index
   bool _isInitialized = false;
   late DataManager _dataManager; // Store reference
   @override
   bool get wantKeepAlive => true; // Ensure the widget is kept alive
 
   @override
+  void initState(){
+    _selectedIndex = widget.child.currentIndex;
+    super.initState();
+  }
+  @override
   void didChangeDependencies() {
-    _dataManager = Provider.of<DataManager>(context, listen: false);
-    if (!_isInitialized && !_dataManager.signalRService.isConnected) {
+
+    if (!_isInitialized && !widget.dataManager.signalRService.isConnected) {
       log("HubPage: Initializing SignalR Connection...");
-      _dataManager.signalRService.initializeConnection(widget.session!);
+      widget.dataManager.signalRService.initializeConnection(widget.session!);
       _isInitialized = true;
-    } else {
-      log("HubPage: Another tab is already connected. Skipping initialization.");
     }
     super.didChangeDependencies();
   }
@@ -50,7 +48,7 @@ class _HubPageState extends State<HubPage> with AutomaticKeepAliveClientMixin{
 
   @override
   void dispose() {
-    log("HubPage: Stopping SignalR connection.");
+    log("HubPage disposed: $this");
     super.dispose();
   }
 
@@ -66,9 +64,14 @@ class _HubPageState extends State<HubPage> with AutomaticKeepAliveClientMixin{
 
 
   void _onDrawerItemTapped(int index) {
-    _selectedIndex = index;
+    print("Selected Index: $_selectedIndex");
+    print("Navigating to tab: $index");
+    setState(() {
+      _selectedIndex = index;
+    });
     widget.child.goBranch(index, initialLocation: index == widget.child.currentIndex);
   }
+
 
   @override
   Widget build(BuildContext context) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:golden_ticket_enterprise/entities/chatroom.dart';
 import 'package:golden_ticket_enterprise/entities/faq.dart';
+import 'package:golden_ticket_enterprise/entities/group_member.dart';
 import 'package:golden_ticket_enterprise/entities/main_tag.dart';
 import 'package:golden_ticket_enterprise/entities/message.dart';
 import 'package:golden_ticket_enterprise/entities/ticket.dart';
@@ -183,10 +184,10 @@ class DataManager extends ChangeNotifier {
     int chatroomIndex = chatrooms.indexWhere((c) => c.chatroomID == chatroomID);
 
     if (chatroomIndex != -1) {
-      int memberIndex = chatrooms[chatroomIndex].groupMembers.indexWhere((m) => m.member!.userID == userID);
+      int memberIndex = chatrooms[chatroomIndex].groupMembers!.indexWhere((m) => m.member!.userID == userID);
 
       if (memberIndex != -1) { // Ensure member exists
-        chatrooms[chatroomIndex].groupMembers[memberIndex].lastSeenAt = DateTime.now();
+        chatrooms[chatroomIndex].groupMembers![memberIndex].lastSeenAt = DateTime.now();
         notifyListeners();
       }
     }
@@ -286,6 +287,8 @@ class DataManager extends ChangeNotifier {
     return chatrooms.firstWhere(
             (c) => c.ticket?.ticketID == ticketID);
   }
+  
+
 
   Future<void> closeConnection() async {
     tickets = [];

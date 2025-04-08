@@ -8,16 +8,16 @@ class User {
   final int userID;
 
   @HiveField(1)
-  final String username;
+  late final String username;
 
   @HiveField(2)
-  final String firstName;
+  late String firstName;
   @HiveField(3)
-  final String middleName;
+  late String middleName;
   @HiveField(4)
-  final String lastName;
+  late String lastName;
   @HiveField(5)
-  final String role;
+  late String role;
 
   User({
     required this.userID,

@@ -61,7 +61,49 @@ namespace GoldenTicket.Hubs
             });
         }
         #endregion
-        
+
+        #region User
+        public async Task UpdateUser(int _userID, string? _username, string? _firstname, string? _middlename, string? _lastname, int? _roleID, List<string> _assignedTags, string Password)
+        {
+            await DBUtil.UpdateUser(_userID, _username, _firstname, _middlename, _lastname, _roleID, _assignedTags);
+            if (string.IsNullOrEmpty(Password) == false)
+            {
+                await DBUtil.ChangePassword(_userID, Password);
+            }
+
+            var adminUser = DBUtil.GetAdminUsers();
+            foreach(var user in adminUser){
+                if(user.Role == "Admin" || user.Role == "Staff" || user.UserID == _userID){
+                    if (_connections.TryGetValue(user.UserID, out var connectionIds)){
+                        foreach (var connectionId in connectionIds)
+                        {
+                            await Clients.Client(connectionId).SendAsync("UserUpdate", new {users = DBUtil.GetUsersByRole()});
+                        }
+                    }
+                }
+            }
+        }
+        public async Task AddUser(string Username, string Password, string FirstName, string? MiddleName, string LastName, int RoleID)
+        {
+            var newUser = await DBUtil.AddUser(Username, Password, FirstName, MiddleName, LastName, RoleID);
+            if(newUser == null)
+            {
+                await Clients.Caller.SendAsync("UserExist");
+                return;
+            }
+            var adminUser = DBUtil.GetAdminUsers();
+            foreach(var user in adminUser){
+                if(user.Role == "Admin" || user.Role == "Staff"){
+                    if (_connections.TryGetValue(user.UserID, out var connectionIds)){
+                        foreach (var connectionId in connectionIds)
+                        {
+                            await Clients.Client(connectionId).SendAsync("UserUpdate", new {users = DBUtil.GetUsersByRole()});
+                        }
+                    }
+                }
+            }
+        }
+        #endregion
 
         #region FAQ
         public async Task AddFAQ(string Title, string Description, string Solution, string MainTagName, string SubTagName) 
@@ -280,7 +322,6 @@ namespace GoldenTicket.Hubs
                         }
                     }
                 }
-                
             }
             await Clients.Caller.SendAsync("TicketUpdate", new {ticket = ticketDTO});
             await Clients.Caller.SendAsync("ChatroomUpdate", new {chatroom = chatroomDTO});

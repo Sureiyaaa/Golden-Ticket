@@ -496,7 +496,7 @@ namespace GoldenTicket.Utilities
                 {
                     TicketID = newTicket.TicketID,
                     ActionID = 2,
-                    ActionMessage = $"Ticket is automatically assigned to {newTicket.Assigned!.FirstName} by Golden AI",
+                    ActionMessage = $"Ticket is automatically assigned to {context.Users.FirstOrDefault(u => u.UserID == AssignedID)!.FirstName} by Golden AI",
                 };
                 context.TicketHistory.Add(ticketHistory2);
                 await context.SaveChangesAsync();

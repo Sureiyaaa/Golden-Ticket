@@ -226,18 +226,24 @@ namespace GoldenTicket.Hubs
         public async Task SendMessage(int SenderID, int ChatroomID, string Message) 
         {
             Console.WriteLine("-----[ Checkpoint #1 ]-----");
+            var connectedUsers = _connections.Where(kvp => kvp.Value.Contains(Context.ConnectionId)).ToList();
+            if (connectedUsers.Count == 0)
+            {
+                Console.WriteLine($"[SignalR] Connection {Context.ConnectionId} is no longer active.");
+                return; // Return early if the connection is not valid
+            }
             var message = await DBUtil.SendMessage(SenderID, ChatroomID, Message);
             var messageDTO = new MessageDTO(DBUtil.GetMessage(message.MessageID)!);
             var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID)!);
             foreach(var member in chatroomDTO.GroupMembers){
-                if (member.User.Role == "Employee")
+                if (_connections.TryGetValue(member.User.UserID, out var connectionIds))
                 {
-                    if (_connections.TryGetValue(member.User!.UserID, out var connectionIds))
+                    foreach (var connectionId in connectionIds)
                     {
-                        foreach (var connectionId in connectionIds)
+                        // Ensure sending messages only when connection is still valid
+                        if (connectionIds.Contains(connectionId))
                         {
-                            await Clients.Client(connectionId).SendAsync("ReceiveMessage", new {chatroom = chatroomDTO, message = messageDTO});
-                            Console.WriteLine("-----[ Checkpoint #2 ]-----");
+                            await Clients.Client(connectionId).SendAsync("ReceiveMessage", new { chatroom = chatroomDTO, message = messageDTO });
                         }
                     }
                 }
@@ -262,7 +268,7 @@ namespace GoldenTicket.Hubs
                 }
             }
             Console.WriteLine("-----[ Checkpoint #5 ]-----");
-            await UserSeen(SenderID, ChatroomID);
+            // await UserSeen(SenderID, ChatroomID);
             Console.WriteLine("-----[ Checkpoint #6 ]-----");
             if(chatroomDTO.Ticket == null && SenderID != 100000001)
             {

@@ -21,13 +21,9 @@ class HubPage extends StatefulWidget {
   State<HubPage> createState() => _HubPageState();
 }
 
-class _HubPageState extends State<HubPage> with AutomaticKeepAliveClientMixin{
+class _HubPageState extends State<HubPage>{
   late int _selectedIndex; // Track selected index
   bool _isInitialized = false;
-  late DataManager _dataManager; // Store reference
-  @override
-  bool get wantKeepAlive => true; // Ensure the widget is kept alive
-
   @override
   void initState(){
     _selectedIndex = widget.child.currentIndex;

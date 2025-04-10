@@ -24,6 +24,8 @@ class ChatroomPage extends StatefulWidget {
 
 class _ChatroomPageState extends State<ChatroomPage> {
   int? seenMessageID;
+  double _rating = 0;
+  TextEditingController _feedbackController = TextEditingController();
   TextEditingController messageController = TextEditingController();
   FocusNode messageFocusNode = FocusNode();
   bool enableMessage = true;
@@ -268,16 +270,31 @@ class _ChatroomPageState extends State<ChatroomPage> {
   Widget _buildReopenRoom(DataManager dataManager, HiveSession? userSession, Chatroom chatroom) {
     return Padding(
       padding: const EdgeInsets.all(12.0),
-      child: ElevatedButton(
-        onPressed: () {
-          if (userSession != null) {
-            dataManager.signalRService.reopenChatroom(userSession.user.userID, chatroom.chatroomID);
-          }
-        },
-        child: Text("Reopen Chatroom"),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          ElevatedButton(
+            onPressed: () {
+              if (userSession != null) {
+                dataManager.signalRService.reopenChatroom(
+                    userSession.user.userID, chatroom.chatroomID);
+              }
+            },
+            child: const Text("Reopen Chatroom"),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              showRatingDialog(context, chatroom);
+            },
+            icon: const Icon(Icons.star_rate),
+            label: const Text("Rate"),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+          ),
+        ],
       ),
     );
   }
+
   Widget _buildClosedBar(DataManager dataManager, HiveSession? userSession, Chatroom chatroom) {
     return Padding(
       padding: const EdgeInsets.all(12.0),
@@ -288,4 +305,77 @@ class _ChatroomPageState extends State<ChatroomPage> {
   String _formatSeenBy(List<GroupMember> seenBy) {
     return seenBy.map((u) => u.member!.firstName).join(", ");
   }
+  void showRatingDialog(BuildContext context, Chatroom chatroom) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Rate This Chat'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // ⭐ Star Rating Row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(5, (index) {
+                  return IconButton(
+                    icon: Icon(
+                      index < _rating ? Icons.star : Icons.star_border,
+                      color: Colors.amber,
+                      size: 32,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _rating = index + 1.0;
+                      });
+                      Navigator.of(context).pop();
+                      showRatingDialog(context, chatroom); // Redraw dialog
+                    },
+                  );
+                }),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _feedbackController,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  hintText: 'Optional feedback...',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _feedbackController.clear();
+                _rating = 0;
+              },
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                // TODO: Send _rating and _feedbackController.text to server or log it
+                log("Rating submitted: $_rating stars");
+                log("Feedback: ${_feedbackController.text}");
+
+                Navigator.of(context).pop();
+                _feedbackController.clear();
+                _rating = 0;
+
+                TopNotification.show(
+                  context: context,
+                  message: "Thanks for your feedback!",
+                  backgroundColor: Colors.green,
+                );
+              },
+              child: const Text('Submit'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
 }

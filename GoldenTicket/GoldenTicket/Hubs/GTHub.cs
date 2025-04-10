@@ -27,6 +27,7 @@ namespace GoldenTicket.Hubs
                     break;
                 }
             }
+            Console.WriteLine($"[SignalR] User {Context.ConnectionId} disconnects");
             await base.OnDisconnectedAsync(exception);
         }
 

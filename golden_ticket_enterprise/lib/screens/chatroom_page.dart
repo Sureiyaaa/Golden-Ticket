@@ -24,26 +24,16 @@ class ChatroomPage extends StatefulWidget {
 
 class _ChatroomPageState extends State<ChatroomPage> {
   int? seenMessageID;
-  double _rating = 0;
-  TextEditingController _feedbackController = TextEditingController();
   TextEditingController messageController = TextEditingController();
   FocusNode messageFocusNode = FocusNode();
   bool enableMessage = true;
+  bool _isInitialized = false;
   late DataManager _dataManager;
+
   @override
   void initState() {
     super.initState();
     messageFocusNode.requestFocus();
-    _dataManager = Provider.of<DataManager>(context, listen: false);
-    _dataManager.signalRService.onReceiveMessage = (message, chatroom) {
-      print(chatroom.chatroomID);
-      if (chatroom.chatroomID == widget.chatroomID) {
-
-        var userSession = Hive.box<HiveSession>('sessionBox').get('user');
-        _dataManager.signalRService.sendSeen(userSession!.user.userID, widget.chatroomID);
-        _dataManager.addMessage(message, chatroom);
-      }
-    };
   }
 
   Widget build(BuildContext context) {
@@ -54,13 +44,22 @@ class _ChatroomPageState extends State<ChatroomPage> {
         var userSession = Hive.box<HiveSession>('sessionBox').get('user');
         String chatTitle = chatroom?.ticket != null ? chatroom?.ticket?.ticketTitle ?? "New Chat" : "New Chat";
 
+        dataManager.signalRService.onReceiveMessage = (message, chatroom) {
+          print(chatroom.chatroomID);
+          if (chatroom.chatroomID == widget.chatroomID) {
+            dataManager.signalRService.sendSeen(userSession!.user.userID, widget.chatroomID);
+            dataManager.addMessage(message, chatroom);
+          }
+        };
         void sendMessage(String messageContent, Chatroom chatroom) {
           if (messageContent.trim().isEmpty) return;
 
           var userSession = Hive.box<HiveSession>('sessionBox').get('user');
           if (userSession == null) return;
 
-          dataManager.signalRService.sendMessage(userSession.user.userID, widget.chatroomID, messageContent);
+          Provider.of<DataManager>(context, listen: false)
+              .signalRService
+              .sendMessage(userSession.user.userID, widget.chatroomID, messageContent);
 
           messageController.clear();
           if (chatroom.ticket == null) {
@@ -232,13 +231,14 @@ class _ChatroomPageState extends State<ChatroomPage> {
               ),
               onEditingComplete: () {
                 // Ensures the message is sent when Enter is pressed
-                sendMessage(messageController.text.trim(), chatroom);
+                (messageController.text.trim(), chatroom);
                 messageController.clear();
                 enableMessage = false;
               },
               inputFormatters: [
                 TextInputFormatter.withFunction((oldValue, newValue) {
                   if (newValue.text.endsWith('\n') && !HardwareKeyboard.instance.isShiftPressed) {
+                    sendMessage(newValue.text.trim(), chatroom);
                     return TextEditingValue.empty;
                   }
                   return newValue;
@@ -272,31 +272,16 @@ class _ChatroomPageState extends State<ChatroomPage> {
   Widget _buildReopenRoom(DataManager dataManager, HiveSession? userSession, Chatroom chatroom) {
     return Padding(
       padding: const EdgeInsets.all(12.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          ElevatedButton(
-            onPressed: () {
-              if (userSession != null) {
-                dataManager.signalRService.reopenChatroom(
-                    userSession.user.userID, chatroom.chatroomID);
-              }
-            },
-            child: const Text("Reopen Chatroom"),
-          ),
-          ElevatedButton.icon(
-            onPressed: () {
-              showRatingDialog(context, chatroom);
-            },
-            icon: const Icon(Icons.star_rate),
-            label: const Text("Rate"),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-          ),
-        ],
+      child: ElevatedButton(
+        onPressed: () {
+          if (userSession != null) {
+            dataManager.signalRService.reopenChatroom(userSession.user.userID, chatroom.chatroomID);
+          }
+        },
+        child: Text("Reopen Chatroom"),
       ),
     );
   }
-
   Widget _buildClosedBar(DataManager dataManager, HiveSession? userSession, Chatroom chatroom) {
     return Padding(
       padding: const EdgeInsets.all(12.0),
@@ -307,77 +292,4 @@ class _ChatroomPageState extends State<ChatroomPage> {
   String _formatSeenBy(List<GroupMember> seenBy) {
     return seenBy.map((u) => u.member!.firstName).join(", ");
   }
-  void showRatingDialog(BuildContext context, Chatroom chatroom) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Rate This Chat'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // ⭐ Star Rating Row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(5, (index) {
-                  return IconButton(
-                    icon: Icon(
-                      index < _rating ? Icons.star : Icons.star_border,
-                      color: Colors.amber,
-                      size: 32,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _rating = index + 1.0;
-                      });
-                      Navigator.of(context).pop();
-                      showRatingDialog(context, chatroom); // Redraw dialog
-                    },
-                  );
-                }),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _feedbackController,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  hintText: 'Optional feedback...',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _feedbackController.clear();
-                _rating = 0;
-              },
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                // TODO: Send _rating and _feedbackController.text to server or log it
-                log("Rating submitted: $_rating stars");
-                log("Feedback: ${_feedbackController.text}");
-
-                Navigator.of(context).pop();
-                _feedbackController.clear();
-                _rating = 0;
-
-                TopNotification.show(
-                  context: context,
-                  message: "Thanks for your feedback!",
-                  backgroundColor: Colors.green,
-                );
-              },
-              child: const Text('Submit'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
 }

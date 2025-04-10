@@ -84,10 +84,8 @@ class _ChatroomPageState extends State<ChatroomPage> {
 
         dataManager.signalRService.onReceiveMessage = (message, chatroom) {
           if (chatroom.chatroomID == widget.chatroomID) {
-            if (!chatroom.messages!.any((msg) => msg.messageID == message.messageID)) {
-              dataManager.signalRService.sendSeen(userSession!.user.userID, widget.chatroomID);
-              dataManager.addMessage(message, chatroom);
-            }
+            dataManager.signalRService.sendSeen(userSession!.user.userID, widget.chatroomID);
+            dataManager.addMessage(message, chatroom);
           }
         };
         dataManager.signalRService.onAlreadyMember = (){

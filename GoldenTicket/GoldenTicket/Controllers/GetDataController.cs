@@ -51,6 +51,20 @@ namespace GoldenTicket.Controllers
                 return BadRequest(new {status = 400, message = "Invalid request", errorType = "invalid"});
             }
         }
+        [HttpGet("GetRatings")]
+        public IActionResult Ratings()
+        {
+            try
+            {
+                var ratings = DBUtil.GetRatings();
+                return Ok(new {status = 200, message = "Users retrieved successfully", body = ratings});
+            }
+            catch (Exception err)
+            {
+                Console.WriteLine(err);
+                return BadRequest(new {status = 400, message = "Invalid request.", errorType = "invalid" });
+            }
+        }
 
         public class RevelavantFAQ
         {

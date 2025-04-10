@@ -67,7 +67,7 @@ class TicketTile extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(icon: const Icon(Icons.chat_bubble_outline, color: Colors.blue), onPressed: onChatPressed),
-                      if(ticket.assigned != null && ticket.assigned?.userID == session!.user.userID) IconButton(icon: const Icon(Icons.edit, color: Colors.orange), onPressed: onEditPressed)
+                      if((ticket.assigned != null && ticket.assigned?.userID == session!.user.userID) || ticket.assigned == null) IconButton(icon: const Icon(Icons.edit, color: Colors.orange), onPressed: onEditPressed)
                     ],
                   ),
                 ],

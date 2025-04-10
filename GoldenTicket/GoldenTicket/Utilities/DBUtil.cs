@@ -629,7 +629,7 @@ namespace GoldenTicket.Utilities
                             Message = $"Ticket Re-Opened by **{editorName}**";
                             break;
                         case 2:
-                            Action = 3;
+                            Action = 4;
                             Message = $"Ticket set In Progress by **{editorName}**";
                             break;
                         case 3:
@@ -637,7 +637,7 @@ namespace GoldenTicket.Utilities
                             Message = $"Ticket On Hold by **{editorName}**";
                             break;
                         case 4:
-                            Action = 4;
+                            Action = 6;
                             Message = $"Ticket Closed by **{editorName}**";
                             break;
                         case 5:

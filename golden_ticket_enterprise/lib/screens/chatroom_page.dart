@@ -27,28 +27,6 @@ class _ChatroomPageState extends State<ChatroomPage> {
   TextEditingController messageController = TextEditingController();
   FocusNode messageFocusNode = FocusNode();
   bool enableMessage = true;
-  bool _isInitialized = false;
-  late DataManager _dataManager;
-
-  void sendMessage(String messageContent, Chatroom chatroom) {
-    if (messageContent.trim().isEmpty) return;
-
-    var userSession = Hive.box<HiveSession>('sessionBox').get('user');
-    if (userSession == null) return;
-
-    Provider.of<DataManager>(context, listen: false)
-        .signalRService
-        .sendMessage(userSession.user.userID, widget.chatroomID, messageContent);
-
-    messageController.clear();
-    if (chatroom.ticket == null) {
-      setState(() {
-        enableMessage = false;
-      });
-    }else{
-      messageFocusNode.requestFocus();
-    }
-  }
 
   @override
   void initState() {
@@ -56,26 +34,8 @@ class _ChatroomPageState extends State<ChatroomPage> {
     messageFocusNode.requestFocus();
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-
-    if (!_isInitialized) {
-      _dataManager = Provider.of<DataManager>(context, listen: false);
-
-      if (!_dataManager.signalRService.isConnected) {
-        log("HubPage: Initializing SignalR Connection...");
-
-        var userSession = Hive.box<HiveSession>('sessionBox').get('user');
-        _dataManager.signalRService.initializeConnection(userSession!);
-      }
-
-      _isInitialized = true;
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
+
     return Consumer<DataManager>(
       builder: (context, dataManager, child) {
         Chatroom? chatroom = dataManager.findChatroomByID(widget.chatroomID);
@@ -83,11 +43,31 @@ class _ChatroomPageState extends State<ChatroomPage> {
         String chatTitle = chatroom?.ticket != null ? chatroom?.ticket?.ticketTitle ?? "New Chat" : "New Chat";
 
         dataManager.signalRService.onReceiveMessage = (message, chatroom) {
+          print(chatroom.chatroomID);
           if (chatroom.chatroomID == widget.chatroomID) {
             dataManager.signalRService.sendSeen(userSession!.user.userID, widget.chatroomID);
             dataManager.addMessage(message, chatroom);
           }
         };
+        void sendMessage(String messageContent, Chatroom chatroom) {
+          if (messageContent.trim().isEmpty) return;
+
+          var userSession = Hive.box<HiveSession>('sessionBox').get('user');
+          if (userSession == null) return;
+
+          Provider.of<DataManager>(context, listen: false)
+              .signalRService
+              .sendMessage(userSession.user.userID, widget.chatroomID, messageContent);
+
+          messageController.clear();
+          if (chatroom.ticket == null) {
+            setState(() {
+              enableMessage = false;
+            });
+          }else{
+            messageFocusNode.requestFocus();
+          }
+        }
         dataManager.signalRService.onAlreadyMember = (){
           TopNotification.show(
               context: context,
@@ -217,7 +197,7 @@ class _ChatroomPageState extends State<ChatroomPage> {
               else if (chatroom.isClosed)
                 _buildClosedBar(dataManager, userSession, chatroom)
               else if (chatroom.groupMembers!.any((u) => u.member?.userID == userSession?.user.userID))
-                _buildMessageInput(chatroom)
+                _buildMessageInput(chatroom, sendMessage)
               else
                 _buildJoinRoomButton(dataManager, userSession, chatroom),
             ],
@@ -225,9 +205,10 @@ class _ChatroomPageState extends State<ChatroomPage> {
         );
       },
     );
+
   }
 
-  Widget _buildMessageInput(Chatroom chatroom) {
+  Widget _buildMessageInput(Chatroom chatroom, Function(String message, Chatroom chatroom) sendMessage) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       child: Row(
@@ -248,7 +229,7 @@ class _ChatroomPageState extends State<ChatroomPage> {
               ),
               onEditingComplete: () {
                 // Ensures the message is sent when Enter is pressed
-                sendMessage(messageController.text.trim(), chatroom);
+                (messageController.text.trim(), chatroom);
                 messageController.clear();
                 enableMessage = false;
               },
@@ -271,7 +252,6 @@ class _ChatroomPageState extends State<ChatroomPage> {
       ),
     );
   }
-
 
 
   Widget _buildJoinRoomButton(DataManager dataManager, HiveSession? userSession, Chatroom chatroom) {

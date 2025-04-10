@@ -236,14 +236,18 @@ namespace GoldenTicket.Hubs
             var messageDTO = new MessageDTO(DBUtil.GetMessage(message.MessageID)!);
             var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID)!);
             foreach(var member in chatroomDTO.GroupMembers){
-                if (_connections.TryGetValue(member.User.UserID, out var connectionIds))
-                {
-                    foreach (var connectionId in connectionIds)
+                
+                if(member.User.Role == "Employee"){
+                        
+                    if (_connections.TryGetValue(member.User.UserID, out var connectionIds))
                     {
-                        // Ensure sending messages only when connection is still valid
-                        if (connectionIds.Contains(connectionId))
+                        foreach (var connectionId in connectionIds)
                         {
-                            await Clients.Client(connectionId).SendAsync("ReceiveMessage", new { chatroom = chatroomDTO, message = messageDTO });
+                            // Ensure sending messages only when connection is still valid
+                            if (connectionIds.Contains(connectionId))
+                            {
+                                await Clients.Client(connectionId).SendAsync("ReceiveMessage", new { chatroom = chatroomDTO, message = messageDTO });
+                            }
                         }
                     }
                 }

@@ -65,7 +65,8 @@ public class OpenAIService
         if (!isDirect)
         {
             messages = await CheckHistoryAsync(chatroomID, Prompt);
-            messages.Add(new UserChatMessage(userInput));
+            if(_loopAmount[chatroomID] == 0)
+                messages.Add(new UserChatMessage(userInput));
         }
         else
         {
@@ -208,6 +209,7 @@ public class OpenAIService
         if (messages.Count == 0 || !(messages[0] is SystemChatMessage))
         {
             messages.Insert(0, new SystemChatMessage(Prompt));
+            messages.Insert(1, new AssistantChatMessage(AIResponse.FirstAssistantCM()));
         }
         else
         {

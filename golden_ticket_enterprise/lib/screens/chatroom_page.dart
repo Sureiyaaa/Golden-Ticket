@@ -232,14 +232,13 @@ class _ChatroomPageState extends State<ChatroomPage> {
               ),
               onEditingComplete: () {
                 // Ensures the message is sent when Enter is pressed
-                (messageController.text.trim(), chatroom);
+                sendMessage(messageController.text.trim(), chatroom);
                 messageController.clear();
                 enableMessage = false;
               },
               inputFormatters: [
                 TextInputFormatter.withFunction((oldValue, newValue) {
                   if (newValue.text.endsWith('\n') && !HardwareKeyboard.instance.isShiftPressed) {
-                    sendMessage(newValue.text.trim(), chatroom);
                     return TextEditingValue.empty;
                   }
                   return newValue;

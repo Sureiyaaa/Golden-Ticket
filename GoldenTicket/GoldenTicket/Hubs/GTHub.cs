@@ -245,7 +245,9 @@ namespace GoldenTicket.Hubs
             {
                 var adminUser = DBUtil.GetAdminUsers();
                 foreach(var user in adminUser){
-                    MembersToInvoke.Add(user.UserID);
+                    if(!MembersToInvoke.Contains(user.UserID)){
+                        MembersToInvoke.Add(user.UserID);
+                    }
                 }
             }
             foreach(int memberID in MembersToInvoke){

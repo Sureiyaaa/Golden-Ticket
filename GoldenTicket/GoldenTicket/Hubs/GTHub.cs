@@ -225,6 +225,7 @@ namespace GoldenTicket.Hubs
         }
         public async Task SendMessage(int SenderID, int ChatroomID, string Message) 
         {
+            Console.WriteLine("-----[ Checkpoint #1 ]-----");
             var message = await DBUtil.SendMessage(SenderID, ChatroomID, Message);
             var messageDTO = new MessageDTO(DBUtil.GetMessage(message.MessageID)!);
             var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID)!);
@@ -236,6 +237,7 @@ namespace GoldenTicket.Hubs
                         foreach (var connectionId in connectionIds)
                         {
                             await Clients.Client(connectionId).SendAsync("ReceiveMessage", new {chatroom = chatroomDTO, message = messageDTO});
+                            Console.WriteLine("-----[ Checkpoint #2 ]-----");
                         }
                     }
                 }
@@ -243,6 +245,7 @@ namespace GoldenTicket.Hubs
 
             if(chatroomDTO.Ticket != null)
             {
+                Console.WriteLine("-----[ Checkpoint #3 ]-----");
                 var adminUser = DBUtil.GetAdminUsers();
                 foreach(var user in adminUser){
                     if(user.Role == "Admin" || user.Role == "Staff"){
@@ -251,17 +254,19 @@ namespace GoldenTicket.Hubs
                             foreach (var connectionId in connectionIds)
                             {
                                 await Clients.Client(connectionId).SendAsync("ReceiveMessage", new {chatroom = chatroomDTO, message = messageDTO});
-
+                                Console.WriteLine("-----[ Checkpoint #4 ]-----");
                             }
                         }
                     }
                     
                 }
             }
-            
+            Console.WriteLine("-----[ Checkpoint #5 ]-----");
             await UserSeen(SenderID, ChatroomID);
+            Console.WriteLine("-----[ Checkpoint #6 ]-----");
             if(chatroomDTO.Ticket == null && SenderID != 100000001)
             {
+                Console.WriteLine("-----[ HOW DID IT GET HERE???? ]-----");
                 await AISendMessage(ChatroomID, Message, SenderID);
             }
         }

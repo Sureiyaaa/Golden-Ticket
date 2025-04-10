@@ -55,9 +55,7 @@ class _ChatroomPageState extends State<ChatroomPage> {
           var userSession = Hive.box<HiveSession>('sessionBox').get('user');
           if (userSession == null) return;
 
-          Provider.of<DataManager>(context, listen: false)
-              .signalRService
-              .sendMessage(userSession.user.userID, widget.chatroomID, messageContent);
+          dataManager.signalRService.sendMessage(userSession.user.userID, widget.chatroomID, messageContent);
 
           messageController.clear();
           if (chatroom.ticket == null) {

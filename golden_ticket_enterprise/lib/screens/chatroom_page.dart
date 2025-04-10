@@ -29,11 +29,21 @@ class _ChatroomPageState extends State<ChatroomPage> {
   TextEditingController messageController = TextEditingController();
   FocusNode messageFocusNode = FocusNode();
   bool enableMessage = true;
-
+  late DataManager _dataManager;
   @override
   void initState() {
     super.initState();
     messageFocusNode.requestFocus();
+    _dataManager = Provider.of<DataManager>(context, listen: false);
+    _dataManager.signalRService.onReceiveMessage = (message, chatroom) {
+      print(chatroom.chatroomID);
+      if (chatroom.chatroomID == widget.chatroomID) {
+
+        var userSession = Hive.box<HiveSession>('sessionBox').get('user');
+        _dataManager.signalRService.sendSeen(userSession!.user.userID, widget.chatroomID);
+        _dataManager.addMessage(message, chatroom);
+      }
+    };
   }
 
   Widget build(BuildContext context) {
@@ -44,13 +54,6 @@ class _ChatroomPageState extends State<ChatroomPage> {
         var userSession = Hive.box<HiveSession>('sessionBox').get('user');
         String chatTitle = chatroom?.ticket != null ? chatroom?.ticket?.ticketTitle ?? "New Chat" : "New Chat";
 
-        dataManager.signalRService.onReceiveMessage = (message, chatroom) {
-          print(chatroom.chatroomID);
-          if (chatroom.chatroomID == widget.chatroomID) {
-            dataManager.signalRService.sendSeen(userSession!.user.userID, widget.chatroomID);
-            dataManager.addMessage(message, chatroom);
-          }
-        };
         void sendMessage(String messageContent, Chatroom chatroom) {
           if (messageContent.trim().isEmpty) return;
 

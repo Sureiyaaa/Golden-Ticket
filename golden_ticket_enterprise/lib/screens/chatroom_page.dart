@@ -123,7 +123,7 @@ class _ChatroomPageState extends State<ChatroomPage> {
                         .toList();
 
                     final isMe = message.sender.userID == userSession!.user.userID;
-                    final isSeen = seenByMembers.isNotEmpty && seenMessageID == message.messageID;
+                    final isSeen = seenByMembers.isNotEmpty && seenMessageID == chatroom.lastMessage?.createdAt;
 
                     return Align(
                       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,

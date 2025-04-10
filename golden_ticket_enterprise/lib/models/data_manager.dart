@@ -4,6 +4,7 @@ import 'package:golden_ticket_enterprise/entities/faq.dart';
 import 'package:golden_ticket_enterprise/entities/group_member.dart';
 import 'package:golden_ticket_enterprise/entities/main_tag.dart';
 import 'package:golden_ticket_enterprise/entities/message.dart';
+import 'package:golden_ticket_enterprise/entities/rating.dart';
 import 'package:golden_ticket_enterprise/entities/ticket.dart';
 import 'package:golden_ticket_enterprise/entities/user.dart';
 import 'package:golden_ticket_enterprise/models/signalr_service.dart';
@@ -17,6 +18,7 @@ class DataManager extends ChangeNotifier {
   List<Ticket> tickets = [];
   List<User> users = [];
   List<String> priorities = [];
+  List<Rating> ratings = [];
   DataManager({required this.signalRService}) {
     _initializeSignalR();
   }
@@ -83,6 +85,9 @@ class DataManager extends ChangeNotifier {
     signalRService.onUserUpdate = (updatedUser){
       updateUser(updatedUser);
     };
+    signalRService.onRatingsUpdate = (updatedRatings){
+      updateRatings(updatedRatings);
+    };
   }
 
   void updateMainTags(List<MainTag> updatedTags) {
@@ -96,6 +101,17 @@ class DataManager extends ChangeNotifier {
 
   void updateFAQs(List<FAQ> updatedFAQs) {
     faqs = updatedFAQs;
+    notifyListeners();
+  }
+
+  void updateRatings(List<Rating> updatedRatings) {
+    ratings = updatedRatings;
+    notifyListeners();
+  }
+
+  void updateRating(Rating updatedRating) {
+    ratings.add(updatedRating);
+
     notifyListeners();
   }
 

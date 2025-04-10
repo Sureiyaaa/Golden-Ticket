@@ -225,7 +225,6 @@ namespace GoldenTicket.Hubs
         }
         public async Task SendMessage(int SenderID, int ChatroomID, string Message) 
         {
-            Console.WriteLine("-----[ Checkpoint #1 ]-----");
             var connectedUsers = _connections.Where(kvp => kvp.Value.Contains(Context.ConnectionId)).ToList();
             if (connectedUsers.Count == 0)
             {
@@ -235,48 +234,31 @@ namespace GoldenTicket.Hubs
             var message = await DBUtil.SendMessage(SenderID, ChatroomID, Message);
             var messageDTO = new MessageDTO(DBUtil.GetMessage(message.MessageID)!);
             var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID)!);
+            var MembersToInvoke = new List<int>();
+            
+            
             foreach(var member in chatroomDTO.GroupMembers){
-                
-                if(member.User.Role == "Employee"){
-                        
-                    if (_connections.TryGetValue(member.User.UserID, out var connectionIds))
-                    {
-                        foreach (var connectionId in connectionIds)
-                        {
-                            // Ensure sending messages only when connection is still valid
-                            if (connectionIds.Contains(connectionId))
-                            {
-                                await Clients.Client(connectionId).SendAsync("ReceiveMessage", new { chatroom = chatroomDTO, message = messageDTO });
-                            }
-                        }
-                    }
-                }
+                MembersToInvoke.Add(member.User.UserID);
             }
 
             if(chatroomDTO.Ticket != null)
             {
-                Console.WriteLine("-----[ Checkpoint #3 ]-----");
                 var adminUser = DBUtil.GetAdminUsers();
                 foreach(var user in adminUser){
-                    if(user.Role == "Admin" || user.Role == "Staff"){
-                        
-                        if (_connections.TryGetValue(user.UserID, out var connectionIds)){
-                            foreach (var connectionId in connectionIds)
-                            {
-                                await Clients.Client(connectionId).SendAsync("ReceiveMessage", new {chatroom = chatroomDTO, message = messageDTO});
-                                Console.WriteLine("-----[ Checkpoint #4 ]-----");
-                            }
-                        }
-                    }
-                    
+                    MembersToInvoke.Add(user.UserID);
                 }
             }
-            Console.WriteLine("-----[ Checkpoint #5 ]-----");
-            // await UserSeen(SenderID, ChatroomID);
-            Console.WriteLine("-----[ Checkpoint #6 ]-----");
+            foreach(int memberID in MembersToInvoke){
+                if (_connections.TryGetValue(memberID, out var connectionIds)){
+                    foreach (var connectionId in connectionIds)
+                    {
+                        await Clients.Client(connectionId).SendAsync("ReceiveMessage", new {chatroom = chatroomDTO, message = messageDTO});
+                    }
+                }
+            }
+            await UserSeen(SenderID, ChatroomID);
             if(chatroomDTO.Ticket == null && SenderID != 100000001)
             {
-                Console.WriteLine("-----[ HOW DID IT GET HERE???? ]-----");
                 await AISendMessage(ChatroomID, Message, SenderID);
             }
         }

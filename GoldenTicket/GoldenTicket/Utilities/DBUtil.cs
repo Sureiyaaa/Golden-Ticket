@@ -626,23 +626,23 @@ namespace GoldenTicket.Utilities
                     {
                         case 1:
                             Action = 8;
-                            Message = $"Ticket Opened by {editorName}";
+                            Message = $"Ticket Re-Opened by **{editorName}**";
                             break;
                         case 2:
                             Action = 3;
-                            Message = $"Ticket set In Progress by {editorName}";
+                            Message = $"Ticket set In Progress by **{editorName}**";
                             break;
                         case 3:
                             Action = 5;
-                            Message = $"Ticket On Hold by {editorName}";
+                            Message = $"Ticket On Hold by **{editorName}**";
                             break;
                         case 4:
                             Action = 4;
-                            Message = $"Ticket Closed by {editorName}";
+                            Message = $"Ticket Closed by **{editorName}**";
                             break;
                         case 5:
                             Action = 7;
-                            Message = $"Ticket set as Unresolved by {editorName}";
+                            Message = $"Ticket set as Unresolved by **{editorName}**";
                             break;
                     }
                     // Creates Ticket History

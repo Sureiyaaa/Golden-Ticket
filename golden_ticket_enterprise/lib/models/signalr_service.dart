@@ -102,31 +102,24 @@ class SignalRService with ChangeNotifier {
     await startConnection();
   }
 
-  void requestChat(int userID){
-    try {
-      _hubConnection!.invoke('RequestChat', args: [userID]);
-    }catch(err){
-      logger.e("There was an error caught while requesting support:", error: err.toString().isEmpty ? "None provided" : err.toString().isEmpty);
-    }
+  void requestChat(int userID) async {
+      await _hubConnection!.invoke('RequestChat', args: [userID]).catchError((err) {
+        logger.e("There was an error caught while sending a message", error: err.toString().isEmpty ? "None provided" : err.toString().isEmpty);
+      });
   }
-  void openChatroom(int userID, int chatroomID){
-    try {
-      _hubConnection!.invoke('OpenChatroom', args: [userID, chatroomID]);
-    }catch(err){
-      logger.e("There was an error caught while opening chatroom:", error: err.toString().isEmpty ? "None provided" : err.toString().isEmpty);
-    }
+  void openChatroom(int userID, int chatroomID) async {
+      await _hubConnection!.invoke('OpenChatroom', args: [userID, chatroomID]).catchError((err) {
+        logger.e("There was an error caught while opening chatroom", error: err.toString().isEmpty ? "None provided" : err.toString().isEmpty);
+      });
   }
-  void addMainTag(String tagName){
-    try {
-      _hubConnection!.invoke('AddMainTag', args: [tagName]);
-    }catch(err){
-      logger.e("There was an error caught while saving tag:", error: err.toString().isEmpty ? "None provided" : err.toString().isEmpty);
-    }
+  void addMainTag(String tagName) async {
+      await _hubConnection!.invoke('AddMainTag', args: [tagName]).catchError((err) {
+        logger.e("There was an error caught while saving main tag", error: err.toString().isEmpty ? "None provided" : err.toString().isEmpty);
+      });
   }
 
-  void updateTicket(int ticketID, String title, String status, String priority, String? mainTag, String? subTag, int? assignedID) {
-    try {
-      _hubConnection!.invoke('UpdateTicket', args: [
+  void updateTicket(int ticketID, String title, String status, String priority, String? mainTag, String? subTag, int? assignedID) async {
+      await _hubConnection!.invoke('UpdateTicket', args: [
         ticketID,
         title,
         status,
@@ -134,15 +127,13 @@ class SignalRService with ChangeNotifier {
         mainTag?.isEmpty == true ? null : mainTag,  // Ensure null instead of empty string
         subTag?.isEmpty == true ? null : subTag,    // Ensure null instead of empty string
         assignedID == 0 ? null : assignedID         // Ensure null instead of 0
-      ]);
-    } catch (err) {
-      logger.e("Error while updating ticket:", error: err.toString().isEmpty ? "None provided" : err.toString());
-    }
+      ]).catchError((err) {
+        logger.e("There was an error caught while updating ticket", error: err.toString().isEmpty ? "None provided" : err.toString().isEmpty);
+      });
   }
 
-  void updateFAQ(int faqID, String faqTitle, String faqDescription, String faqSolution, String? mainTag, String? subTag, bool faqArchive){
-    try {
-      _hubConnection!.invoke('UpdateFAQ', args: [
+  void updateFAQ(int faqID, String faqTitle, String faqDescription, String faqSolution, String? mainTag, String? subTag, bool faqArchive) async {
+      await _hubConnection!.invoke('UpdateFAQ', args: [
         faqID,
         faqTitle,
         faqDescription,
@@ -150,79 +141,61 @@ class SignalRService with ChangeNotifier {
         mainTag?.isEmpty == true ? null : mainTag,  // Ensure null instead of empty string
         subTag?.isEmpty == true ? null : subTag,
         faqArchive
-      ]);
-    } catch (err) {
-      logger.e("Error while updating FAQ:", error: err.toString().isEmpty ? "None provided" : err.toString());
-    }
+      ]).catchError((err) {
+        logger.e("There was an error caught while updating FAQ", error: err.toString().isEmpty ? "None provided" : err.toString().isEmpty);
+      });
   }
 
 
-  void addSubTag(String tagName, String mainTagName){
-    try{
-      _hubConnection!.invoke('AddSubTag', args: [tagName, mainTagName]);
-    }catch(err){
-      logger.e("There was an error caught while saving tag:", error: err.toString());
-    }
+  void addSubTag(String tagName, String mainTagName)async{
+      await _hubConnection!.invoke('AddSubTag', args: [tagName, mainTagName]).catchError((err) {
+        logger.e("There was an error caught while sending a message", error: err.toString().isEmpty ? "None provided" : err.toString().isEmpty);
+      });
   }
 
-  void addFAQ(String title, String description, String solution, String mainTag, String subTag){
-    try{
-      _hubConnection!.invoke('AddFAQ', args: [title, description, solution, mainTag, subTag]);
-    }catch(err){
-      logger.e("There was an error caught while saving tag:", error: err.toString());
-    }
+  void addFAQ(String title, String description, String solution, String mainTag, String subTag) async{
+      await _hubConnection!.invoke('AddFAQ', args: [title, description, solution, mainTag, subTag]).catchError((err) {
+        logger.e("There was an error caught while adding FAQ", error: err.toString().isEmpty ? "None provided" : err.toString().isEmpty);
+      });
   }
-  void joinChatroom(int userID, int chatroomID){
-    try{
-      _hubConnection!.invoke('JoinChatroom', args: [userID, chatroomID]);
-    }catch(err){
-      logger.e("There was an error caught while saving tag:", error: err.toString());
-    }
+  void joinChatroom(int userID, int chatroomID) async {
+      await _hubConnection!.invoke('JoinChatroom', args: [userID, chatroomID]).catchError((err) {
+        logger.e("There was an error caught while joining chatroom", error: err.toString().isEmpty ? "None provided" : err.toString().isEmpty);
+      });
   }
 
-  void updateUser(int userID, String? username, String? password, String? firstName, String? middleName, String? lastName, String? role, List<String?> assignedTags){
-      try{
-      _hubConnection!.invoke('UpdateUser', args: [userID, username, firstName, middleName, lastName, role, assignedTags, password]);
-    }catch(err){
-      logger.e("There was an error caught while saving tag:", error: err.toString());
-    }
+  void updateUser(int userID, String? username, String? password, String? firstName, String? middleName, String? lastName, String? role, List<String?> assignedTags) async {
+      await _hubConnection!.invoke('UpdateUser', args: [userID, username, firstName, middleName, lastName, role, assignedTags, password]).catchError((err) {
+        logger.e("There was an error caught while updating user", error: err.toString().isEmpty ? "None provided" : err.toString().isEmpty);
+      });
   }
 
-  void addUser(String username, String password, String firstName, String? middleName, String lastName, String role, List<String> assignedTags){
-    try{
-      _hubConnection!.invoke('AddUser', args: [username, password, firstName, middleName,lastName, role, assignedTags]);
-    }catch(err){
-      logger.e("There was an error caught while saving tag:", error: err.toString());
-    }
+  void addUser(String username, String password, String firstName, String? middleName, String lastName, String role, List<String> assignedTags) async {
+      await _hubConnection!.invoke('AddUser', args: [username, password, firstName, middleName,lastName, role, assignedTags]).catchError((err) {
+        logger.e("There was an error caught while Add User", error: err.toString().isEmpty ? "None provided" : err.toString().isEmpty);
+      });
   }
 
 
-  void reopenChatroom(int userID, int chatroomID){
-    try{
-      _hubConnection!.invoke('ReopenChatroom', args: [userID, chatroomID]);
-    }catch(err){
-      logger.e("There was an error caught while saving tag:", error: err.toString());
-    }
+  void reopenChatroom(int userID, int chatroomID) async {
+      await _hubConnection!.invoke('ReopenChatroom', args: [userID, chatroomID]).catchError((err) {
+        logger.e("There was an error caught while Reopen Chatroom", error: err.toString().isEmpty ? "None provided" : err.toString().isEmpty);
+      });
+
   }
 
   void sendMessage(int userID, int chatroomID, String messageContent) async {
-    try{
-      await _hubConnection!.invoke('SendMessage', args: [userID, chatroomID, messageContent]).catchError((err) {
-        print(err);
-      });
-    }catch(err){
-      logger.e("There was an error caught while sending message:", error: err.toString().isEmpty ? "None provided" : err.toString().isEmpty);
-    }
+    await _hubConnection!.invoke('SendMessage', args: [userID, chatroomID, messageContent]).catchError((err) {
+      logger.e("There was an error caught while sending a message", error: err.toString().isEmpty ? "None provided" : err.toString().isEmpty);
+    });
   }
-  void sendSeen(int userID, int chatroomID){
-    try{
-      _hubConnection!.invoke('UserSeen', args: [userID, chatroomID]);
-    }catch(err){
-      logger.e("There was an error caught while sending message:", error: err.toString().isEmpty ? "None provided" : err.toString().isEmpty);
-    }
+  void sendSeen(int userID, int chatroomID) async {
+      await _hubConnection!.invoke('UserSeen', args: [userID, chatroomID]).catchError((err) {
+        logger.e("There was an error caught while sending user seen", error: err.toString().isEmpty ? "None provided" : err.toString().isEmpty);
+      });
   }
   /// Sets up SignalR event handlers
-  void _setupEventHandlers() {
+  void _setupEventHandlers() async {
 
     _hubConnection!.on('MaximumChatroom', (arguments){
       onMaximumChatroom?.call();

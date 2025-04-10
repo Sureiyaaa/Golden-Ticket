@@ -205,9 +205,11 @@ class SignalRService with ChangeNotifier {
     }
   }
 
-  void sendMessage(int userID, int chatroomID, String messageContent) {
+  void sendMessage(int userID, int chatroomID, String messageContent) async {
     try{
-      _hubConnection!.invoke('SendMessage', args: [userID, chatroomID, messageContent]);
+      await _hubConnection!.invoke('SendMessage', args: [userID, chatroomID, messageContent]).catchError((err) {
+        print(err);
+      });
     }catch(err){
       logger.e("There was an error caught while sending message:", error: err.toString().isEmpty ? "None provided" : err.toString().isEmpty);
     }

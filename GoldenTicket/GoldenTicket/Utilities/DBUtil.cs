@@ -801,9 +801,8 @@ namespace GoldenTicket.Utilities
         {
             using(var context = new ApplicationDbContext())
             {
-                var chatroom = GetChatroom(chatroomID);
+                var chatroom = context.Chatrooms.FirstOrDefault(c => c.ChatroomID == chatroomID);
                 chatroom!.IsClosed = true;
-                context.Chatrooms.Attach(chatroom!);
                 await context.SaveChangesAsync();
                 return chatroom!;
             }

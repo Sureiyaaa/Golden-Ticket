@@ -54,7 +54,11 @@ class _TicketsPageState extends State<TicketsPage> {
 
     setState(() {
       _filteredTickets = dataManager.tickets.where((ticket) {
-        bool matchesSearch = ticket.ticketTitle.toLowerCase().contains(query);
+        bool matchesSearch = ticket.ticketTitle.toLowerCase().contains(query) ||
+            ticket.ticketID.toString().contains(query) ||
+            ticket.author.firstName.toLowerCase().contains(query) == true ||
+            ticket.author.lastName.toLowerCase().contains(query) == true;
+
         bool matchesStatus = selectedStatus == 'All' || ticket.status == selectedStatus;
         bool matchesMainTag = selectedMainTag == 'All' || (ticket.mainTag?.tagName == selectedMainTag);
         bool matchesSubTag = selectedSubTag == 'All' || selectedSubTag == null || (ticket.subTag?.subTagName == selectedSubTag);

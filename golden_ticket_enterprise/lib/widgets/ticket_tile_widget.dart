@@ -52,9 +52,11 @@ class TicketTile extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 6),
-              Text("Author: ${ticket.author.firstName} ${ticket.author.lastName}", style: TextStyle(fontSize: 13, color: Colors.grey[700])),
+              SelectableText("ID: ${ticket.ticketID}", style: TextStyle(fontSize: 13, color: Colors.grey[700])),
               const SizedBox(height: 6),
-              Text("Assignee: ${ticket.assigned != null ? '${ticket.assigned!.firstName} ${ticket.assigned!.lastName}' : "None assigned"}", style: TextStyle(fontSize: 13, color: Colors.grey[700])),
+              SelectableText("Author: ${ticket.author.firstName} ${ticket.author.lastName}", style: TextStyle(fontSize: 13, color: Colors.grey[700])),
+              const SizedBox(height: 6),
+              SelectableText("Assignee: ${ticket.assigned != null ? '${ticket.assigned!.firstName} ${ticket.assigned!.lastName}' : "None assigned"}", style: TextStyle(fontSize: 13, color: Colors.grey[700])),
               const SizedBox(height: 10),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,

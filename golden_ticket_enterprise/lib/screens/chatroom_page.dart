@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
@@ -10,6 +9,7 @@ import 'package:golden_ticket_enterprise/models/time_utils.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:golden_ticket_enterprise/widgets/chatroom_details_widget.dart';
 import 'package:golden_ticket_enterprise/widgets/notification_widget.dart';
+import 'package:golden_ticket_enterprise/widgets/rating_dialog_widget.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 
@@ -27,8 +27,6 @@ class _ChatroomPageState extends State<ChatroomPage> {
   TextEditingController messageController = TextEditingController();
   FocusNode messageFocusNode = FocusNode();
   bool enableMessage = true;
-  bool _isInitialized = false;
-  late DataManager _dataManager;
 
   @override
   void initState() {
@@ -196,8 +194,8 @@ class _ChatroomPageState extends State<ChatroomPage> {
                   },
                 ),
               ),
-              if(chatroom.isClosed && chatroom.groupMembers!.any((u) => u.member?.userID == userSession?.user.userID))
-                _buildReopenRoom(dataManager, userSession, chatroom)
+              if(chatroom.isClosed && chatroom.author.userID == userSession?.user.userID)
+                _buildReopenAndRateButtons(dataManager, userSession, chatroom)
               else if (chatroom.isClosed)
                 _buildClosedBar(dataManager, userSession, chatroom)
               else if (chatroom.groupMembers!.any((u) => u.member?.userID == userSession?.user.userID))
@@ -271,19 +269,48 @@ class _ChatroomPageState extends State<ChatroomPage> {
       ),
     );
   }
-  Widget _buildReopenRoom(DataManager dataManager, HiveSession? userSession, Chatroom chatroom) {
+
+  Widget _buildReopenAndRateButtons(DataManager dataManager, HiveSession? userSession, Chatroom chatroom) {
     return Padding(
       padding: const EdgeInsets.all(12.0),
-      child: ElevatedButton(
-        onPressed: () {
-          if (userSession != null) {
-            dataManager.signalRService.reopenChatroom(userSession.user.userID, chatroom.chatroomID);
-          }
-        },
-        child: Text("Reopen Chatroom"),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          ElevatedButton(
+            onPressed: () {
+              if (userSession != null) {
+                dataManager.signalRService.reopenChatroom(
+                  userSession.user.userID,
+                  chatroom.chatroomID,
+                );
+              }
+            },
+            child: const Text("Reopen Chatroom"),
+          ),
+          if(!dataManager.ratings.any((rating) => rating.chatroom.chatroomID == chatroom.chatroomID)) ElevatedButton(
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (_) => RatingDialogWidget(
+                  onSubmit: (rating, feedback) {
+                    // Handle the rating and feedback submission
+                    dataManager.signalRService.addRating(
+                      chatroom.chatroomID,
+                      rating,
+                      feedback,
+                    );
+                  },
+                ),
+              );
+            },
+            child: const Text("Rate Chatroom"),
+          ),
+        ],
       ),
     );
   }
+
+
   Widget _buildClosedBar(DataManager dataManager, HiveSession? userSession, Chatroom chatroom) {
     return Padding(
       padding: const EdgeInsets.all(12.0),

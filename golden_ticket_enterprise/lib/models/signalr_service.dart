@@ -54,25 +54,25 @@ class SignalRService with ChangeNotifier {
     _hubConnection = HubConnectionBuilder()
         .withUrl(
       serverUrl,
-      // HttpConnectionOptions(logging: (level, message) {
-      //   switch(level){
-      //     case LogLevel.information:
-      //         // logger.i(message);
-      //       break;
-      //     case LogLevel.trace:
-      //       logger.t(message);
-      //     case LogLevel.debug:
-      //       logger.d(message);
-      //     case LogLevel.warning:
-      //       logger.w(message);
-      //     case LogLevel.error:
-      //       logger.e(message, error: "None Provided");
-      //     case LogLevel.critical:
-      //       logger.f(message);
-      //     case LogLevel.none:
-      //       logger.d(message);
-      //   }
-      // }), // Debug logs
+      HttpConnectionOptions(logging: (level, message) {
+        switch(level){
+          case LogLevel.information:
+              // logger.i(message);
+            break;
+          case LogLevel.trace:
+            logger.t(message);
+          case LogLevel.debug:
+            logger.d(message);
+          case LogLevel.warning:
+            logger.w(message);
+          case LogLevel.error:
+            logger.e(message, error: "None Provided");
+          case LogLevel.critical:
+            logger.f(message);
+          case LogLevel.none:
+            logger.d(message);
+        }
+      }), // Debug logs
     )
         .build();
 

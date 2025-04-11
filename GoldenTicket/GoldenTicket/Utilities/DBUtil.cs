@@ -827,7 +827,7 @@ namespace GoldenTicket.Utilities
 
                 await UpdateTicket(ticket!.TicketID, ticket!.TicketTitle!, "Open", ticket!.Priority!.PriorityName!, ticket!.MainTag?.TagName, ticket!.SubTag?.TagName, ticket!.AssignedID, ticket!.AuthorID);
                 var newChatroom = context.Chatrooms.FirstOrDefault(c => c.ChatroomID == chatroomID);
-                chatroom!.IsClosed = true;
+                chatroom!.IsClosed = false;
                 await context.SaveChangesAsync();
                 return chatroom!;
             }

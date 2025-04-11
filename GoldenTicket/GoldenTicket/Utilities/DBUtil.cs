@@ -822,12 +822,10 @@ namespace GoldenTicket.Utilities
             using(var context = new ApplicationDbContext())
             {
                 var chatroom = GetChatroom(chatroomID);
-
                 var ticket = chatroom!.Ticket;
-
                 await UpdateTicket(ticket!.TicketID, ticket!.TicketTitle!, "Open", ticket!.Priority!.PriorityName!, ticket!.MainTag?.TagName, ticket!.SubTag?.TagName, ticket!.AssignedID, ticket!.AuthorID);
                 var newChatroom = context.Chatrooms.FirstOrDefault(c => c.ChatroomID == chatroomID);
-                chatroom!.IsClosed = false;
+                newChatroom!.IsClosed = false;
                 await context.SaveChangesAsync();
                 return newChatroom!;
             }

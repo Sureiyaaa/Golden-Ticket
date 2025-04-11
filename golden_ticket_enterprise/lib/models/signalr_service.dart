@@ -156,7 +156,7 @@ class SignalRService with ChangeNotifier {
       });
   }
   void addRating(int chatroomID, int score, String? feedback)async{
-    await _hubConnection!.invoke('AddRating', args: [chatroomID, score, feedback]).catchError((err) {
+    await _hubConnection!.invoke('AddOrUpdateRating', args: [chatroomID, score, feedback]).catchError((err) {
       logger.e("There was an error caught while saving rating", error: err.toString().isEmpty ? "None provided" : err.toString());
     });
   }
@@ -244,8 +244,6 @@ class SignalRService with ChangeNotifier {
       if(arguments != null){
         var chatroomData = arguments[0]['chatroom'];
           Chatroom chatroom = Chatroom.fromJson(chatroomData);
-        chatroom.messages!.sort((a, b) => b.createdAt.compareTo(a.createdAt!));
-
         onChatroomUpdate?.call(chatroom);
       }
       notifyListeners();

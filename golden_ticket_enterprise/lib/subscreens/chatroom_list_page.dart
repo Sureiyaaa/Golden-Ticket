@@ -21,9 +21,19 @@ class ChatroomListPage extends StatefulWidget {
 class _ChatroomListPageState extends State<ChatroomListPage> {
   String searchQuery = "";
   bool includeClosedChatrooms = false;
+  bool includeMyChatrooms = false;
   bool showFilters = false;
 
+  int currentPage = 0;
+  final int itemsPerPage = 10;
+
   TextEditingController searchController = TextEditingController();
+
+  void resetPagination() {
+    setState(() {
+      currentPage = 0;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,9 +55,20 @@ class _ChatroomListPageState extends State<ChatroomListPage> {
               chatroomAuthor.toLowerCase().contains(searchQuery.toLowerCase());
 
           bool isClosed = chatroom.isClosed;
+          bool isMyChatroom = chatroom.groupMembers!
+              .any((member) => member.member?.userID == widget.session!.user.userID);
 
-          return matchesQuery && (includeClosedChatrooms || !isClosed);
+          return matchesQuery &&
+              (includeClosedChatrooms || !isClosed) &&
+              (!includeMyChatrooms || isMyChatroom);
         }).toList();
+
+        List<Chatroom> paginatedChatrooms = filteredChatrooms
+            .skip(currentPage * itemsPerPage)
+            .take(itemsPerPage)
+            .toList();
+
+        int totalPages = (filteredChatrooms.length / itemsPerPage).ceil();
 
         return Scaffold(
           floatingActionButton: widget.session!.user.role == "Employee"
@@ -75,6 +96,7 @@ class _ChatroomListPageState extends State<ChatroomListPage> {
               onChanged: (value) {
                 setState(() {
                   searchQuery = value;
+                  resetPagination();
                 });
               },
             ),
@@ -86,6 +108,7 @@ class _ChatroomListPageState extends State<ChatroomListPage> {
                     setState(() {
                       searchQuery = "";
                       searchController.clear();
+                      resetPagination();
                     });
                   },
                 ),
@@ -111,13 +134,24 @@ class _ChatroomListPageState extends State<ChatroomListPage> {
                     onChanged: (bool? value) {
                       setState(() {
                         includeClosedChatrooms = value ?? true;
+                        resetPagination();
+                      });
+                    },
+                  ),
+                  CheckboxListTile(
+                    title: Text("My Chatrooms"),
+                    value: includeMyChatrooms,
+                    onChanged: (bool? value) {
+                      setState(() {
+                        includeMyChatrooms = value ?? true;
+                        resetPagination();
                       });
                     },
                   ),
                 ],
               ),
               Expanded(
-                child: filteredChatrooms.isEmpty
+                child: paginatedChatrooms.isEmpty
                     ? Center(
                   child: Text(
                     "No chatrooms found",
@@ -129,9 +163,9 @@ class _ChatroomListPageState extends State<ChatroomListPage> {
                   ),
                 )
                     : ListView.builder(
-                  itemCount: filteredChatrooms.length,
+                  itemCount: paginatedChatrooms.length,
                   itemBuilder: (context, index) {
-                    Chatroom chatroom = filteredChatrooms[index];
+                    Chatroom chatroom = paginatedChatrooms[index];
                     String chatTitle = chatroom.ticket != null
                         ? chatroom.ticket?.ticketTitle ?? "No Title Provided"
                         : "No title provided";
@@ -268,6 +302,36 @@ class _ChatroomListPageState extends State<ChatroomListPage> {
                   },
                 ),
               ),
+              if (filteredChatrooms.length > itemsPerPage)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.arrow_back),
+                        onPressed: currentPage > 0
+                            ? () {
+                          setState(() {
+                            currentPage--;
+                          });
+                        }
+                            : null,
+                      ),
+                      Text("Page ${currentPage + 1} of $totalPages"),
+                      IconButton(
+                        icon: Icon(Icons.arrow_forward),
+                        onPressed: currentPage < totalPages - 1
+                            ? () {
+                          setState(() {
+                            currentPage++;
+                          });
+                        }
+                            : null,
+                      ),
+                    ],
+                  ),
+                ),
             ],
           ),
         );

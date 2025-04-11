@@ -654,6 +654,7 @@ namespace GoldenTicket.Utilities
                         ActionID = Action,
                         ActionMessage = Message,
                     };
+
                     context.TicketHistory.Add(ticketHistory);
                     await context.SaveChangesAsync();
                 }
@@ -731,6 +732,11 @@ namespace GoldenTicket.Utilities
                     newticket.AssignedID = assignedID;
                 else newticket.AssignedID = null;
 
+                if(statusName == "Closed") {
+                    var chatroom = context.Chatrooms.FirstOrDefault(c => c.TicketID == ticketID);
+                    chatroom!.IsClosed = true;
+                    await context.SaveChangesAsync();
+                }
 
                 await context.SaveChangesAsync();
                 return newticket;
@@ -820,6 +826,9 @@ namespace GoldenTicket.Utilities
                 var ticket = chatroom!.Ticket;
 
                 await UpdateTicket(ticket!.TicketID, ticket!.TicketTitle!, "Open", ticket!.Priority!.PriorityName!, ticket!.MainTag?.TagName, ticket!.SubTag?.TagName, ticket!.AssignedID, ticket!.AuthorID);
+                var newChatroom = context.Chatrooms.FirstOrDefault(c => c.ChatroomID == chatroomID);
+                chatroom!.IsClosed = true;
+                await context.SaveChangesAsync();
                 return chatroom!;
             }
         }

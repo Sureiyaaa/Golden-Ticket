@@ -190,7 +190,7 @@ class DataManager extends ChangeNotifier {
 
     if (index != -1) {
       chatrooms[index].messages!.add(message);
-      chatrooms[index].messages!.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      chatrooms[index].messages!.sort((a, b) => a.createdAt.compareTo(b.createdAt));
     }
     updateLastMessage(chatroom);
     notifyListeners();
@@ -304,7 +304,9 @@ class DataManager extends ChangeNotifier {
             (c) => c.ticket?.ticketID == ticketID);
   }
   
-
+  Rating? findRatingByChatroomID(int chatroomID){
+    return ratings.firstWhere((rating) => rating.chatroom.chatroomID == chatroomID);
+  }
 
   Future<void> closeConnection() async {
     tickets = [];

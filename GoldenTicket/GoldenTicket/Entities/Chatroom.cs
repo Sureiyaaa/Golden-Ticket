@@ -52,7 +52,7 @@ namespace GoldenTicket.Entities
             // Sort messages from latest to earliest
             
             this.Messages = chatroom.Messages
-                .OrderByDescending(m => m.CreatedAt)
+                .OrderBy(m => m.CreatedAt)
                 .Select(m => new MessageDTO(m))
                 .ToList();
             // Assign the last message if available

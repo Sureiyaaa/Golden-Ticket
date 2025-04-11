@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:golden_ticket_enterprise/entities/chatroom.dart';
 import 'package:golden_ticket_enterprise/entities/group_member.dart';
+import 'package:golden_ticket_enterprise/entities/message.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
 import 'package:golden_ticket_enterprise/models/time_utils.dart';
@@ -27,23 +28,54 @@ class _ChatroomPageState extends State<ChatroomPage> {
   TextEditingController messageController = TextEditingController();
   FocusNode messageFocusNode = FocusNode();
   bool enableMessage = true;
+  bool enableRate = true;
+  int _messageLimit = 30;
+
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+        // Near the top (because list is reversed)
+        setState(() {
+          _messageLimit += 30; // Load 30 more
+        });
+      }
+    });
+
     messageFocusNode.requestFocus();
   }
 
   Widget build(BuildContext context) {
-
     return Consumer<DataManager>(
       builder: (context, dataManager, child) {
-        Chatroom? chatroom = dataManager.findChatroomByID(widget.chatroomID);
+        Chatroom chatroom = dataManager.findChatroomByID(widget.chatroomID)!;
+
+        final allMessages = (chatroom.messages ?? []).toList(); // safety if null
+        if (allMessages.isEmpty) {
+          return const Center(child: CircularProgressIndicator()); // or a 'Loading...' placeholder
+        }
+
+        if (_messageLimit > allMessages.length) {
+          _messageLimit = allMessages.length; // Clamp to latest available
+        }
+
+        final start = (allMessages.length - _messageLimit).clamp(0, allMessages.length);
+        final visibleMessages = allMessages.sublist(start).reversed.toList();
+        allMessages.forEach((msg) {
+          print("Message ID: ${msg.messageID}, Created At: ${msg.createdAt}, Content: ${msg.messageContent}");
+        });
+
+        print("\n=== Sorted Messages (Visible) ===");
+        visibleMessages.forEach((msg) {
+          print("Message ID: ${msg.messageID}, Created At: ${msg.createdAt}, Content: ${msg.messageContent}");
+        });
         var userSession = Hive.box<HiveSession>('sessionBox').get('user');
-        String chatTitle = chatroom?.ticket != null ? chatroom?.ticket?.ticketTitle ?? "New Chat" : "New Chat";
+        String chatTitle = chatroom.ticket != null ? chatroom.ticket?.ticketTitle ?? "New Chat" : "New Chat";
 
         dataManager.signalRService.onReceiveMessage = (message, chatroom) {
-          print(chatroom.chatroomID);
           if (chatroom.chatroomID == widget.chatroomID) {
             if (!chatroom.messages!.any((msg) => msg.messageID == message.messageID)) {
               dataManager.signalRService.sendSeen(userSession!.user.userID, widget.chatroomID);
@@ -51,6 +83,10 @@ class _ChatroomPageState extends State<ChatroomPage> {
             }
           }
         };
+        dataManager.signalRService.onRatingUpdate = (rating) {
+          enableRate = true;
+        };
+
         void sendMessage(String messageContent, Chatroom chatroom) {
           if (messageContent.trim().isEmpty) return;
 
@@ -69,6 +105,16 @@ class _ChatroomPageState extends State<ChatroomPage> {
           }else{
             messageFocusNode.requestFocus();
           }
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_scrollController.hasClients) {
+              _scrollController.animateTo(
+                0.0, // because the list is reversed
+                duration: Duration(milliseconds: 300),
+                curve: Curves.easeOut,
+              );
+            }
+          });
+
         }
         dataManager.signalRService.onAlreadyMember = (){
           TopNotification.show(
@@ -114,10 +160,12 @@ class _ChatroomPageState extends State<ChatroomPage> {
             children: [
               Expanded(
                 child: ListView.builder(
+                  controller: _scrollController,
                   reverse: true, // Show latest messages at the bottom
-                  itemCount: chatroom.messages!.length,
+                  itemCount: visibleMessages.length,
                   itemBuilder: (context, index) {
-                    final message = chatroom.messages![index];
+                    final message = visibleMessages[index];
+                    final previousMessage = index < visibleMessages.length - 1 ? visibleMessages[index + 1] : null;
                     final seenByMembers = chatroom.groupMembers!
                         .where((m) => m.lastSeenAt != null && m.lastSeenAt!.isAfter(message.createdAt))
                         .toList();
@@ -125,73 +173,101 @@ class _ChatroomPageState extends State<ChatroomPage> {
                     final isMe = message.sender.userID == userSession!.user.userID;
                     final isSeen = seenByMembers.isNotEmpty && seenMessageID == chatroom.lastMessage?.createdAt;
 
-                    return Align(
-                      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                      child: MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              seenMessageID = (seenMessageID == message.messageID) ? null : message.messageID;
-                            });
-                          },
-                          child: Column(
-                            crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                            children: [
-                              // Sender Name Above Message
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                                child: Text(
-                                  "${message.sender.firstName}",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                    color: Colors.grey[800],
-                                  ),
-                                ),
+                    List<Widget> messageColumn = [];
+
+                    if (shouldShowHourSeparator(message, previousMessage)) {
+                      messageColumn.add(
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          child: Center(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade300,
+                                borderRadius: BorderRadius.circular(20),
                               ),
-                              // Message Bubble with Dynamic Resizing
-                              LayoutBuilder(
-                                builder: (context, constraints) {
-                                  return Tooltip(
-                                    message: TimeUtil.formatTimestamp(message.createdAt),
-                                    child: Container(
-                                      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                                      padding: const EdgeInsets.all(10),
-                                      decoration: BoxDecoration(
-                                        color: isMe ? kPrimaryContainer : kTertiaryContainer,
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      constraints: BoxConstraints(
-                                        maxWidth: constraints.maxWidth * 0.5, // ✅ 50% of available width
-                                      ),
-                                      child: MarkdownBody(
-                                        data: message.messageContent, // ✅ Render Markdown
-                                        styleSheet: MarkdownStyleSheet(
-                                          p: TextStyle(fontSize: 14, color: Colors.black),
-                                          strong: const TextStyle(fontWeight: FontWeight.bold),
-                                          blockquote: TextStyle(color: Colors.grey[600], fontStyle: FontStyle.italic),
-                                        ),
-                                        selectable: true,
-                                      ),
-                                    ),
-                                  );
-                                },
+                              child: Text(
+                                TimeUtil.formatTimestamp(message.createdAt),
+                                style: const TextStyle(fontSize: 12, color: Colors.black54),
                               ),
-                              if (isSeen)
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+
+                    messageColumn.add(
+                      Align(
+                        alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                        child: MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                seenMessageID = (seenMessageID == message.messageID) ? null : message.messageID;
+                              });
+                            },
+                            child: Column(
+                              crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                              children: [
                                 Padding(
-                                  padding: const EdgeInsets.only(top: 2, right: 12, left: 12),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
                                   child: Text(
-                                    _formatSeenBy(seenByMembers),
-                                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                    "${message.sender.firstName}",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: Colors.grey[800],
+                                    ),
                                   ),
                                 ),
-                            ],
+                                LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    return Tooltip(
+                                      message: TimeUtil.formatTimestamp(message.createdAt),
+                                      child: Container(
+                                        margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                                        padding: const EdgeInsets.all(10),
+                                        decoration: BoxDecoration(
+                                          color: isMe ? kPrimaryContainer : kTertiaryContainer,
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        constraints: BoxConstraints(
+                                          maxWidth: constraints.maxWidth * 0.5,
+                                        ),
+                                        child: MarkdownBody(
+                                          data: message.messageContent,
+                                          styleSheet: MarkdownStyleSheet(
+                                            p: const TextStyle(fontSize: 14, color: Colors.black),
+                                            strong: const TextStyle(fontWeight: FontWeight.bold),
+                                            blockquote: TextStyle(color: Colors.grey[600], fontStyle: FontStyle.italic),
+                                          ),
+                                          selectable: true,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                if (isSeen)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 2, right: 12, left: 12),
+                                    child: Text(
+                                      _formatSeenBy(seenByMembers),
+                                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     );
-                  },
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: messageColumn,
+                    );
+                  }
                 ),
               ),
               if(chatroom.isClosed && chatroom.author.userID == userSession?.user.userID)
@@ -254,8 +330,6 @@ class _ChatroomPageState extends State<ChatroomPage> {
       ),
     );
   }
-
-
   Widget _buildJoinRoomButton(DataManager dataManager, HiveSession? userSession, Chatroom chatroom) {
     return Padding(
       padding: const EdgeInsets.all(12.0),
@@ -287,18 +361,21 @@ class _ChatroomPageState extends State<ChatroomPage> {
             },
             child: const Text("Reopen Chatroom"),
           ),
-          if(!dataManager.ratings.any((rating) => rating.chatroom.chatroomID == chatroom.chatroomID)) ElevatedButton(
+          ElevatedButton(
             onPressed: () {
               showDialog(
                 context: context,
                 builder: (_) => RatingDialogWidget(
+                  rating: dataManager.findRatingByChatroomID(chatroom.chatroomID),
                   onSubmit: (rating, feedback) {
                     // Handle the rating and feedback submission
+                    enableRate = false;
                     dataManager.signalRService.addRating(
                       chatroom.chatroomID,
                       rating,
                       feedback,
                     );
+
                   },
                 ),
               );
@@ -316,6 +393,11 @@ class _ChatroomPageState extends State<ChatroomPage> {
       padding: const EdgeInsets.all(12.0),
       child:  Text("Viewing archived chat"),
     );
+  }
+
+  bool shouldShowHourSeparator(Message current, Message? previous) {
+    if (previous == null) return true; // First message
+    return current.createdAt.difference(previous.createdAt).inMinutes > 90;
   }
 
   String _formatSeenBy(List<GroupMember> seenBy) {

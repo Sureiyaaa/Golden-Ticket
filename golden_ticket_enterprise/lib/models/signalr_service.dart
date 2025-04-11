@@ -131,7 +131,7 @@ class SignalRService with ChangeNotifier {
         subTag?.isEmpty == true ? null : subTag,    // Ensure null instead of empty string
         assignedID == 0 ? null : assignedID         // Ensure null instead of 0
       ]).catchError((err) {
-        logger.e("There was an error caught while updating ticket", error: err.toString().isEmpty ? "None provided" : err.toString().isEmpty);
+        logger.e("There was an error caught while updating ticket", error: err.toString().isEmpty ? "None provided" : err.toString());
       });
   }
 
@@ -182,14 +182,6 @@ class SignalRService with ChangeNotifier {
       await _hubConnection!.invoke('AddUser', args: [username, password, firstName, middleName,lastName, role, assignedTags]).catchError((err) {
         logger.e("There was an error caught while Add User", error: err.toString().isEmpty ? "None provided" : err.toString());
       });
-  }
-
-
-  void reopenChatroom(int userID, int chatroomID) async {
-      await _hubConnection!.invoke('ReopenChatroom', args: [userID, chatroomID]).catchError((err) {
-        logger.e("There was an error caught while Reopen Chatroom", error: err.toString().isEmpty ? "None provided" : err.toString());
-      });
-
   }
 
   void sendMessage(int userID, int chatroomID, String messageContent) async {
@@ -258,18 +250,18 @@ class SignalRService with ChangeNotifier {
       }
     });
 
-    _hubConnection!.on('RatingUpdate', (arguments) {
+    _hubConnection!.on('RatingReceived', (arguments) {
       if(arguments != null){
-        onRatingUpdate?.call(Rating.fromJson(arguments[0]['ticket']));
+        onRatingUpdate?.call(Rating.fromJson(arguments[0]['rating']));
         notifyListeners();
       }
     });
 
 
-    _hubConnection!.on('RatingsUpdate', (arguments) {
+    _hubConnection!.on('RatingsReceived', (arguments) {
       if(arguments != null){
         List<Rating> updatedRatings =
-        (arguments[0]['rating'] as List).map((rating) => Rating.fromJson(rating)).toList();
+        (arguments[0]['ratings'] as List).map((rating) => Rating.fromJson(rating)).toList();
 
         onRatingsUpdate?.call(updatedRatings);
         notifyListeners();

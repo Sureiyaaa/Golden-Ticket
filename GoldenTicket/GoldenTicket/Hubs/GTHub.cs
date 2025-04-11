@@ -429,27 +429,6 @@ namespace GoldenTicket.Hubs
             var ticketDTO = new TicketDTO(DBUtil.GetTicket(TicketID)!);
             await Clients.Caller.SendAsync("TicketUpdate", new {ticket = ticketDTO});
         }
-        public async Task ReopenChatroom(int chatroomID) 
-        {
-            var chatroomDTO = new ChatroomDTO(await DBUtil.ReopenChatroom(chatroomID));
-            var ticketDTO = chatroomDTO.Ticket;
-            var MembersToInvoke = new List<int>();
-            var adminUser = DBUtil.GetAdminUsers();
-            foreach(var user in adminUser){
-                if(!MembersToInvoke.Contains(user.UserID)){
-                    MembersToInvoke.Add(user.UserID);
-                }
-            }
-            foreach(int memberID in MembersToInvoke){
-                if (_connections.TryGetValue(memberID, out var connectionIds)){
-                    foreach (var connectionId in connectionIds)
-                    {
-                        await Clients.Client(connectionId).SendAsync("TicketUpdate", new { ticket = ticketDTO });
-                        await Clients.Client(connectionId).SendAsync("ChatroomUpdate", new { chatroom = chatroomDTO });
-                    }
-                }
-            }
-        }
         public async Task CloseMessage(int ChatroomID) {
             string message = "Your ticket has been resolved! Thank you for your patience! It would really help us if you rate your experience, your feedback would really be appreciated!";
             await SendMessage(100000001, ChatroomID, message);

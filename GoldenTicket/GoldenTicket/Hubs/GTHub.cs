@@ -380,12 +380,12 @@ namespace GoldenTicket.Hubs
             var chatroomDTO = DBUtil.GetChatrooms().Where(c => c.Ticket!.TicketID == TicketID).FirstOrDefault();
             int chatroomID = chatroomDTO?.ChatroomID ?? throw new InvalidOperationException("ChatroomID cannot be null.");
 
-
             // Chatroom Close
             if(Status == "Closed")
             {
                 await DBUtil.CloseChatroom(chatroomID);
                 chatroomDTO = DBUtil.GetChatrooms().Where(c => c.Ticket!.TicketID == TicketID).FirstOrDefault();
+                await CloseMessage(chatroomID);
             }
             // Chatroom Reopen
             if(Status == "Open" && chatroomDTO!.IsClosed)
@@ -422,14 +422,14 @@ namespace GoldenTicket.Hubs
                     }
                 }
             }
-            if(Status == "Closed") CloseMessage(chatroomID);
+            
         }
         public async Task OpenTicket(int TicketID)
         {
             var ticketDTO = new TicketDTO(DBUtil.GetTicket(TicketID)!);
             await Clients.Caller.SendAsync("TicketUpdate", new {ticket = ticketDTO});
         }
-        public async Task ReopenTicket(int chatroomID) 
+        public async Task ReopenChatroom(int chatroomID) 
         {
             var chatroomDTO = new ChatroomDTO(await DBUtil.ReopenChatroom(chatroomID));
             var ticketDTO = chatroomDTO.Ticket;
@@ -450,7 +450,7 @@ namespace GoldenTicket.Hubs
                 }
             }
         }
-        public async void CloseMessage(int ChatroomID) {
+        public async Task CloseMessage(int ChatroomID) {
             string message = "Your ticket has been resolved! Thank you for your patience! It would really help us if you rate your experience, your feedback would really be appreciated!";
             await SendMessage(100000001, ChatroomID, message);
         }

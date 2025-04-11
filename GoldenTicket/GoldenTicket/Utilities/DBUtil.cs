@@ -829,7 +829,7 @@ namespace GoldenTicket.Utilities
                 var newChatroom = context.Chatrooms.FirstOrDefault(c => c.ChatroomID == chatroomID);
                 chatroom!.IsClosed = false;
                 await context.SaveChangesAsync();
-                return chatroom!;
+                return newChatroom!;
             }
         }
         #endregion

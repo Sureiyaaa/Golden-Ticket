@@ -1,18 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:golden_ticket_enterprise/entities/rating.dart';
+import 'package:golden_ticket_enterprise/widgets/notification_widget.dart';
 
 class RatingDialogWidget extends StatefulWidget {
   final void Function(int rating, String feedback) onSubmit;
-
-  const RatingDialogWidget({Key? key, required this.onSubmit}) : super(key: key);
+  Rating? rating;
+  RatingDialogWidget({Key? key, this.rating, required this.onSubmit}) : super(key: key);
 
   @override
   _RatingDialogWidgetState createState() => _RatingDialogWidgetState();
 }
 
 class _RatingDialogWidgetState extends State<RatingDialogWidget> {
-  int _rating = 0;
+  late int _rating;
   final TextEditingController _feedbackController = TextEditingController();
 
+  @override
+  void initState(){
+    super.initState();
+    _rating = widget.rating?.score ?? 0;
+    _feedbackController.text = widget.rating?.feedback ?? '';
+  }
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -64,6 +72,7 @@ class _RatingDialogWidgetState extends State<RatingDialogWidget> {
                 hintText: 'Share your thoughts...',
                 border: OutlineInputBorder(),
               ),
+
             ),
             const SizedBox(height: 16),
             Row(
@@ -76,6 +85,7 @@ class _RatingDialogWidgetState extends State<RatingDialogWidget> {
                 const SizedBox(width: 8),
                 ElevatedButton(
                   onPressed: () {
+                    if(_rating == 0) return TopNotification.show(context: context, message: '',duration: Duration(seconds: 2), backgroundColor: Colors.redAccent);
                     widget.onSubmit(_rating, _feedbackController.text);
                     Navigator.of(context).pop();
                   },

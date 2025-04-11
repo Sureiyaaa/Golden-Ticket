@@ -22,6 +22,10 @@ namespace GoldenTicket.Entities
         public MainTagDTO(MainTag mainTag){
             this.MainTagID = mainTag.TagID;
             this.MainTagName = mainTag.TagName;
+            this.SubTags = [];
+            foreach(var subTag in mainTag.ChildTags){
+                this.SubTags.Add(new SubTagDTO(subTag));
+            }
         }
     }
 

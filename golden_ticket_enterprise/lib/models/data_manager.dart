@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:golden_ticket_enterprise/entities/chatroom.dart';
 import 'package:golden_ticket_enterprise/entities/faq.dart';
-import 'package:golden_ticket_enterprise/entities/group_member.dart';
 import 'package:golden_ticket_enterprise/entities/main_tag.dart';
 import 'package:golden_ticket_enterprise/entities/message.dart';
 import 'package:golden_ticket_enterprise/entities/rating.dart';
@@ -11,6 +10,8 @@ import 'package:golden_ticket_enterprise/models/signalr_service.dart';
 
 class DataManager extends ChangeNotifier {
   final SignalRService signalRService;
+
+  Function(Rating)? onRatingUpdate;
   List<MainTag> mainTags = [];
   List<FAQ> faqs = [];
   List<String> status = [];
@@ -88,6 +89,9 @@ class DataManager extends ChangeNotifier {
     signalRService.onRatingsUpdate = (updatedRatings){
       updateRatings(updatedRatings);
     };
+    signalRService.onRatingUpdate = (updatedRating){
+      updateRating(updatedRating);
+    };
   }
 
   void updateMainTags(List<MainTag> updatedTags) {
@@ -110,8 +114,13 @@ class DataManager extends ChangeNotifier {
   }
 
   void updateRating(Rating updatedRating) {
-    ratings.add(updatedRating);
-
+    int index = ratings.indexWhere((c) => c.ratingID == updatedRating.ratingID);
+    if (index != -1) {
+      ratings[index] = updatedRating; // Update ticket
+    } else {
+      ratings.add(updatedRating);
+    }
+    onRatingUpdate?.call(updatedRating);
     notifyListeners();
   }
 

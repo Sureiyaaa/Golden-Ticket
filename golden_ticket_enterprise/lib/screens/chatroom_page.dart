@@ -64,14 +64,7 @@ class _ChatroomPageState extends State<ChatroomPage> {
 
         final start = (allMessages.length - _messageLimit).clamp(0, allMessages.length);
         final visibleMessages = allMessages.sublist(start).reversed.toList();
-        allMessages.forEach((msg) {
-          print("Message ID: ${msg.messageID}, Created At: ${msg.createdAt}, Content: ${msg.messageContent}");
-        });
 
-        print("\n=== Sorted Messages (Visible) ===");
-        visibleMessages.forEach((msg) {
-          print("Message ID: ${msg.messageID}, Created At: ${msg.createdAt}, Content: ${msg.messageContent}");
-        });
         var userSession = Hive.box<HiveSession>('sessionBox').get('user');
         String chatTitle = chatroom.ticket != null ? chatroom.ticket?.ticketTitle ?? "New Chat" : "New Chat";
 
@@ -83,8 +76,19 @@ class _ChatroomPageState extends State<ChatroomPage> {
             }
           }
         };
-        dataManager.signalRService.onRatingUpdate = (rating) {
+
+        dataManager.onRatingUpdate = (rating) {
           enableRate = true;
+          TopNotification.show(
+              context: context,
+              message: "Rating submitted!",
+              backgroundColor: Colors.greenAccent,
+              duration: Duration(seconds: 2),
+              textColor: Colors.white,
+              onTap: () {
+                TopNotification.dismiss();
+              }
+          );
         };
 
         void sendMessage(String messageContent, Chatroom chatroom) {
@@ -105,15 +109,6 @@ class _ChatroomPageState extends State<ChatroomPage> {
           }else{
             messageFocusNode.requestFocus();
           }
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (_scrollController.hasClients) {
-              _scrollController.animateTo(
-                0.0, // because the list is reversed
-                duration: Duration(milliseconds: 300),
-                curve: Curves.easeOut,
-              );
-            }
-          });
 
         }
         dataManager.signalRService.onAlreadyMember = (){
@@ -352,11 +347,8 @@ class _ChatroomPageState extends State<ChatroomPage> {
         children: [
           ElevatedButton(
             onPressed: () {
-              if (userSession != null) {
-                dataManager.signalRService.reopenChatroom(
-                  userSession.user.userID,
-                  chatroom.chatroomID,
-                );
+              if (userSession != null && chatroom.ticket?.status == 'Closed') {
+                dataManager.signalRService.updateTicket(chatroom.ticket!.ticketID, chatroom.ticket!.ticketTitle, 'Open', chatroom.ticket!.priority, chatroom.ticket!.mainTag?.tagName, chatroom.ticket!.subTag?.subTagName, chatroom.ticket!.assigned?.userID);
               }
             },
             child: const Text("Reopen Chatroom"),

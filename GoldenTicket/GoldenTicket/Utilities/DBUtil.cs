@@ -18,6 +18,7 @@ namespace GoldenTicket.Utilities
         {
             using(var context = new ApplicationDbContext()){
                 var faqs = context.Faq
+                    .AsNoTracking()
                     .Include(faq => faq.MainTag)
                     .Include(faq => faq.SubTag)
                     .Select(faq => new FAQDTO
@@ -145,18 +146,8 @@ namespace GoldenTicket.Utilities
         {
             using (var context = new ApplicationDbContext())
             {
-                return context.MainTag.Include(m => m.ChildTags)
-                    .Select(m => new MainTagDTO(m)
-                    {
-                        MainTagID = m.TagID,
-                        MainTagName = m.TagName!,
-                        SubTags = m.ChildTags.Select(c => new SubTagDTO(c)
-                        {
-                            SubTagID = c.TagID,
-                            SubTagName = c.TagName!,
-                            MainTagName = m.TagName!
-                        }).ToList()
-                    })
+                return context.MainTag.AsNoTracking().Include(m => m.ChildTags)
+                    .Select(m => new MainTagDTO(m))
                     .ToList();
             }
         }  
@@ -268,6 +259,7 @@ namespace GoldenTicket.Utilities
             using (var context = new ApplicationDbContext())
             {
                 var users = context.Users
+                    .AsNoTracking()
                     .Include(u => u.Role)
                     .Include(m => m.AssignedTags)
                         .ThenInclude(a => a.MainTag)
@@ -282,6 +274,7 @@ namespace GoldenTicket.Utilities
         public static List<UserDTO> GetAdminUsers() {
             using(var context = new ApplicationDbContext()){
                 return context.Users
+                    .AsNoTracking()
                     .Include(u => u.Role)
                     .Include(u => u.AssignedTags)
                         .ThenInclude(a => a.MainTag)
@@ -505,10 +498,9 @@ namespace GoldenTicket.Utilities
             }
 
             // Updates the Chatroom with the TicketID
-            var chatroom = GetChatroom(ChatroomID);
+            var chatroom = context.Chatrooms.Where(c => c.ChatroomID == ChatroomID).FirstOrDefault();
             if (chatroom != null)
             {
-                context.Chatrooms.Attach(chatroom);
                 chatroom.TicketID = newTicket.TicketID;
                 await context.SaveChangesAsync();
             }
@@ -525,6 +517,7 @@ namespace GoldenTicket.Utilities
             {
                 List<TicketDTO> ticketDTOs = new List<TicketDTO>();
                 List<Tickets> ticketList = context.Tickets
+                        .AsNoTracking()
                         .Include(t => t.ticketHistories)
                             .ThenInclude(t => t.Action)
                         .Include(t => t.Author)
@@ -564,6 +557,8 @@ namespace GoldenTicket.Utilities
             using(var context = new ApplicationDbContext())
             {
                 return context.Tickets
+                    .AsNoTracking()
+                    .Where(t => t.TicketID == ticketID)
                     .Include(t => t.ticketHistories)
                         .ThenInclude(t => t.Action)
                     .Include(t => t.Author)
@@ -580,7 +575,7 @@ namespace GoldenTicket.Utilities
                     .Include(t => t.SubTag)
                     .Include(t => t.Status)
                     .Include(t => t.Priority)
-                    .FirstOrDefault(t => t.TicketID == ticketID);
+                    .FirstOrDefault();
             }
         }
         #endregion
@@ -604,7 +599,7 @@ namespace GoldenTicket.Utilities
                 if(SubTag != null)
                     subTagID = context.SubTag.Where(s => s.MainTagID == mainTagID! && s.TagName == SubTag).Select(s => s.TagID).FirstOrDefault();
 
-                var newticket = context.Tickets.FirstOrDefault(t => t.TicketID == ticketID);
+                var newticket = context.Tickets.Where(t => t.TicketID == ticketID).FirstOrDefault();
 
                 //TicketHistory Title Creation
                 if(title != newticket!.TicketTitle)
@@ -703,14 +698,14 @@ namespace GoldenTicket.Utilities
                         {
                             TicketID = newticket.TicketID,
                             ActionID = 2,
-                            ActionMessage = $"Ticket Assigned to {context.Users.FirstOrDefault(u => u.UserID == assignedID)!.FirstName} by {editorName}",
+                            ActionMessage = $"Ticket Assigned to {context.Users.Where(u => u.UserID == assignedID).FirstOrDefault()!.FirstName} by {editorName}",
                         };
                     } else {
                         var ticketHistory = new TicketHistory 
                         {
                             TicketID = newticket.TicketID,
                             ActionID = 3,
-                            ActionMessage = $"Ticket Re-Assigned From {context.Users.FirstOrDefault(u => u.UserID == newticket!.AssignedID)!.FirstName} to {context.Users.FirstOrDefault(u => u.UserID == assignedID)!.FirstName} by {editorName}",
+                            ActionMessage = $"Ticket Re-Assigned From {context.Users.Where(u => u.UserID == newticket!.AssignedID).FirstOrDefault()!.FirstName} to {context.Users.Where(u => u.UserID == assignedID).FirstOrDefault()!.FirstName} by {editorName}",
                         };
                     }
                 }
@@ -733,7 +728,7 @@ namespace GoldenTicket.Utilities
                 else newticket.AssignedID = null;
 
                 if(statusName == "Closed") {
-                    var chatroom = context.Chatrooms.FirstOrDefault(c => c.TicketID == ticketID);
+                    var chatroom = context.Chatrooms.Where(c => c.TicketID == ticketID).FirstOrDefault();
                     chatroom!.IsClosed = true;
                     await context.SaveChangesAsync();
                 }
@@ -809,7 +804,7 @@ namespace GoldenTicket.Utilities
         {
             using(var context = new ApplicationDbContext())
             {
-                var chatroom = context.Chatrooms.FirstOrDefault(c => c.ChatroomID == chatroomID);
+                var chatroom = context.Chatrooms.Where(c => c.ChatroomID == chatroomID).FirstOrDefault();
                 chatroom!.IsClosed = true;
                 await context.SaveChangesAsync();
                 return chatroom!;
@@ -821,7 +816,7 @@ namespace GoldenTicket.Utilities
         {
             using(var context = new ApplicationDbContext())
             {
-                var chatroom = context.Chatrooms.FirstOrDefault(c => c.ChatroomID == chatroomID);
+                var chatroom = context.Chatrooms.Where(c => c.ChatroomID == chatroomID).FirstOrDefault();
                 chatroom!.IsClosed = false;
                 await context.SaveChangesAsync();
                 return chatroom!;
@@ -859,6 +854,7 @@ namespace GoldenTicket.Utilities
             {
                 List<ChatroomDTO> dtos = new List<ChatroomDTO>();
                 List<Chatroom> chatrooms = context.Chatrooms
+                    .AsNoTracking()
                     .Include(c => c.Members)
                         .ThenInclude(m => m.Member)
                             .ThenInclude(t => t!.Role)
@@ -979,6 +975,8 @@ namespace GoldenTicket.Utilities
             using (var context = new ApplicationDbContext())
             {
                 return context.Chatrooms
+                    .AsNoTracking()
+                    .Where(c => c.ChatroomID == ChatroomID)
                     .Include(c => c.Members)
                         .ThenInclude(m => m.Member)
                             .ThenInclude(t => t!.Role)
@@ -1023,7 +1021,7 @@ namespace GoldenTicket.Utilities
                     .Include(c => c.Author)
                         .ThenInclude(t => t!.AssignedTags)
                             .ThenInclude(t => t!.MainTag)
-                    .FirstOrDefault(c => c.ChatroomID == ChatroomID);
+                    .FirstOrDefault();
             }
         }
         #endregion
@@ -1032,7 +1030,7 @@ namespace GoldenTicket.Utilities
         {
             using(var context = new ApplicationDbContext())
             {
-                var member = context.GroupMembers.FirstOrDefault(m => m.MemberID == UserID && m.ChatroomID == ChatroomID);
+                var member = context.GroupMembers.FirstOrDefault();
                 if(member != null){
                     member.LastSeenAt = DateTime.Now;
                     context.SaveChanges();
@@ -1063,6 +1061,7 @@ namespace GoldenTicket.Utilities
             using (var context = new ApplicationDbContext())
             {
                 return context.Messages
+                    .AsNoTracking()
                     .Include(m => m.Sender)
                         .ThenInclude(s => s!.Role)
                     .Include(m => m.Sender)
@@ -1106,6 +1105,8 @@ namespace GoldenTicket.Utilities
             using (var context = new ApplicationDbContext())
             {
                 var ratings = context.Rating
+                    .AsNoTracking()
+                    .Where(r => r.Chatroom!.Ticket!.AssignedID == UserID)
                     .Include(c => c.Chatroom)
                         .ThenInclude(c => c!.Members)
                             .ThenInclude(m => m.Member)
@@ -1165,7 +1166,6 @@ namespace GoldenTicket.Utilities
                         .ThenInclude(c => c!.Author)
                             .ThenInclude(t => t!.AssignedTags)
                                 .ThenInclude(t => t!.MainTag)
-                    .Where(r => r.Chatroom!.Ticket!.AssignedID == UserID)
                     .ToList();
                 foreach (var rating in ratings)
                 {
@@ -1180,6 +1180,7 @@ namespace GoldenTicket.Utilities
             using (var context = new ApplicationDbContext())
             {
                 var ratings = context.Rating
+                    .AsNoTracking()
                     .Include(c => c.Chatroom)
                         .ThenInclude(c => c!.Members)
                             .ThenInclude(m => m.Member)
@@ -1254,6 +1255,8 @@ namespace GoldenTicket.Utilities
             using (var context = new ApplicationDbContext())
             {
                 var rating = context.Rating
+                    .AsNoTracking()
+                    .Where(r => r.ChatroomID == ChatroomID)
                     .Include(c => c.Chatroom)
                         .ThenInclude(c => c!.Members)
                             .ThenInclude(m => m.Member)
@@ -1313,7 +1316,7 @@ namespace GoldenTicket.Utilities
                         .ThenInclude(c => c!.Author)
                             .ThenInclude(t => t!.AssignedTags)
                                 .ThenInclude(t => t!.MainTag)
-                    .FirstOrDefault(r => r.ChatroomID == ChatroomID);
+                    .FirstOrDefault();
                 if(rating == null) Console.WriteLine($"[DBUtil] Rating with ChatroomID {ChatroomID} not found.");
                 return rating;
             }

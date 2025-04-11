@@ -456,12 +456,25 @@ namespace GoldenTicket.Hubs
         }
         #endregion 
         #region Rating
-        public async Task AddRating(int ChatroomID, int Score, string Feedback)
+        public async Task GetRating(int ChatroomID)
         {
-            // var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID)!);
-            // var ticketDTO = chatroomDTO.Ticket;
-            var rating = await DBUtil.AddRating(ChatroomID, Score, Feedback);
-            var ratingDTO = new RatingDTO(DBUtil.GetRating(rating.RatingID)!);
+            var ratingDTO = DBUtil.GetRating(ChatroomID);
+            await Clients.Caller.SendAsync("RatingReceived", new { rating = ratingDTO });
+        }
+        public async Task AddOrUpdateRating(int ChatroomID, int Score, string? Feedback)
+        {
+            var existingRating = DBUtil.GetRatings().FirstOrDefault(r => r.Chatroom.ChatroomID == ChatroomID);
+            var rating = new Rating();
+            if(existingRating != null)
+            {
+                rating = await DBUtil.UpdateRating(ChatroomID, Score, Feedback);
+            }
+            else
+            {
+                rating = await DBUtil.AddRating(ChatroomID, Score, Feedback);
+            }
+            
+            var ratingDTO = new RatingDTO(DBUtil.GetRating(rating!.ChatroomID)!);
             var adminUser = DBUtil.GetAdminUsers();
             foreach (var user in adminUser)
             {

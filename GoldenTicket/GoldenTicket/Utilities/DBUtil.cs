@@ -1076,6 +1076,8 @@ namespace GoldenTicket.Utilities
         #region -   AddRating
         public async static Task<Rating> AddRating(int ChatroomID, int Score, string? Feedback)
         {
+            var existingRating = GetRatings().FirstOrDefault(r => r.Chatroom.ChatroomID == ChatroomID);
+            if(existingRating == null)
             using (var context = new ApplicationDbContext())
             {
                 var newRating = new Rating
@@ -1088,6 +1090,8 @@ namespace GoldenTicket.Utilities
                 context.Rating.Add(newRating);
                 await context.SaveChangesAsync();
                 return newRating;
+            } else {
+                return GetRating(ChatroomID)!;
             }
         }
         #endregion
@@ -1241,7 +1245,7 @@ namespace GoldenTicket.Utilities
         }
         #endregion
         #region -   GetRating
-        public static Rating? GetRating(int RatingID)
+        public static Rating? GetRating(int ChatroomID)
         {
             using (var context = new ApplicationDbContext())
             {
@@ -1305,7 +1309,32 @@ namespace GoldenTicket.Utilities
                         .ThenInclude(c => c!.Author)
                             .ThenInclude(t => t!.AssignedTags)
                                 .ThenInclude(t => t!.MainTag)
-                    .FirstOrDefault(r => r.RatingID == RatingID);
+                    .FirstOrDefault(r => r.ChatroomID == ChatroomID);
+                if(rating == null) Console.WriteLine($"[DBUtil] Rating with ChatroomID {ChatroomID} not found.");
+                return rating;
+            }
+        }
+        #endregion
+        #region -   UpdateRating
+        public async static Task<Rating?> UpdateRating(int chatroomID, int? score, string? feedback)
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                var rating = context.Rating.FirstOrDefault(r => r.ChatroomID == chatroomID);
+                if (rating == null)
+                {
+                    Console.WriteLine($"[DBUtil] Rating with Chatroom ID {chatroomID} not found.");
+                    return null;
+                }
+                if (score.HasValue)
+                {
+                    rating.Score = score.Value;
+                }
+                if (!string.IsNullOrEmpty(feedback))
+                {
+                    rating.Feedback = feedback;
+                }
+                await context.SaveChangesAsync();
                 return rating;
             }
         }

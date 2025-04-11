@@ -8,7 +8,7 @@ namespace GoldenTicket.Utilities
 {
     public class DBUtil()
     {
-        public const int ChatbotID = 100000001;
+        public static int ChatbotID = AIUtil.GetChatbotID();
         #region FAQ
 
 

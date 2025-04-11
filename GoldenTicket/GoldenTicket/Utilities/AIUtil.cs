@@ -23,7 +23,7 @@ namespace GoldenTicket.Utilities
             _config = config ?? throw new ArgumentNullException(nameof(config));
         }
 
-        public static int? GetChatbotID() {
+        public static int GetChatbotID() {
             return _config?.OpenAISettings.ChatbotID ?? 100000001;
         }
         public static List<FAQDTO>? GetRelevantFAQs(string _message)

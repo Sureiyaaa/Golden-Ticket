@@ -26,11 +26,12 @@ var app = builder.Build();
 app.UseCors("GoldenTracker");
 
 var serviceProvider = app.Services;
+var configService = serviceProvider.GetRequiredService<ConfigService>();
 var openAIService = serviceProvider.GetRequiredService<OpenAIService>();
 var promptService = serviceProvider.GetRequiredService<PromptService>();
 var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
 
-AIUtil.Initialize(openAIService, promptService, loggerFactory.CreateLogger<AIUtil>());
+AIUtil.Initialize(configService, openAIService, promptService, loggerFactory.CreateLogger<AIUtil>());
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

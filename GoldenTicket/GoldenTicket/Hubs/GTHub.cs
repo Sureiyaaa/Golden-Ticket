@@ -58,7 +58,8 @@ namespace GoldenTicket.Hubs
                 chatrooms = DBUtil.GetChatrooms(userID, isEmployee), 
                 tickets = DBUtil.GetTickets(userID, isEmployee),
                 status = DBUtil.GetStatuses(),
-                priorities = DBUtil.GetPriorities()
+                priorities = DBUtil.GetPriorities(),
+                ratings = DBUtil.GetRatings()
             });
         }
         public int? GetAvailableStaff(string? MainTagName)
@@ -421,12 +422,62 @@ namespace GoldenTicket.Hubs
                     }
                 }
             }
+            if(Status == "Closed") CloseMessage(chatroomID);
         }
         public async Task OpenTicket(int TicketID)
         {
             var ticketDTO = new TicketDTO(DBUtil.GetTicket(TicketID)!);
             await Clients.Caller.SendAsync("TicketUpdate", new {ticket = ticketDTO});
         }
-        #endregion
+        public async Task ReopenTicket(int chatroomID) 
+        {
+            var chatroomDTO = new ChatroomDTO(await DBUtil.ReopenChatroom(chatroomID));
+            var ticketDTO = chatroomDTO.Ticket;
+            var MembersToInvoke = new List<int>();
+            var adminUser = DBUtil.GetAdminUsers();
+            foreach(var user in adminUser){
+                if(!MembersToInvoke.Contains(user.UserID)){
+                    MembersToInvoke.Add(user.UserID);
+                }
+            }
+            foreach(int memberID in MembersToInvoke){
+                if (_connections.TryGetValue(memberID, out var connectionIds)){
+                    foreach (var connectionId in connectionIds)
+                    {
+                        await Clients.Client(connectionId).SendAsync("TicketUpdate", new { ticket = ticketDTO });
+                        await Clients.Client(connectionId).SendAsync("ChatroomUpdate", new { chatroom = chatroomDTO });
+                    }
+                }
+            }
+        }
+        public async void CloseMessage(int ChatroomID) {
+            string message = "Your ticket has been resolved! Thank you for your patience! It would really help us if you rate your experience, your feedback would really be appreciated!";
+            await SendMessage(100000001, ChatroomID, message);
+        }
+        #endregion 
+        #region Rating
+        public async Task AddRating(int ChatroomID, int Score, string Feedback)
+        {
+            // var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID)!);
+            // var ticketDTO = chatroomDTO.Ticket;
+            var rating = await DBUtil.AddRating(ChatroomID, Score, Feedback);
+            var ratingDTO = new RatingDTO(DBUtil.GetRating(rating.RatingID)!);
+            var adminUser = DBUtil.GetAdminUsers();
+            foreach (var user in adminUser)
+            {
+                if (user.Role == "Admin" || user.Role == "Staff")
+                {
+                    if (_connections.TryGetValue(user.UserID, out var connectionIds))
+                    {
+                        foreach (var connectionId in connectionIds)
+                        {
+                            await Clients.Client(connectionId).SendAsync("RatingReceived", new { rating = ratingDTO });
+                        }
+                    }
+                }
+            }
+            await Clients.Caller.SendAsync("RatingReceived", new { rating = ratingDTO });
+        }
+        #endregion 
     }
 }

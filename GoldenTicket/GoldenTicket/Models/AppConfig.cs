@@ -34,4 +34,5 @@ public class VoiceSettings
 public class OpenAISettings
 {
     public string BaseUrl { get; set; } = "https://models.inference.ai.azure.com/";
+    public int ChatbotID { get; set; } = 100000001;
 }

@@ -10,17 +10,22 @@ namespace GoldenTicket.Utilities
 {
     public class AIUtil
     {
+        private static ConfigService? _config;
         private static OpenAIService? _openAIService;
         private static PromptService? _promptService;
         private static ILogger<AIUtil>? _logger;
 
-        public static void Initialize(OpenAIService openAIService, PromptService promptService, ILogger<AIUtil> logger)
+        public static void Initialize(ConfigService config, OpenAIService openAIService, PromptService promptService, ILogger<AIUtil> logger)
         {
             _openAIService = openAIService ?? throw new ArgumentNullException(nameof(openAIService));
             _promptService = promptService ?? throw new ArgumentNullException(nameof(promptService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _config = config ?? throw new ArgumentNullException(nameof(config));
         }
 
+        public static int? GetChatbotID() {
+            return _config?.OpenAISettings.ChatbotID ?? 100000001;
+        }
         public static List<FAQDTO>? GetRelevantFAQs(string _message)
         {
             using (var context = new ApplicationDbContext())
@@ -58,7 +63,7 @@ namespace GoldenTicket.Utilities
             if (_message == null || _promptType == null || _id == null)
                 return "";
 
-            string additional = _additional + FAQData(100000002, "MaxHub Request Noah Printer") ?? "";
+            string additional = _additional + FAQData(100000002, _message) ?? "";
             string requestPrompt = _promptService.GetPrompt(_promptType, additional);
             string aiResponse = await _openAIService.GetAIResponse(_id, _message, requestPrompt);
 
@@ -188,7 +193,7 @@ namespace GoldenTicket.Utilities
 
                     foreach (var message in chatroom.Messages!)
                     {
-                        if (message.Sender!.UserID != 100000001)
+                        if (message.Sender!.UserID != GetChatbotID())
                         {
                             chatMessages.Add(new UserChatMessage(message.MessageContent));
                         }

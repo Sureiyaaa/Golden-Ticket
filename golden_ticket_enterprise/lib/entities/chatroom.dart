@@ -31,6 +31,8 @@ class Chatroom {
     if (json['messages'] != null && json['messages'] is List) {
       for (var msg in json['messages']) {
         msgs.add(Message.fromJson(msg));
+
+        msgs.sort((a, b) => a.createdAt.compareTo(b.createdAt));
       }
     }
 

@@ -388,7 +388,7 @@ namespace GoldenTicket.Hubs
                 await CloseMessage(chatroomID);
             }
             // Chatroom Reopen
-            if(Status == "Open" && chatroomDTO!.IsClosed)
+            if(Status == "Open")
             {
                 await DBUtil.ReopenChatroom(chatroomID);
                 chatroomDTO = DBUtil.GetChatrooms().Where(c => c.Ticket!.TicketID == TicketID).FirstOrDefault();

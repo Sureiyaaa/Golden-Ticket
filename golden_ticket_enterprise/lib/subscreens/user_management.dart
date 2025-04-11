@@ -14,7 +14,6 @@
     @override
     Widget build(BuildContext context) {
       return Scaffold(
-        appBar: AppBar(title: Text('User Management')),
         body: Consumer<DataManager>(
           builder: (context, dataManager, child) {
             // Fetch the users by role
@@ -53,8 +52,11 @@
             return Card(
               margin: EdgeInsets.all(8.0),
               child: ListTile(
-                title: Text('${user.firstName} ${user.middleName} ${user.lastName}'),
-                subtitle: Text(user.role),
+                title: Row(children: [
+                  Text('${user.firstName} ${user.middleName} ${user.lastName}'),
+                  SizedBox(width: 10),
+                  Chip(label: Text('${user.role}'))
+                ]),
                 trailing: IconButton(
                   icon: Icon(Icons.edit),
                   onPressed: () {
@@ -64,10 +66,43 @@
                     );
                   },
                 ),
+                // Show assigned tags as chips
+                isThreeLine: true,
+                contentPadding: EdgeInsets.all(16),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (user.assignedTags != null && user.assignedTags!.isNotEmpty)
+                      Wrap(
+                        spacing: 8.0,
+                        children: [
+                          // Display the first 3 tags as chips
+                          ...user.assignedTags!.take(3).map((tag) {
+                            return Chip(
+                              label: Text(tag),
+                              backgroundColor: Colors.redAccent,
+                            );
+                          }).toList(),
+                          // Display a "More" chip if there are more than 3 tags
+                          if (user.assignedTags!.length > 3)
+                            Tooltip(
+                              message:
+                              '${user.assignedTags!.skip(3).join(', ')}', // Shows the remaining tags as a tooltip message
+                              child: Chip(
+                                label: Text("+${user.assignedTags!.length - 3} more"),
+                                backgroundColor: Colors.blueAccent,
+                              ),
+                            ),
+                        ],
+                      ),
+                  ],
+                ),
               ),
             );
           }).toList(),
         ],
       );
     }
+
+
   }

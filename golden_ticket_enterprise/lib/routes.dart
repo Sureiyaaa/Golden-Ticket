@@ -9,6 +9,7 @@ import 'package:golden_ticket_enterprise/screens/chatroom_page.dart';
 import 'package:golden_ticket_enterprise/subscreens/chatroom_list_page.dart';
 import 'package:golden_ticket_enterprise/subscreens/dashboard_page.dart';
 import 'package:golden_ticket_enterprise/subscreens/faq_page.dart';
+import 'package:golden_ticket_enterprise/subscreens/reports_page.dart';
 import 'package:golden_ticket_enterprise/subscreens/settings_page.dart';
 import 'package:golden_ticket_enterprise/subscreens/tickets_page.dart';
 import 'package:golden_ticket_enterprise/subscreens/user_management.dart';
@@ -90,6 +91,22 @@ class AppRoutes {
                         return NoTransitionPage(
                             key: state.pageKey,
                             child: FAQPage(session: userSession)
+                        );
+                      }
+                  )
+                ]
+            ),
+            StatefulShellBranch(
+                routes: <RouteBase>[
+                  GoRoute(
+                      path: '/hub/reports',
+                      redirect: (context, state) => Hive.box<HiveSession>('sessionBox').get('user') == null ? '/login' : null, // ✅ Redirect before building
+                      name: "Reports",
+                      pageBuilder: (context, state){
+                        var userSession = Hive.box<HiveSession>('sessionBox').get('user');
+                        return NoTransitionPage(
+                            key: state.pageKey,
+                            child: ReportsPage(session: userSession)
                         );
                       }
                   )

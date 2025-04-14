@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using GoldenTicket.Database;
 using GoldenTicket.Entities;
 using GoldenTicket.Models;
@@ -404,10 +405,13 @@ namespace GoldenTicket.Utilities
         #region -   AddTicket
         public async static Task<Tickets> AddTicket(string TicketTitle, int AuthorID, string MainTagName, string SubTagName, string Priority, int ChatroomID, int? AssignedID = 0)
         {
+
+            var stopwatch = Stopwatch.StartNew();
             int? mainTagID = null;
             int? subTagID = null;
             int? priorityID = null;
-
+            List<TicketHistory> histories = new();
+            
             // Checks if a Chatroom already have an existing ticket
             if(GetChatroom(ChatroomID)?.TicketID != null)
             {
@@ -437,10 +441,10 @@ namespace GoldenTicket.Utilities
             // Get PriorityID based on Priority name
             if (Priority != "null")
             {
-                var priority = context.Priorities.FirstOrDefault(p => p.PriorityName == Priority);
+                var priority = await context.Priorities.FirstOrDefaultAsync(p => p.PriorityName == Priority);
                 if (priority != null)
                 {
-                priorityID = priority.PriorityID;
+                    priorityID = priority.PriorityID;
                 }
             }
 
@@ -475,35 +479,37 @@ namespace GoldenTicket.Utilities
             await context.SaveChangesAsync();
 
             // Creates Ticket History
-            var ticketHistory = new TicketHistory
+            histories.Add(new TicketHistory
             {
                 TicketID = newTicket.TicketID,
                 ActionID = 1,
                 ActionMessage = "Ticket Created",
-            };
-            context.TicketHistory.Add(ticketHistory);
-            await context.SaveChangesAsync();
+            });
 
             // Creates Ticket History if there is an assignedID
             if(AssignedID != 0)
             {
-                var ticketHistory2 = new TicketHistory
+                histories.Add(new TicketHistory
                 {
                     TicketID = newTicket.TicketID,
                     ActionID = 2,
                     ActionMessage = $"Ticket is automatically assigned to {context.Users.FirstOrDefault(u => u.UserID == AssignedID)!.FirstName} by Golden AI",
-                };
-                context.TicketHistory.Add(ticketHistory2);
-                await context.SaveChangesAsync();
+                });
             }
+            
 
             // Updates the Chatroom with the TicketID
             var chatroom = context.Chatrooms.Where(c => c.ChatroomID == ChatroomID).FirstOrDefault();
             if (chatroom != null)
             {
                 chatroom.TicketID = newTicket.TicketID;
-                await context.SaveChangesAsync();
             }
+            
+            context.TicketHistory.AddRange(histories);
+            await context.SaveChangesAsync();
+            stopwatch.Stop();
+            Console.WriteLine($"Adding Ticket Successfull: {stopwatch.ElapsedMilliseconds} ms");
+
 
             return newTicket;
             }
@@ -582,15 +588,18 @@ namespace GoldenTicket.Utilities
         #region -   UpdateTicket
         public async static Task<Tickets> UpdateTicket(int ticketID, string title, string statusName, string priorityName, string? MainTag, string? SubTag, int? assignedID, int EditorID)
         {
+            var stopwatch = Stopwatch.StartNew();
+
             using (var context = new ApplicationDbContext())
             {
                 string editorName = context.Users
                     .Where(u => u.UserID == EditorID)
                     .Select(u => u.FirstName + " " + u.LastName)
                     .FirstOrDefault()!;
+                List<TicketHistory> histories = new();
 
-                int statusID = context.Status.Where(s => s.StatusName == statusName).Select(s => s.StatusID).FirstOrDefault();
-                int priorityID = context.Priorities.Where(p => p.PriorityName == priorityName).Select(p => p.PriorityID).FirstOrDefault();
+                int statusID = await context.Status.Where(s => s.StatusName == statusName).Select(s => s.StatusID).FirstOrDefaultAsync();
+                int priorityID = await context.Priorities.Where(p => p.PriorityName == priorityName).Select(p => p.PriorityID).FirstOrDefaultAsync();
                 int? mainTagID = 0;
                 int? subTagID = 0;
                 
@@ -599,114 +608,95 @@ namespace GoldenTicket.Utilities
                 if(SubTag != null)
                     subTagID = context.SubTag.Where(s => s.MainTagID == mainTagID! && s.TagName == SubTag).Select(s => s.TagID).FirstOrDefault();
 
-                var newticket = context.Tickets.Where(t => t.TicketID == ticketID).FirstOrDefault();
-
+                var newticket = context.Tickets.Where(t => t.TicketID == ticketID).Include(t => t.SubTag).Include(t => t.MainTag).FirstOrDefault();
+                
                 //TicketHistory Title Creation
-                if(title != newticket!.TicketTitle)
+                if (title != newticket.TicketTitle)
                 {
-                    var ticketHistory = new TicketHistory
-                    {
+                    histories.Add(new TicketHistory {
                         TicketID = newticket.TicketID,
                         ActionID = 9,
-                        ActionMessage = $"Ticket Title changed from {newticket!.TicketTitle} to {title} by {editorName}",
-                    };
-                    context.TicketHistory.Add(ticketHistory);
-                    await context.SaveChangesAsync();
+                        ActionMessage = $"Ticket Title changed from {newticket.TicketTitle} to {title} by {editorName}"
+                    });
                 }
-
-                // TicketHistory Status Creation
-                if(statusID != newticket!.StatusID)
+                                // TicketHistory Status Creation
+                if (statusID != newticket.StatusID)
                 {
-                    int Action = 1;
-                    string Message = "";
-                    switch(statusID)
-                    {
-                        case 1:
-                            Action = 8;
-                            Message = $"Ticket Re-Opened by **{editorName}**";
-                            break;
-                        case 2:
-                            Action = 4;
-                            Message = $"Ticket set In Progress by **{editorName}**";
-                            break;
-                        case 3:
-                            Action = 5;
-                            Message = $"Ticket On Hold by **{editorName}**";
-                            break;
-                        case 4:
-                            Action = 6;
-                            Message = $"Ticket Closed by **{editorName}**";
-                            break;
-                        case 5:
-                            Action = 7;
-                            Message = $"Ticket set as Unresolved by **{editorName}**";
-                            break;
-                    }
-                    // Creates Ticket History
-                    var ticketHistory = new TicketHistory
-                    {
-                        TicketID = newticket.TicketID,
-                        ActionID = Action,
-                        ActionMessage = Message,
+                    int action = statusID switch {
+                        1 => 8,
+                        2 => 4,
+                        3 => 5,
+                        4 => 6,
+                        5 => 7,
+                        _ => 0
                     };
 
-                    context.TicketHistory.Add(ticketHistory);
-                    await context.SaveChangesAsync();
-                }
+                    string message = statusID switch {
+                        1 => $"Ticket Re-Opened by **{editorName}**",
+                        2 => $"Ticket set In Progress by **{editorName}**",
+                        3 => $"Ticket On Hold by **{editorName}**",
+                        4 => $"Ticket Closed by **{editorName}**",
+                        5 => $"Ticket set as Unresolved by **{editorName}**",
+                        _ => ""
+                    };
 
+                    histories.Add(new TicketHistory {
+                        TicketID = newticket.TicketID,
+                        ActionID = action,
+                        ActionMessage = message
+                    });
+                }
+                
                 // TicketHistory Priority Creation
                 if(priorityID != newticket!.PriorityID)
                 {
-                    var ticketHistory = new TicketHistory
+                    histories.Add(new TicketHistory
                     {
                         TicketID = newticket.TicketID,
                         ActionID = 12,
                         ActionMessage = $"Ticket Title changed from {newticket!.TicketTitle} to {title} by {editorName}",
-                    };
-                    context.TicketHistory.Add(ticketHistory);
-                    await context.SaveChangesAsync();
+                    });
                 }
-
+                
                 // TicketHistory MainTag Creation
                 if(mainTagID != newticket!.MainTagID)
                 {
-                    var ticketHistory = new TicketHistory {TicketID = newticket.TicketID, ActionID = 10};
-                    ticketHistory.ActionMessage = (newticket!.MainTagID != null) ?
+                    histories.Add(new TicketHistory {TicketID = newticket.TicketID, ActionID = 10, ActionMessage = (newticket!.MainTagID != null) ?
                         $"Ticket Maintag changed from {newticket!.MainTag!.TagName} to {MainTag} by {editorName}" :
-                        $"Ticket Maintag changed to {MainTag} by {editorName}";
-                    context.TicketHistory.Add(ticketHistory);
-                    await context.SaveChangesAsync();
+                        $"Ticket Maintag changed to {MainTag} by {editorName}"}
+                    );
+                        
                 }
+                
 
                 // TicketHistory SubTag Creation
                 if(subTagID != newticket!.SubTagID)
                 {
-                    var ticketHistory = new TicketHistory{ TicketID = newticket.TicketID, ActionID = 11 };
-                    ticketHistory.ActionMessage = (newticket!.SubTagID != null) ? 
-                        $"Ticket Subtag changed from {newticket!.SubTag!.TagName} to {SubTag} by {editorName}" : 
-                        $"Ticket Subtag changed to {SubTag} by {editorName}";
-                    context.TicketHistory.Add(ticketHistory);
-                    await context.SaveChangesAsync();
+                    histories.Add(new TicketHistory{ TicketID = newticket.TicketID, ActionID = 11, ActionMessage = (newticket!.SubTagID != null) ? 
+                        $"Ticket Subtag changed from {newticket!.SubTag?.TagName} to {SubTag} by {editorName}" : 
+                        $"Ticket Subtag changed to {SubTag} by {editorName}"});
                 }
                 
                 // TicketHistory Assign Creation
                 if(assignedID != newticket!.AssignedID)
                 {
+                    var user = await context.Users.FindAsync(assignedID); // better than Where(...).FirstOrDefault()
+
                     if(newticket!.AssignedID == null)
                     {
-                        var ticketHistory = new TicketHistory 
+                        histories.Add(new TicketHistory 
                         {
                             TicketID = newticket.TicketID,
                             ActionID = 2,
-                            ActionMessage = $"Ticket Assigned to {context.Users.Where(u => u.UserID == assignedID).FirstOrDefault()!.FirstName} by {editorName}",
-                        };
+                            ActionMessage = $"Ticket Assigned to {user!.FirstName} by {editorName}",
+                        });
                     } else {
-                        var ticketHistory = new TicketHistory 
+                        histories.Add(new TicketHistory 
                         {
                             TicketID = newticket.TicketID,
                             ActionID = 3,
-                            ActionMessage = $"Ticket Re-Assigned From {context.Users.Where(u => u.UserID == newticket!.AssignedID).FirstOrDefault()!.FirstName} to {context.Users.Where(u => u.UserID == assignedID).FirstOrDefault()!.FirstName} by {editorName}",
-                        };
+                            ActionMessage = $"Ticket Re-Assigned From {user!.FirstName} by {editorName}",
+                        });
                     }
                 }
                 
@@ -730,10 +720,12 @@ namespace GoldenTicket.Utilities
                 if(statusName == "Closed") {
                     var chatroom = context.Chatrooms.Where(c => c.TicketID == ticketID).FirstOrDefault();
                     chatroom!.IsClosed = true;
-                    await context.SaveChangesAsync();
                 }
-
+                context.TicketHistory.AddRange(histories);
                 await context.SaveChangesAsync();
+                stopwatch.Stop();
+                Console.WriteLine($"Updated Ticket Successfull: {stopwatch.ElapsedMilliseconds} ms");
+
                 return newticket;
             }
         }
@@ -786,7 +778,7 @@ namespace GoldenTicket.Utilities
                     }
                 };
                 context.GroupMembers.AddRange(members);
-                context.SaveChanges();
+                await context.SaveChangesAsync();
 
                 var aiMessage = new Message {
                     ChatroomID = newChat.ChatroomID,
@@ -794,7 +786,7 @@ namespace GoldenTicket.Utilities
                     MessageContent = AIResponse.FirstMessage(true),
                 };
                 context.Messages.Add(aiMessage);
-                context.SaveChanges();
+                await context.SaveChangesAsync();
                 return newChat;
             }
         }
@@ -828,7 +820,7 @@ namespace GoldenTicket.Utilities
         {
             using(var context = new ApplicationDbContext()) 
             {
-                var chatroom = GetChatroom(ChatroomID);
+                var chatroom = context.Chatrooms.Where(c => c.ChatroomID == ChatroomID).FirstOrDefault();
                 if(chatroom!.Members.Any(m => m.MemberID == UserID))
                 {
                     Console.WriteLine($"[DBUtil] User {UserID} is already a member of chatroom {ChatroomID}");
@@ -840,7 +832,6 @@ namespace GoldenTicket.Utilities
                     MemberID = UserID,
                 };
                 chatroom!.Members.Add(newMember);
-                context.Chatrooms.Attach(chatroom!);
                 context.SaveChanges();
                 var updatedChatroom = GetChatroom(ChatroomID);
                 return new ChatroomDTO(updatedChatroom!);
@@ -1026,14 +1017,14 @@ namespace GoldenTicket.Utilities
         }
         #endregion
         #region -   UpdateLastSeen
-        public static void UpdateLastSeen(int UserID, int ChatroomID)
+        public static async void UpdateLastSeen(int UserID, int ChatroomID)
         {
             using(var context = new ApplicationDbContext())
             {
                 var member = context.GroupMembers.FirstOrDefault();
                 if(member != null){
                     member.LastSeenAt = DateTime.Now;
-                    context.SaveChanges();
+                    await context.SaveChangesAsync();
                 }
             }
         }
@@ -1043,6 +1034,7 @@ namespace GoldenTicket.Utilities
         {
             using(var context = new ApplicationDbContext())
             {
+                var stopwatch = Stopwatch.StartNew();
                 var message = new Message
                 {
                     SenderID = SenderID,
@@ -1051,6 +1043,8 @@ namespace GoldenTicket.Utilities
                 };
                 context.Messages.Add(message);
                 await context.SaveChangesAsync();
+                stopwatch.Stop();
+                Console.WriteLine($"Adding Message Successfull: {stopwatch.ElapsedMilliseconds} ms");
                 return message;
             }
         }

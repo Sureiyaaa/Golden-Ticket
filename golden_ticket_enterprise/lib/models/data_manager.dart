@@ -246,28 +246,6 @@ class DataManager extends ChangeNotifier {
     } else {
       tickets.add(ticket);
     }
-
-    const priorityOrder = {'High': 0, 'Medium': 1, 'Low': 2};
-    const statusOrder = {
-      'Open': 0,
-      'Assigned': 1,
-      'Postponed': 2,
-      'Closed': 3,
-      'Unresolved': 4,
-    };
-
-    tickets.sort((a, b) {
-      int priorityCompare = (priorityOrder[a.priority] ?? 99)
-          .compareTo(priorityOrder[b.priority] ?? 99);
-      if (priorityCompare != 0) return priorityCompare;
-
-      int statusCompare =
-      (statusOrder[a.status] ?? 99).compareTo(statusOrder[b.status] ?? 99);
-      if (statusCompare != 0) return statusCompare;
-
-      return b.createdAt.compareTo(a.createdAt); // Newest first
-    });
-
     notifyListeners();
   }
 

@@ -87,7 +87,10 @@ class _TicketsPageState extends State<TicketsPage> {
       // Sort tickets by priority (High > Medium > Low)
       _filteredTickets.sort((a, b) {
         List<String> priorityOrder = ['High', 'Medium', 'Low'];
-        return priorityOrder.indexOf(a.priority).compareTo(priorityOrder.indexOf(b.priority));
+        int priorityCompare = priorityOrder.indexOf(a.priority).compareTo(priorityOrder.indexOf(b.priority));
+        if (priorityCompare != 0) return priorityCompare;
+
+        return b.createdAt.compareTo(a.createdAt);
       });
     });
 
@@ -203,7 +206,7 @@ class _TicketsPageState extends State<TicketsPage> {
                             },
                             onEditPressed: () {
                               if(ticket.assigned != null){
-                                if(ticket.assigned!.userID != widget.session!.user.userID){
+                                if(ticket.assigned!.userID != widget.session!.user.userID && widget.session!.user.role != "Admin"){
                                   TopNotification.show(
                                       context: context,
                                       message: "This ticket is not assigned to you",

@@ -24,6 +24,9 @@ class HubPage extends StatefulWidget {
 class _HubPageState extends State<HubPage>{
   late int _selectedIndex; // Track selected index
   bool _isInitialized = false;
+  bool _showNotifications = false;
+  final List<String> _notifications = []; // Replace with your Notification model if needed
+
   @override
   void initState(){
     _selectedIndex = widget.child.currentIndex;
@@ -91,12 +94,29 @@ class _HubPageState extends State<HubPage>{
               backgroundColor: kPrimary,
               title: Text(_getAppBarTitle()), // Dynamic title
               actions: [
-                IconButton(
+                  PopupMenuButton(
                   icon: Icon(Icons.notifications),
-                  onPressed: (){},
+                  tooltip: "Notifications",
+                  itemBuilder: (context) {
+                    if (_notifications.isEmpty) {
+                      return [
+                        PopupMenuItem(
+                          enabled: false,
+                          child: Text('No notifications'),
+                        )
+                      ];
+                    } else {
+                      return _notifications
+                          .map((notification) => PopupMenuItem(
+                        child: Text(notification),
+                      ))
+                          .toList();
+                    }
+                  },
                 ),
                 IconButton(
                   icon: Icon(Icons.logout),
+                  tooltip: "Logout",
                   onPressed: _logout,
                 ),
               ],
@@ -117,6 +137,7 @@ class _HubPageState extends State<HubPage>{
                   _buildDrawerItem(Icons.message_outlined, "Chatrooms", 1),
                   if(widget.session?.user.role == "Admin" || widget.session?.user.role == "Staff") _buildDrawerItem(Icons.list, "Tickets", 2),
                   _buildDrawerItem(Icons.question_mark, "FAQ", 3),
+                  if(widget.session?.user.role != "Employee") _buildDrawerItem(Icons.show_chart, "Reports", 6),
                   if(widget.session?.user.role == "Admin") _buildDrawerItem(Icons.person_outline, "User Management", 4),
                   if(widget.session?.user.role == "Admin") _buildDrawerItem(Icons.settings, "Settings", 5),
                 ],
@@ -144,6 +165,8 @@ class _HubPageState extends State<HubPage>{
         return "User Management";
       case 5:
         return "Settings";
+      case 6:
+        return "Reports";
       default:
         return "Dashboard";
     }

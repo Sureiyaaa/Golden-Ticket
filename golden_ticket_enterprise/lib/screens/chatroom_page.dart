@@ -62,8 +62,11 @@ class _ChatroomPageState extends State<ChatroomPage> {
           _messageLimit = allMessages.length; // Clamp to latest available
         }
 
-        final start = (allMessages.length - _messageLimit).clamp(0, allMessages.length);
-        final visibleMessages = allMessages.sublist(start).reversed.toList();
+        final totalMessages = allMessages.length;
+        final start = (totalMessages - _messageLimit).clamp(0, totalMessages);
+        final end = totalMessages;
+        final visibleMessages = allMessages.sublist(start, end).reversed.toList();
+
 
         var userSession = Hive.box<HiveSession>('sessionBox').get('user');
         String chatTitle = chatroom.ticket != null ? chatroom.ticket?.ticketTitle ?? "New Chat" : "New Chat";
@@ -73,6 +76,9 @@ class _ChatroomPageState extends State<ChatroomPage> {
             if (!chatroom.messages!.any((msg) => msg.messageID == message.messageID)) {
               dataManager.signalRService.sendSeen(userSession!.user.userID, widget.chatroomID);
               dataManager.addMessage(message, chatroom);
+              setState(() {
+                _messageLimit += 1;
+              });
             }
           }
         };
@@ -166,8 +172,9 @@ class _ChatroomPageState extends State<ChatroomPage> {
                         .toList();
 
                     final isMe = message.sender.userID == userSession!.user.userID;
-                    final isSeen = seenByMembers.isNotEmpty && seenMessageID == chatroom.lastMessage?.createdAt;
-
+                    final isSeen = seenByMembers.isNotEmpty && seenMessageID == message.messageID;
+                    print(seenMessageID);
+                    print(message.messageID);
                     List<Widget> messageColumn = [];
 
                     if (shouldShowHourSeparator(message, previousMessage)) {
@@ -247,7 +254,7 @@ class _ChatroomPageState extends State<ChatroomPage> {
                                   Padding(
                                     padding: const EdgeInsets.only(top: 2, right: 12, left: 12),
                                     child: Text(
-                                      _formatSeenBy(seenByMembers),
+                                      _formatSeenBy(seenByMembers, userSession),
                                       style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                                     ),
                                   ),
@@ -392,7 +399,8 @@ class _ChatroomPageState extends State<ChatroomPage> {
     return current.createdAt.difference(previous.createdAt).inMinutes > 90;
   }
 
-  String _formatSeenBy(List<GroupMember> seenBy) {
-    return seenBy.map((u) => u.member!.firstName).join(", ");
+  String _formatSeenBy(List<GroupMember> seenBy, HiveSession session) {
+    return 'Seen by ${seenBy.map((u) => u.member?.userID == session.user.userID ? 'You' : u.member?.firstName ?? '').join(", ")}';
   }
+
 }

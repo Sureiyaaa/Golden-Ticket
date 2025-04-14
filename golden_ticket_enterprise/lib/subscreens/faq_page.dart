@@ -84,6 +84,7 @@ class _FAQPageState extends State<FAQPage> {
         return Scaffold(
           floatingActionButton: FloatingActionButton(
             heroTag: "add_faq",
+            tooltip: widget.session!.user.role == "Employee" ? "Request Chat" : "Add FAQ",
             onPressed: () {
               if (widget.session!.user.role == "Employee") {
                 dataManager.signalRService.requestChat(widget.session!.user.userID);

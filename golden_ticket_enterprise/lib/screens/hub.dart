@@ -137,9 +137,9 @@ class _HubPageState extends State<HubPage>{
                   _buildDrawerItem(Icons.message_outlined, "Chatrooms", 1),
                   if(widget.session?.user.role == "Admin" || widget.session?.user.role == "Staff") _buildDrawerItem(Icons.list, "Tickets", 2),
                   _buildDrawerItem(Icons.question_mark, "FAQ", 3),
-                  if(widget.session?.user.role != "Employee") _buildDrawerItem(Icons.show_chart, "Reports", 6),
-                  if(widget.session?.user.role == "Admin") _buildDrawerItem(Icons.person_outline, "User Management", 4),
-                  if(widget.session?.user.role == "Admin") _buildDrawerItem(Icons.settings, "Settings", 5),
+                  if(widget.session?.user.role != "Employee") _buildDrawerItem(Icons.show_chart, "Reports", 4),
+                  if(widget.session?.user.role == "Admin") _buildDrawerItem(Icons.person_outline, "User Management", 5),
+                  if(widget.session?.user.role == "Admin") _buildDrawerItem(Icons.settings, "Settings", 6),
                 ],
               ),
             ),
@@ -162,11 +162,11 @@ class _HubPageState extends State<HubPage>{
       case 3:
         return "FAQ";
       case 4:
-        return "User Management";
-      case 5:
-        return "Settings";
-      case 6:
         return "Reports";
+      case 5:
+        return "User Management";
+      case 6:
+        return "Settings";
       default:
         return "Dashboard";
     }

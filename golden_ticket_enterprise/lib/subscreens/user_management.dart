@@ -33,6 +33,7 @@
         ),
         floatingActionButton: FloatingActionButton(
           heroTag: "add_user",
+          tooltip: 'Add User',
           onPressed: () {
             showDialog(context: context, builder: (context) => AddUserWidget());
           },
@@ -55,7 +56,7 @@
                 title: Row(children: [
                   Text('${user.firstName} ${user.middleName} ${user.lastName}'),
                   SizedBox(width: 10),
-                  Chip(label: Text('${user.role}'))
+                  Chip(label: Text('${user.role}', style: TextStyle(color: Colors.white)), backgroundColor: Colors.orangeAccent,)
                 ]),
                 trailing: IconButton(
                   icon: Icon(Icons.edit),
@@ -79,7 +80,7 @@
                           // Display the first 3 tags as chips
                           ...user.assignedTags!.take(3).map((tag) {
                             return Chip(
-                              label: Text(tag),
+                              label: Text(tag, style: TextStyle(color: Colors.white)),
                               backgroundColor: Colors.redAccent,
                             );
                           }).toList(),
@@ -89,7 +90,7 @@
                               message:
                               '${user.assignedTags!.skip(3).join(', ')}', // Shows the remaining tags as a tooltip message
                               child: Chip(
-                                label: Text("+${user.assignedTags!.length - 3} more"),
+                                label: Text("+${user.assignedTags!.length - 3} more", style: TextStyle(color: Colors.white)),
                                 backgroundColor: Colors.blueAccent,
                               ),
                             ),

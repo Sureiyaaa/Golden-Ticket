@@ -74,6 +74,7 @@ class _ChatroomListPageState extends State<ChatroomListPage> {
           floatingActionButton: widget.session!.user.role == "Employee"
               ? FloatingActionButton(
             heroTag: "chat_request",
+            tooltip: widget.session!.user.role == "Employee" ? "Request Chat" : "Add FAQ",
             onPressed: () {
               dataManager.signalRService.requestChat(widget.session!.user.userID);
             },

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using GoldenTicket.Entities;
 using GoldenTicket.Models;
+using System.Diagnostics;
 
 
 namespace GoldenTicket.Hubs
@@ -372,6 +373,8 @@ namespace GoldenTicket.Hubs
         }
         public async Task UpdateTicket(int TicketID, string Title, string Status, string Priority, string? MainTag, string? SubTag, int? AssignedID)
         {
+            
+            var stopwatch = Stopwatch.StartNew();
             int EditorID = _connections.FirstOrDefault(kvp => kvp.Value.Contains(Context.ConnectionId)).Key;
 
             var updatedTicket = await DBUtil.UpdateTicket(TicketID, Title, Status, Priority, MainTag, SubTag, AssignedID, EditorID);
@@ -422,6 +425,9 @@ namespace GoldenTicket.Hubs
                     }
                 }
             }
+            stopwatch.Stop();
+            Console.WriteLine($"Ticket Repsonsetime: {stopwatch.ElapsedMilliseconds} ms");
+
             
         }
         public async Task OpenTicket(int TicketID)

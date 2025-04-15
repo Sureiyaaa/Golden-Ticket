@@ -56,11 +56,11 @@ namespace GoldenTicket.Hubs
                 tags = DBUtil.GetTags(), 
                 faq = DBUtil.GetFAQs(), 
                 users = DBUtil.GetUsersByRole(), 
-                chatrooms = DBUtil.GetChatrooms(userID, isEmployee), 
+                chatrooms = await DBUtil.GetChatrooms(userID, isEmployee), 
                 tickets = DBUtil.GetTickets(userID, isEmployee),
                 status = DBUtil.GetStatuses(),
                 priorities = DBUtil.GetPriorities(),
-                ratings = DBUtil.GetRatings()
+                ratings = await DBUtil.GetRatings()
             });
         }
         public int? GetAvailableStaff(string? MainTagName)
@@ -153,7 +153,8 @@ namespace GoldenTicket.Hubs
         #region Chatroom
         public async Task RequestChat(int AuthorID) 
         {
-            int openChatroomsCount = DBUtil.GetChatrooms(AuthorID, true).Count(c => c.Ticket == null);
+            var chatrooms = await DBUtil.GetChatrooms(AuthorID, true);
+            int openChatroomsCount = chatrooms.Count(c => c.Ticket == null);
             if (openChatroomsCount >= 3)
             {
                 await Clients.Caller.SendAsync("MaximumChatroom");
@@ -163,7 +164,7 @@ namespace GoldenTicket.Hubs
             var chatroom = await DBUtil.AddChatroom(AuthorID);
             var adminUser = DBUtil.GetAdminUsers();
             var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(chatroom.ChatroomID)!, true);
-            var chatroomDTOAdmin = new ChatroomDTO(DBUtil.GetChatroom(chatroom.ChatroomID)!);
+            var chatroomDTOAdmin = new ChatroomDTO(DBUtil.GetChatroom(chatroom.ChatroomID, false)!);
 
             await Clients.Caller.SendAsync("ReceiveSupport", new { chatroom = chatroomDTO });
         }
@@ -188,7 +189,7 @@ namespace GoldenTicket.Hubs
 
         public async Task JoinChatroom(int UserID, int ChatroomID)
         {
-            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID)!);
+            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID, false)!);
             if (chatroomDTO!.GroupMembers.Any(m => m.User.UserID == UserID))
             {
                 await Clients.Caller.SendAsync("AlreadyMember");
@@ -235,7 +236,7 @@ namespace GoldenTicket.Hubs
             }
             var message = await DBUtil.SendMessage(SenderID, ChatroomID, Message);
             var messageDTO = new MessageDTO(DBUtil.GetMessage(message.MessageID)!);
-            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID)!);
+            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID, false)!);
             var MembersToInvoke = new List<int>();
             
             
@@ -269,15 +270,15 @@ namespace GoldenTicket.Hubs
         
         public async Task AISendMessage(int chatroomID, string userMessage, int userID) 
         {
-            int SenderID = 100000001;
+            int ChatbotID = AIUtil.GetChatbotID();
             var response = await AIUtil.GetJsonResponseAsync(chatroomID.ToString(), userMessage, userID);
             if (response == null)
             {
                 response = AIResponse.Unavailable();
             }
           
-            var message = await DBUtil.SendMessage(SenderID, chatroomID, response!.Message);
-            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(chatroomID)!);
+            var message = await DBUtil.SendMessage(ChatbotID, chatroomID, response!.Message);
+            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(chatroomID, false)!);
             var messageDTO = new MessageDTO(DBUtil.GetMessage(message.MessageID)!);
             foreach(var member in chatroomDTO.GroupMembers){
                 if(member.User.UserID == userID){
@@ -302,26 +303,26 @@ namespace GoldenTicket.Hubs
                             {
                                 await AddTicket(response.Title, userID, response.MainTag!, response.SubTags, response.Priority, chatroomID, StaffID);
                                 var StaffUser = DBUtil.FindUser(StaffID);
-                                await SendMessage(100000001, chatroomID, $"Your ticket has been created! Your issue has been assigned to {StaffUser.FirstName} {StaffUser.LastName}.");
+                                await SendMessage(ChatbotID, chatroomID, $"Your ticket has been created! Your issue has been assigned to {StaffUser.FirstName} {StaffUser.LastName}.");
                             } else {
                                 await AddTicket(response.Title, userID, response.MainTag!, response.SubTags, response.Priority, chatroomID);
-                                await SendMessage(100000001, chatroomID, $"Your ticket has been created! There are currently no online agent for your specific problem, please be patient and wait for a Live Agent to accept.");
+                                await SendMessage(ChatbotID, chatroomID, $"Your ticket has been created! There are currently no online agent for your specific problem, please be patient and wait for a Live Agent to accept.");
                             }
                         } else {
                             await AddTicket(response.Title, userID, response.MainTag!, response.SubTags, response.Priority, chatroomID);
-                            await SendMessage(100000001, chatroomID, $"Your ticket has been created! Its status has been set to \"Open\" and is now waiting for a Live Agent to accept your ticket.");
+                            await SendMessage(ChatbotID, chatroomID, $"Your ticket has been created! Its status has been set to \"Open\" and is now waiting for a Live Agent to accept your ticket.");
                         }
                         
                         foreach (var connectionId in connectionIds)
                         {
-                            chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(chatroomID)!);
+                            chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(chatroomID, false)!);
                             await Clients.Client(connectionId).SendAsync("AllowMessage");
                         }
                     }
                 }
             }
             
-            await UserSeen(SenderID, chatroomID);
+            await UserSeen(ChatbotID, chatroomID);
         }
         #endregion
 
@@ -380,21 +381,21 @@ namespace GoldenTicket.Hubs
             var updatedTicket = await DBUtil.UpdateTicket(TicketID, Title, Status, Priority, MainTag, SubTag, AssignedID, EditorID);
             var ticketDTO = new TicketDTO(DBUtil.GetTicket(TicketID)!);
             
-            var chatroomDTO = DBUtil.GetChatrooms().Where(c => c.Ticket!.TicketID == TicketID).FirstOrDefault();
+            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroomByTicketID(TicketID)!);
             int chatroomID = chatroomDTO?.ChatroomID ?? throw new InvalidOperationException("ChatroomID cannot be null.");
 
             // Chatroom Close
             if(Status == "Closed")
             {
                 await DBUtil.CloseChatroom(chatroomID);
-                chatroomDTO = DBUtil.GetChatrooms().Where(c => c.Ticket!.TicketID == TicketID).FirstOrDefault();
+                chatroomDTO = new ChatroomDTO(DBUtil.GetChatroomByTicketID(TicketID, false)!);
                 await CloseMessage(chatroomID);
             }
             // Chatroom Reopen
             if(Status == "Open")
             {
                 await DBUtil.ReopenChatroom(chatroomID);
-                chatroomDTO = DBUtil.GetChatrooms().Where(c => c.Ticket!.TicketID == TicketID).FirstOrDefault();
+                chatroomDTO = new ChatroomDTO(DBUtil.GetChatroomByTicketID(TicketID, false)!);
             }
 
             var adminUser = DBUtil.GetAdminUsers();
@@ -448,7 +449,7 @@ namespace GoldenTicket.Hubs
         }
         public async Task AddOrUpdateRating(int ChatroomID, int Score, string? Feedback)
         {
-            var existingRating = DBUtil.GetRatings().FirstOrDefault(r => r.Chatroom.ChatroomID == ChatroomID);
+            var existingRating = DBUtil.GetRating(ChatroomID);
             var rating = new Rating();
             if(existingRating != null)
             {

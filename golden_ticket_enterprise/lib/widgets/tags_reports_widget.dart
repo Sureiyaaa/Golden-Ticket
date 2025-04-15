@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:golden_ticket_enterprise/entities/main_tag.dart';
+import 'package:golden_ticket_enterprise/entities/ticket.dart';
 import 'package:intl/intl.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
 
-class PriorityTab extends StatefulWidget {
+class TagsTab extends StatefulWidget {
   final DateTime fromDate;
   final DateTime toDate;
+  final DataManager dataManager;
   final Function(DateTime) onFromDateChanged;
   final Function(DateTime) onToDateChanged;
   final VoidCallback onRefresh;
@@ -15,10 +18,11 @@ class PriorityTab extends StatefulWidget {
   final Function(double) onScrollChanged;
   final List tickets;
 
-  const PriorityTab({
+  const TagsTab({
     super.key,
     required this.fromDate,
     required this.toDate,
+    required this.dataManager,
     required this.onFromDateChanged,
     required this.onToDateChanged,
     required this.onRefresh,
@@ -29,23 +33,21 @@ class PriorityTab extends StatefulWidget {
   });
 
   @override
-  State<PriorityTab> createState() => _PriorityTabState();
+  State<TagsTab> createState() => _TagsTabState();
 }
 
-class _PriorityTabState extends State<PriorityTab> {
-  Color getPriorityColor(String priority) {
-    switch (priority) {
-      case 'High':
-        return Colors.red;
-      case 'Medium':
-        return Colors.orange;
-      case 'Low':
-        return Colors.green;
-      default:
-        return Colors.grey;
-    }
-  }
+class _TagsTabState extends State<TagsTab> {
+  String? selectedMainTag = "All";
+  List<String> listedTags = [];
+  List<LineColor> lineColor = [];
 
+  @override
+  void initState(){
+    super.initState();
+    lineColor.add(new LineColor(name: 'Not assigned', color: generateRandomColor()));
+    for(var line in widget.dataManager.mainTags)
+      lineColor.add(new LineColor(name: line.tagName, color: generateRandomColor()));
+  }
   Widget _buildDateButton({
     required String label,
     required DateTime date,
@@ -81,6 +83,7 @@ class _PriorityTabState extends State<PriorityTab> {
     );
   }
 
+
   LineChartBarData _buildLine(List<FlSpot> spots, Color color) {
     return LineChartBarData(
       spots: spots,
@@ -102,12 +105,22 @@ class _PriorityTabState extends State<PriorityTab> {
   @override
   Widget build(BuildContext context) {
     final filteredTickets = widget.tickets.where((t) {
+
       final created = t.createdAt;
-      return created != null &&
+      final tagMatch = selectedMainTag == 'All' || t.mainTag?.tagName == selectedMainTag;
+
+
+      return created != null && tagMatch &&
           !created.isBefore(widget.fromDate) &&
           !created.isAfter(widget.toDate);
     });
 
+    listedTags = [];
+    filteredTickets.forEach((t) {
+      if(!listedTags.contains(t.mainTag?.tagName)){
+        listedTags.add(t.mainTag?.tagName ?? 'Not assigned');
+      }
+    });
     final Map<String, Map<String, int>> monthlyReports = {};
 
     DateTime current = DateTime(widget.fromDate.year, widget.fromDate.month);
@@ -117,18 +130,26 @@ class _PriorityTabState extends State<PriorityTab> {
 
     while (!current.isAfter(end)) {
       final monthName = dateFormatter.format(current);
-      monthlyReports[monthName] = {'Low': 0, 'Medium': 0, 'High': 0};
+      monthlyReports[monthName] = {
+        if(selectedMainTag != 'All')
+          for (var tag in listedTags)
+            tag: 0
+        else
+          for (var tag in widget.dataManager.mainTags)
+            tag.tagName: 0,
+        if(selectedMainTag == 'All') 'Not assigned': 0,
+      };
       current = DateTime(current.year, current.month + 1);
       if (current.month > 12) current = DateTime(current.year + 1, 1);
     }
 
-    for (var ticket in filteredTickets) {
+    for (Ticket ticket in filteredTickets) {
       final created = ticket.createdAt;
       final month = dateFormatter.format(created);
-      final priority = ticket.priority ?? 'Medium';
+      String mainTag = ticket.mainTag != null ?  ticket.mainTag!.tagName : 'Not assigned';
       if (monthlyReports.containsKey(month)) {
-        monthlyReports[month]![priority] =
-            monthlyReports[month]![priority]! + 1;
+        monthlyReports[month]![mainTag] =
+            monthlyReports[month]![mainTag]! + 1;
       }
     }
 
@@ -139,33 +160,31 @@ class _PriorityTabState extends State<PriorityTab> {
       return aDate.compareTo(bDate);
     });
 
-    Map<String, List<FlSpot>> prioritySpots = {
-      'Low': [],
-      'Medium': [],
-      'High': [],
+    Map<String, List<FlSpot>> tagSpots = {
+      if(selectedMainTag != 'All')
+        for (var tag in listedTags)
+          tag: []
+      else
+        for (var tag in widget.dataManager.mainTags)
+          tag.tagName: [],
+      if(selectedMainTag == 'All') 'Not assigned': [],
     };
-
     for (int i = 0; i < sortedMonths.length; i++) {
       final month = sortedMonths[i];
-      final low = monthlyReports[month]!['Low']!;
-      final medium = monthlyReports[month]!['Medium']!;
-      final high = monthlyReports[month]!['High']!;
-      prioritySpots['Low']!.add(FlSpot(i.toDouble(), low.toDouble()));
-      prioritySpots['Medium']!.add(FlSpot(i.toDouble(), medium.toDouble()));
-      prioritySpots['High']!.add(FlSpot(i.toDouble(), high.toDouble()));
-    }
+      monthlyReports[month]!.forEach((item, quantity) {
+        tagSpots[item]!.add(FlSpot(i.toDouble(), quantity.toDouble()));
+      });
 
+      // tagSpots['Low']!.add(FlSpot(i.toDouble(), low.toDouble()));
+      // tagSpots['Medium']!.add(FlSpot(i.toDouble(), medium.toDouble()));
+      // tagSpots['High']!.add(FlSpot(i.toDouble(), high.toDouble()));
+    }
     double minY = 0;
     double maxY = 0;
     if (filteredTickets.isNotEmpty){
       minY = monthlyReports.values.expand((e) => e.values).reduce((a, b) => a < b ? a : b) - 1;
       maxY = monthlyReports.values.expand((e) => e.values).reduce((a, b) => a > b ? a : b) + 3;
     }
-    List<LineColor> lineColor = [];
-    for(var prioritySpots in prioritySpots.keys)
-      lineColor.add(new LineColor(name: prioritySpots, color: getPriorityColor(prioritySpots)));
-
-
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -174,6 +193,31 @@ class _PriorityTabState extends State<PriorityTab> {
             builder: (context, constraints) {
               bool isMobile = constraints.maxWidth < 600;
               final content = [
+                Flexible(
+                  flex: 1,
+                  child: Padding(
+                    padding: const EdgeInsets.all(6.0),
+                    child: DropdownButtonFormField<String>(
+                      value: selectedMainTag,
+                      hint: Text("Main Tag"),
+                      items: ["All", ...widget.dataManager.mainTags.map((tag) => tag.tagName)].map((tag) {
+                        return DropdownMenuItem(
+                          value: tag,
+                          child: Text(tag),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedMainTag = value;
+                        });
+                      },
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                      ),
+                    ),
+                  ),
+                ),
                 Flexible(
                   flex: 1,
                   child: Padding(
@@ -212,11 +256,10 @@ class _PriorityTabState extends State<PriorityTab> {
             },
           ),
           if (filteredTickets.isEmpty)
-            Center(
-                child: Text('No data available for the selected date range.')
-            )
-          else
-          const SizedBox(height: 20),
+           Center(
+              child: Text('No data available for the selected date range.')
+           )
+          else const SizedBox(height: 20),
           Expanded(
             child: Column(
               children: [
@@ -225,15 +268,31 @@ class _PriorityTabState extends State<PriorityTab> {
                     LineChartData(
                       minY: minY,
                       maxY: maxY,
+                      lineTouchData: LineTouchData(
+                          touchTooltipData: LineTouchTooltipData(
+                              fitInsideHorizontally: true,
+                              fitInsideVertically: true,
+                              getTooltipItems: (List<LineBarSpot> touchedSpots){
+                                return touchedSpots.map((spot) {
+                                  LineColor lineData = lineColor.firstWhere((line) => line.color == spot.bar.color);
+                                  return LineTooltipItem('${lineData.name}: ${spot.y.toInt()}', TextStyle(color: lineData.color));
+                                }).toList();
+                              }
+                          )
+                      ),
                       titlesData: FlTitlesData(
                         bottomTitles: AxisTitles(
                           sideTitles: SideTitles(
                             showTitles: true,
                             interval: 1,
-                            getTitlesWidget: (value, _) {
-                              final index = value.toInt();
-                              if (index >= widget.scrollPosition &&
-                                  index < widget.scrollPosition + widget.visibleRange) {
+                              getTitlesWidget: (value, _) {
+                                final index = value.toInt();
+
+                                // Edge case: prevent label if too close to end
+                                if (index < 0 || index >= sortedMonths.length) return const SizedBox.shrink();
+
+                                if ((value - index).abs() > 0.05) return const SizedBox.shrink(); // Fractional = ignore
+
                                 return Padding(
                                   padding: const EdgeInsets.only(top: 4),
                                   child: Text(
@@ -241,9 +300,7 @@ class _PriorityTabState extends State<PriorityTab> {
                                     style: const TextStyle(fontSize: 10),
                                   ),
                                 );
-                              }
-                              return const SizedBox.shrink();
-                            },
+                              },
                           ),
                         ),
                         leftTitles: AxisTitles(
@@ -253,22 +310,9 @@ class _PriorityTabState extends State<PriorityTab> {
                         topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                       ),
                       lineBarsData: [
-                        _buildLine(_filterSpots(prioritySpots['Low']!), getPriorityColor('Low')),
-                        _buildLine(_filterSpots(prioritySpots['Medium']!), getPriorityColor('Medium')),
-                        _buildLine(_filterSpots(prioritySpots['High']!), getPriorityColor('High')),
+                        for(var spot in tagSpots.keys)
+                          _buildLine(_filterSpots(tagSpots[spot]!), lineColor.firstWhere((line) => line.name == spot).color),
                       ],
-                      lineTouchData: LineTouchData(
-                        touchTooltipData: LineTouchTooltipData(
-                          fitInsideHorizontally: true,
-                          fitInsideVertically: true,
-                          getTooltipItems: (List<LineBarSpot> touchedSpots){
-                            return touchedSpots.map((spot) {
-                              LineColor lineData = lineColor.firstWhere((line) => line.color == spot.bar.color);
-                              return LineTooltipItem('${lineData.name}: ${spot.y.toInt()}', TextStyle(color: lineData.color));
-                            }).toList();
-                          }
-                        )
-                      ),
                       borderData: FlBorderData(show: true),
                       gridData: FlGridData(show: true),
                     ),

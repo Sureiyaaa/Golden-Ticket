@@ -51,10 +51,8 @@ class _PriorityTabState extends State<PriorityTab> {
     required DateTime date,
     required Function(DateTime)? onPick,
   }) {
-    return ElevatedButton.icon(
-      icon: const Icon(Icons.calendar_today, size: 16),
-      label: Text("$label: ${DateFormat('MMMM d, yyyy').format(date)}"),
-      onPressed: () async {
+    return InkWell(
+      onTap: () async {
         final picked = await showDatePicker(
           context: context,
           initialDate: date,
@@ -63,6 +61,23 @@ class _PriorityTabState extends State<PriorityTab> {
         );
         if (picked != null) onPick!(picked);
       },
+      child: InputDecorator(
+        decoration: InputDecoration(
+          border: OutlineInputBorder(),
+          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.calendar_today, size: 16),
+            const SizedBox(width: 8),
+            Text(
+              "$label: ${DateFormat('MMMM d, yyyy').format(date)}",
+              style: TextStyle(fontSize: 14),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -92,11 +107,6 @@ class _PriorityTabState extends State<PriorityTab> {
           !created.isBefore(widget.fromDate) &&
           !created.isAfter(widget.toDate);
     });
-
-    if (filteredTickets.isEmpty) {
-      return const Center(
-          child: Text('No data available for the selected date range.'));
-    }
 
     final Map<String, Map<String, int>> monthlyReports = {};
 
@@ -145,33 +155,67 @@ class _PriorityTabState extends State<PriorityTab> {
       prioritySpots['High']!.add(FlSpot(i.toDouble(), high.toDouble()));
     }
 
-    double minY = monthlyReports.values.expand((e) => e.values).reduce((a, b) => a < b ? a : b) - 1;
-    double maxY = monthlyReports.values.expand((e) => e.values).reduce((a, b) => a > b ? a : b) + 3;
+    double minY = 0;
+    double maxY = 0;
+    if (filteredTickets.isNotEmpty){
+      minY = monthlyReports.values.expand((e) => e.values).reduce((a, b) => a < b ? a : b) - 1;
+      maxY = monthlyReports.values.expand((e) => e.values).reduce((a, b) => a > b ? a : b) + 3;
+    }
+    List<LineColor> lineColor = [];
+    for(var prioritySpots in prioritySpots.keys)
+      lineColor.add(new LineColor(name: prioritySpots, color: getPriorityColor(prioritySpots)));
+
 
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
-          Row(
-            children: [
-              _buildDateButton(
-                label: "From",
-                date: widget.fromDate,
-                onPick: widget.onFromDateChanged,
-              ),
-              const SizedBox(width: 16),
-              _buildDateButton(
-                label: "To",
-                date: widget.toDate,
-                onPick: widget.onToDateChanged,
-              ),
-              const SizedBox(width: 12),
-              IconButton(
-                icon: const Icon(Icons.refresh),
-                onPressed: widget.onRefresh,
-              ),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              bool isMobile = constraints.maxWidth < 600;
+              final content = [
+                Flexible(
+                  flex: 1,
+                  child: Padding(
+                    padding: const EdgeInsets.all(6.0),
+                    child: _buildDateButton(
+                      label: "From",
+                      date: widget.fromDate,
+                      onPick: widget.onFromDateChanged,
+                    ),
+                  ),
+                ),
+                Flexible(
+                  flex: 1,
+                  child: Padding(
+                    padding: const EdgeInsets.all(6.0),
+                    child: _buildDateButton(
+                      label: "To",
+                      date: widget.toDate,
+                      onPick: widget.onToDateChanged,
+                    ),
+                  ),
+                ),
+              ];
+
+              return isMobile
+                  ? IntrinsicHeight( // Ensures proper sizing vertically
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: content,
+                ),
+              )
+                  : Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: content,
+              );
+            },
           ),
+          if (filteredTickets.isEmpty)
+            Center(
+                child: Text('No data available for the selected date range.')
+            )
+          else
           const SizedBox(height: 20),
           Expanded(
             child: Column(
@@ -213,6 +257,18 @@ class _PriorityTabState extends State<PriorityTab> {
                         _buildLine(_filterSpots(prioritySpots['Medium']!), getPriorityColor('Medium')),
                         _buildLine(_filterSpots(prioritySpots['High']!), getPriorityColor('High')),
                       ],
+                      lineTouchData: LineTouchData(
+                        touchTooltipData: LineTouchTooltipData(
+                          fitInsideHorizontally: true,
+                          fitInsideVertically: true,
+                          getTooltipItems: (List<LineBarSpot> touchedSpots){
+                            return touchedSpots.map((spot) {
+                              LineColor lineData = lineColor.firstWhere((line) => line.color == spot.bar.color);
+                              return LineTooltipItem('${lineData.name}: ${spot.y.toInt()}', TextStyle(color: lineData.color));
+                            }).toList();
+                          }
+                        )
+                      ),
                       borderData: FlBorderData(show: true),
                       gridData: FlGridData(show: true),
                     ),

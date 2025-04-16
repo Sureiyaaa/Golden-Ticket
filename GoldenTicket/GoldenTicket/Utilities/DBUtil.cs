@@ -908,11 +908,11 @@ namespace GoldenTicket.Utilities
         #endregion
         #endregion
         #region -   UpdateLastSeen
-        public static async void UpdateLastSeen(int UserID, int ChatroomID)
+        public static async Task UpdateLastSeen(int UserID, int ChatroomID)
         {
             using(var context = new ApplicationDbContext())
             {
-                var member = context.GroupMembers.FirstOrDefault();
+                var member = context.GroupMembers.Where(u=> u.MemberID == UserID && u.ChatroomID == ChatroomID).FirstOrDefault();
                 if(member != null){
                     member.LastSeenAt = DateTime.Now;
                     await context.SaveChangesAsync();

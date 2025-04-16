@@ -210,15 +210,17 @@ namespace GoldenTicket.Hubs
         public async Task OpenChatroom(int UserID, int ChatroomID) 
         {
             var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID)!, true);
-            await UserSeen(UserID, ChatroomID);
+            
             await Clients.Caller.SendAsync("ReceiveMessages", new {chatroom = chatroomDTO});
+            await UserSeen(UserID, ChatroomID);
         }
         public async Task UserSeen(int UserID, int ChatroomID) 
         {
-            var chatroomDTO = DBUtil.GetChatroom(ChatroomID);
-            DBUtil.UpdateLastSeen(UserID, ChatroomID);
-            foreach(var member in chatroomDTO!.Members) {
-                if (_connections.TryGetValue(member.Member!.UserID, out var connectionIds)){
+            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID, false)!);
+            await DBUtil.UpdateLastSeen(UserID, ChatroomID);
+            foreach(var member in chatroomDTO.GroupMembers)
+            {
+                if (_connections.TryGetValue(member.User.UserID, out var connectionIds)){
                     foreach (var connectionId in connectionIds)
                     {
                         await Clients.Client(connectionId).SendAsync("UserSeen", new {userID = UserID, chatroomID = ChatroomID});
@@ -234,11 +236,12 @@ namespace GoldenTicket.Hubs
                 Console.WriteLine($"[SignalR] Connection {Context.ConnectionId} is no longer active.");
                 return; // Return early if the connection is not valid
             }
+            
+            await UserSeen(SenderID, ChatroomID);
             var message = await DBUtil.SendMessage(SenderID, ChatroomID, Message);
             var messageDTO = new MessageDTO(DBUtil.GetMessage(message.MessageID)!);
             var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID, false)!);
             var MembersToInvoke = new List<int>();
-            
             
             foreach(var member in chatroomDTO.GroupMembers){
                 MembersToInvoke.Add(member.User.UserID);
@@ -258,10 +261,10 @@ namespace GoldenTicket.Hubs
                     foreach (var connectionId in connectionIds)
                     {
                         await Clients.Client(connectionId).SendAsync("ReceiveMessage", new {chatroom = chatroomDTO, message = messageDTO});
+                        Console.WriteLine("Yes");
                     }
                 }
             }
-            await UserSeen(SenderID, ChatroomID);
             if(chatroomDTO.Ticket == null && SenderID != 100000001)
             {
                 await AISendMessage(ChatroomID, Message, SenderID);
@@ -286,6 +289,7 @@ namespace GoldenTicket.Hubs
                         foreach (var connectionId in connectionIds)
                         {
                             await Clients.Client(connectionId).SendAsync("ReceiveMessage", new {chatroom = chatroomDTO, message = messageDTO});
+                            Console.WriteLine("Wow");
                             await Clients.Client(connectionId).SendAsync("AllowMessage");
                         }
                     }

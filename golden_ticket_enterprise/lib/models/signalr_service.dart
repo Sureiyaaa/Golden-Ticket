@@ -20,7 +20,7 @@ class SignalRService with ChangeNotifier {
 
   var logger = Logger();
   Function(List<MainTag>)? onTagUpdate;
-  Function(Message, Chatroom)? onReceiveMessage;
+  final List<void Function(Message, Chatroom)> _onReceiveMessageListeners = [];
   Function(List<String>)? onPriorityUpdate;
   Function(List<FAQ>)? onFAQUpdate;
   Function(Chatroom)? onChatroomUpdate;
@@ -221,7 +221,7 @@ class SignalRService with ChangeNotifier {
         if(arguments != null){
           int chatroomID = arguments[0]['chatroomID'];
           int userID = arguments[0]['userID'];
-
+          print('Seen comes first');
 
           onSeenUpdate?.call(userID, chatroomID);
           notifyListeners();
@@ -282,9 +282,11 @@ class SignalRService with ChangeNotifier {
 
     _hubConnection!.on('ReceiveMessage', (arguments){
       if(arguments != null) {
+        final message = Message.fromJson(arguments[0]['message']);
+        final chatroom = Chatroom.fromJson(arguments[0]['chatroom']);
 
-        onReceiveMessage?.call(Message.fromJson(arguments[0]['message']), Chatroom.fromJson(arguments[0]['chatroom']));
-
+        _triggerOnReceiveMessage(message, chatroom);
+        print('ReceiveMessage comes first');
         notifyListeners();
       }
     });
@@ -397,6 +399,18 @@ class SignalRService with ChangeNotifier {
         onRatingsUpdate?.call(updatedRatings);
       }
     });
+  }
+  void addOnReceiveMessageListener(void Function(Message, Chatroom) listener) {
+    _onReceiveMessageListeners.add(listener);
+  }
+
+  void removeOnReceiveMessageListener(void Function(Message, Chatroom) listener) {
+    _onReceiveMessageListeners.remove(listener);
+  }
+  void _triggerOnReceiveMessage(Message message, Chatroom chatroom) {
+    for (var listener in _onReceiveMessageListeners) {
+      listener(message, chatroom);
+    }
   }
 
   /// Starts the SignalR connection

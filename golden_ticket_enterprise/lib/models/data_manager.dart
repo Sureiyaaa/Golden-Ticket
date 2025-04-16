@@ -56,9 +56,9 @@ class DataManager extends ChangeNotifier {
       updateChatroom(updatedChatroom);
     };
 
-    signalRService.onReceiveMessage = (message, chatroom){
+    signalRService.addOnReceiveMessageListener((message, chatroom) {
       updateLastMessage(chatroom);
-    };
+    });
     signalRService.onSeenUpdate = (userID, chatroomID){
       updateMemberSeen(userID, chatroomID);
     };
@@ -292,7 +292,7 @@ class DataManager extends ChangeNotifier {
   }
   
   Rating? findRatingByChatroomID(int chatroomID){
-    return ratings.firstWhere((rating) => rating.chatroom.chatroomID == chatroomID);
+    return ratings.where((rating) => rating.chatroom.chatroomID == chatroomID).firstOrNull;
   }
 
   Future<void> closeConnection() async {

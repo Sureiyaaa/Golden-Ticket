@@ -32,7 +32,7 @@ class _ChatroomPageState extends State<ChatroomPage> {
   int _messageLimit = 30;
 
   final ScrollController _scrollController = ScrollController();
-
+  late DataManager dm;
   @override
   void initState() {
     super.initState();
@@ -46,6 +46,37 @@ class _ChatroomPageState extends State<ChatroomPage> {
     });
 
     messageFocusNode.requestFocus();
+    dm = Provider.of<DataManager>(context, listen: false);
+
+    dm.signalRService.addOnReceiveMessageListener(_handleChatroomMessage);
+  }
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+  }
+  @override
+  void dispose(){
+    dm.signalRService.removeOnReceiveMessageListener(_handleChatroomMessage);
+
+    super.dispose();
+  }
+  void _handleChatroomMessage(Message message, Chatroom chatroom) {
+
+    var userSession = Hive.box<HiveSession>('sessionBox').get('user');
+
+    if (chatroom.chatroomID == widget.chatroomID) {
+      if (!chatroom.messages!.any((msg) => msg.messageID == message.messageID)) {
+        if (message.sender.userID != userSession!.user.userID) {
+          dm.signalRService.sendSeen(userSession.user.userID, widget.chatroomID);
+        } else {
+          dm.updateMemberSeen(userSession.user.userID, widget.chatroomID);
+        }
+        dm.addMessage(message, chatroom);
+        setState(() {
+          _messageLimit += 1;
+        });
+      }
+    }
   }
 
   Widget build(BuildContext context) {
@@ -71,17 +102,6 @@ class _ChatroomPageState extends State<ChatroomPage> {
         var userSession = Hive.box<HiveSession>('sessionBox').get('user');
         String chatTitle = chatroom.ticket != null ? chatroom.ticket?.ticketTitle ?? "New Chat" : "New Chat";
 
-        dataManager.signalRService.onReceiveMessage = (message, chatroom) {
-          if (chatroom.chatroomID == widget.chatroomID) {
-            if (!chatroom.messages!.any((msg) => msg.messageID == message.messageID)) {
-              dataManager.signalRService.sendSeen(userSession!.user.userID, widget.chatroomID);
-              dataManager.addMessage(message, chatroom);
-              setState(() {
-                _messageLimit += 1;
-              });
-            }
-          }
-        };
 
         dataManager.onRatingUpdate = (rating) {
           enableRate = true;
@@ -173,8 +193,7 @@ class _ChatroomPageState extends State<ChatroomPage> {
 
                     final isMe = message.sender.userID == userSession!.user.userID;
                     final isSeen = seenByMembers.isNotEmpty && seenMessageID == message.messageID;
-                    print(seenMessageID);
-                    print(message.messageID);
+
                     List<Widget> messageColumn = [];
 
                     if (shouldShowHourSeparator(message, previousMessage)) {

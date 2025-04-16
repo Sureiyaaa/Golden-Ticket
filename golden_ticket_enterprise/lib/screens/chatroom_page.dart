@@ -7,6 +7,7 @@ import 'package:golden_ticket_enterprise/entities/message.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
 import 'package:golden_ticket_enterprise/models/time_utils.dart';
+import 'package:golden_ticket_enterprise/screens/connectionstate.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:golden_ticket_enterprise/widgets/chatroom_details_widget.dart';
 import 'package:golden_ticket_enterprise/widgets/notification_widget.dart';
@@ -83,7 +84,9 @@ class _ChatroomPageState extends State<ChatroomPage> {
     return Consumer<DataManager>(
       builder: (context, dataManager, child) {
         Chatroom chatroom = dataManager.findChatroomByID(widget.chatroomID)!;
-
+        if (!dataManager.signalRService.isConnected) {
+          return DisconnectedOverlay();
+        }
         final allMessages = (chatroom.messages ?? []).toList(); // safety if null
         if (allMessages.isEmpty) {
           return const Center(child: CircularProgressIndicator()); // or a 'Loading...' placeholder

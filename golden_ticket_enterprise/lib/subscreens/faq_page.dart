@@ -27,7 +27,7 @@ class _FAQPageState extends State<FAQPage> {
   final ScrollController _scrollController = ScrollController();
   int _itemsPerPage = 10;
   int _currentMaxItems = 10;
-
+  late DataManager dm;
   @override
   void initState() {
     super.initState();
@@ -38,6 +38,7 @@ class _FAQPageState extends State<FAQPage> {
         });
       }
     });
+    dm = Provider.of<DataManager>(context, listen: false);
   }
 
   @override
@@ -50,9 +51,6 @@ class _FAQPageState extends State<FAQPage> {
   Widget build(BuildContext context) {
     return Consumer<DataManager>(
       builder: (context, dataManager, child) {
-        dataManager.signalRService.onReceiveSupport = (chatroom) {
-          context.push('/hub/chatroom/${chatroom.chatroomID}');
-        };
 
         dataManager.signalRService.onMaximumChatroom = () {
           TopNotification.show(

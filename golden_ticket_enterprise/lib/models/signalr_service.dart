@@ -2,6 +2,7 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:golden_ticket_enterprise/entities/chatroom.dart';
 import 'package:golden_ticket_enterprise/entities/faq.dart';
+import 'package:golden_ticket_enterprise/entities/notification.dart' as notif;
 import 'package:golden_ticket_enterprise/entities/main_tag.dart';
 import 'package:golden_ticket_enterprise/entities/message.dart';
 import 'package:golden_ticket_enterprise/entities/rating.dart';
@@ -21,6 +22,7 @@ class SignalRService with ChangeNotifier {
   var logger = Logger();
   Function(List<MainTag>)? onTagUpdate;
   final List<void Function(Message, Chatroom)> _onReceiveMessageListeners = [];
+  final List<void Function(Chatroom)> _onReceiveSupportListeners = [];
   Function(List<String>)? onPriorityUpdate;
   Function(List<FAQ>)? onFAQUpdate;
   Function(Chatroom)? onChatroomUpdate;
@@ -31,7 +33,9 @@ class SignalRService with ChangeNotifier {
   Function(Ticket)? onTicketUpdate;
   Function(List<UserDTO.User>)? onUsersUpdate;
   Function(UserDTO.User)? onUserUpdate;
-  Function()? onNotificationReceive;
+  Function(notif.Notification)? onNotificationReceive;
+  Function(notif.Notification)? onNotificationDeleted;
+  Function(List<notif.Notification>)? onNotificationsUpdate;
   Function(Chatroom)? onReceiveSupport;
   Function(List<String>)? onStatusUpdate;
   Function(int, int)? onSeenUpdate;
@@ -40,6 +44,7 @@ class SignalRService with ChangeNotifier {
   Function()? onMaximumChatroom;
   Function()? onExistingTag;
   Function()? onAlreadyMember;
+  Function()? onAlreadyDeleted;
   Function()? onRegistrationError;
 
   ConnectionType _connectionState = ConnectionType.disconnected;
@@ -294,7 +299,7 @@ class SignalRService with ChangeNotifier {
     _hubConnection!.on('ReceiveSupport', (arguments) async {
       if(arguments != null){
         await onChatroomUpdate?.call(Chatroom.fromJson(arguments[0]['chatroom']));
-        await onReceiveSupport?.call(Chatroom.fromJson(arguments[0]['chatroom']));
+        _triggerOnReceiveSupport(Chatroom.fromJson(arguments[0]['chatroom']));
         notifyListeners();
       }
     });
@@ -350,7 +355,13 @@ class SignalRService with ChangeNotifier {
       }
     });
 
+    _hubConnection!.on('NotificationReceive', (arguments){
+      if(arguments != null){
 
+        onNotificationReceive?.call(notif.Notification.fromJson(arguments[0]['notification']));
+        notifyListeners();
+      }
+    });
 
     _hubConnection!.on('Online', (arguments) {
       logger.i("🔔 SignalR Event: Online Received!");
@@ -380,6 +391,9 @@ class SignalRService with ChangeNotifier {
         List<Rating> updatedRatings =
         (arguments[0]['ratings'] as List).map((rating) => Rating.fromJson(rating)).toList();
 
+        List<notif.Notification> updatedNotifications =
+        (arguments[0]['notifications'] as List).map((notification) => notif.Notification.fromJson(notification)).toList();
+
         logger.i("🔹 Updated Tags: ${updatedTags.length}\n"
             "🔹 Updated FAQs: ${updatedFAQs.length}\n"
             "🔹 Updated Chatrooms: ${updatedChatrooms.length}\n"
@@ -403,13 +417,24 @@ class SignalRService with ChangeNotifier {
   void addOnReceiveMessageListener(void Function(Message, Chatroom) listener) {
     _onReceiveMessageListeners.add(listener);
   }
+  void addOnReceiveSupportListener(void Function(Chatroom) listener) {
+    _onReceiveSupportListeners.add(listener);
+  }
 
   void removeOnReceiveMessageListener(void Function(Message, Chatroom) listener) {
     _onReceiveMessageListeners.remove(listener);
   }
+  void removeOnReceiveSupportListener(void Function(Chatroom) listener) {
+    _onReceiveSupportListeners.remove(listener);
+  }
   void _triggerOnReceiveMessage(Message message, Chatroom chatroom) {
     for (var listener in _onReceiveMessageListeners) {
       listener(message, chatroom);
+    }
+  }
+  void _triggerOnReceiveSupport(Chatroom chatroom) {
+    for (var listener in _onReceiveSupportListeners) {
+      listener(chatroom);
     }
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:golden_ticket_enterprise/entities/chatroom.dart';
 import 'package:golden_ticket_enterprise/entities/faq.dart';
+import 'package:golden_ticket_enterprise/entities/notification.dart' as notif;
 import 'package:golden_ticket_enterprise/entities/main_tag.dart';
 import 'package:golden_ticket_enterprise/entities/message.dart';
 import 'package:golden_ticket_enterprise/entities/rating.dart';
@@ -14,6 +15,7 @@ class DataManager extends ChangeNotifier {
   Function(Rating)? onRatingUpdate;
   List<MainTag> mainTags = [];
   List<FAQ> faqs = [];
+  List<notif.Notification> notifications = [];
   List<String> status = [];
   List<Chatroom> chatrooms = [];
   List<Ticket> tickets = [];
@@ -49,6 +51,9 @@ class DataManager extends ChangeNotifier {
     signalRService.onFAQUpdate = (updatedFAQs) {
       updateFAQs(updatedFAQs);
     };
+    signalRService.onNotificationsUpdate = (updatedNotifications){
+      updateNotifications(updatedNotifications);
+    };
     signalRService.onChatroomsUpdate = (updatedChatrooms){
       updateChatrooms(updatedChatrooms);
     };
@@ -74,7 +79,6 @@ class DataManager extends ChangeNotifier {
     };
     signalRService.onStaffJoined = (user, chatroom){
       updateChatroom(chatroom);
-
     };
     signalRService.onPriorityUpdate = (updatedPriorities){
       updatePriorities(updatedPriorities);
@@ -93,7 +97,13 @@ class DataManager extends ChangeNotifier {
       updateRating(updatedRating);
     };
   }
-
+  void updateNotifications(List<notif.Notification> updatedNotificaitons){
+    notifications = updatedNotificaitons;
+    notifyListeners();
+  }
+  void deleteNotification(int notificationID){
+    notifyListeners();
+  }
   void updateMainTags(List<MainTag> updatedTags) {
     mainTags = updatedTags;
     notifyListeners();

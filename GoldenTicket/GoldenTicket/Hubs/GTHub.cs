@@ -170,17 +170,26 @@ namespace GoldenTicket.Hubs
         }
 
 
-        public async Task ResolveTickets(List<ChatroomDTO> chatrooms){
-
-            foreach(ChatroomDTO chatroom in chatrooms){
-                foreach(var member in chatroom.GroupMembers)
+        public async Task ResolveTickets(List<ChatroomDTO> Chatrooms)
+        {
+            foreach (ChatroomDTO Chatroom in Chatrooms)
+            {
+                if (Chatroom.LastMessage != null && Chatroom.Ticket == null && (DateTime.UtcNow - Chatroom.LastMessage.CreatedAt).TotalDays >= 4)
                 {
-                    
-                    if (_connections.TryGetValue(member.User.UserID, out var connectionIds))
+                    if (Chatroom.ChatroomID == null){
+                        continue;
+                    }
+                    int chatroomID = Chatroom.ChatroomID ?? 0;
+                    await CloseMessage(chatroomID);
+                    await DBUtil.CloseChatroom(chatroomID);
+                    foreach (var member in Chatroom.GroupMembers)
                     {
-                        foreach (var connectionId in connectionIds)
+                        if (_connections.TryGetValue(member.User.UserID, out var connectionIds))
                         {
-                            await Clients.Client(connectionId).SendAsync("ChatroomUpdate", new {chatroom = chatroom});
+                            foreach (var connectionId in connectionIds)
+                            {
+                                await Clients.Client(connectionId).SendAsync("ChatroomUpdate", new { chatroom = Chatroom });
+                            }
                         }
                     }
                 }
@@ -442,7 +451,7 @@ namespace GoldenTicket.Hubs
         }
         public async Task CloseMessage(int ChatroomID) {
             string message = "Your ticket has been resolved! Thank you for your patience! It would really help us if you rate your experience, your feedback would really be appreciated!";
-            await SendMessage(100000001, ChatroomID, message);
+            await SendMessage(AIUtil.GetChatbotID(), ChatroomID, message);
         }
         #endregion 
         #region Rating

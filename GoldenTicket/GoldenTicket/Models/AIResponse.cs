@@ -51,7 +51,7 @@ public class AIResponse
     public static string FirstMessage(bool Randomize = false) 
     {
         List<string> firstMessages = new List<string> {
-            "Hello! How can I assis you today?",
+            "Hello! How can I assist you today?",
             "Hi there! What can I do for you today?",
             "A happy Golden Morning! How can I help you?",
             "Erm... Hello? What do you need?",

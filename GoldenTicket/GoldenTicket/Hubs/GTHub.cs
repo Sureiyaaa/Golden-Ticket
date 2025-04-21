@@ -289,8 +289,9 @@ namespace GoldenTicket.Hubs
                 return; // Return early if the connection is not valid
             }
             
-            await UserSeen(SenderID, ChatroomID);
             var message = await DBUtil.SendMessage(SenderID, ChatroomID, Message);
+            await UserSeen(SenderID, ChatroomID);
+            
             var messageDTO = new MessageDTO(DBUtil.GetMessage(message.MessageID)!);
             var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID, false)!);
             var MembersToInvoke = new List<int>();

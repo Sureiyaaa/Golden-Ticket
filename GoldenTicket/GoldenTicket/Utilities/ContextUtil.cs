@@ -65,5 +65,19 @@ namespace GoldenTicket.Utilities
             .Where(n => userIDs.Contains(n.UserID))
             .ToListAsync();
         }
+        public async static Task<Notification?> Notification (int notificationID, ApplicationDbContext context)
+        {
+            return await context.Notifications
+                .BuildBaseNotificationQuery()
+                .Where(n => n.NotificationID == notificationID)
+                .FirstOrDefaultAsync();
+        }
+        public async static Task<List<Notification>> Notification (List<int> notificationIDs, ApplicationDbContext context)
+        {
+            return await context.Notifications
+                .BuildBaseNotificationQuery()
+                .Where(n => notificationIDs.Contains(n.NotificationID))
+                .ToListAsync();
+        }
     }
 }

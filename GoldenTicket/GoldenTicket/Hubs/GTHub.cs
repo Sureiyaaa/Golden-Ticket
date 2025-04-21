@@ -13,7 +13,12 @@ namespace GoldenTicket.Hubs
     public class GTHub : Hub
     {
         #region General
+
+
+
         private static readonly ConcurrentDictionary<int, HashSet<string>> _connections = new ConcurrentDictionary<int, HashSet<string>>();
+        #region -   OnDisconnectedAsync
+        #endregion
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
             foreach (var entry in _connections)
@@ -33,12 +38,15 @@ namespace GoldenTicket.Hubs
         }
 
 
-
+        #region -   Broadcast
+        #endregion
         public async Task Broadcast(string message)
         {
             await Clients.All.SendAsync("Announce", message);
         }
 
+        #region -   Online
+        #endregion
         public async Task Online(int userID, string role)
         {
             _connections.AddOrUpdate(userID, new HashSet<string> { Context.ConnectionId },
@@ -64,6 +72,8 @@ namespace GoldenTicket.Hubs
                 notifications = await DBUtil.GetNotifications(userID)
             });
         }
+        #region -   GetAvailableStaff
+        #endregion
         public int? GetAvailableStaff(string? MainTagName)
         {
             if (!string.IsNullOrEmpty(MainTagName))
@@ -89,8 +99,13 @@ namespace GoldenTicket.Hubs
             return null; // Return empty string if no staff is available
         }
         #endregion
-
         #region User
+
+
+
+
+        #region -   UpdateUser
+        #endregion
         public async Task UpdateUser(int _userID, string? _username, string? _firstname, string? _middlename, string? _lastname, string? _role, List<string?> _assignedTags, string? Password)
         {
             var updatedUser = await DBUtil.UpdateUser(_userID, _username, _firstname, _middlename, _lastname, _role, _assignedTags);
@@ -113,6 +128,8 @@ namespace GoldenTicket.Hubs
                 }
             }
         }
+        #region -   AddUser
+        #endregion
         public async Task AddUser(string Username, string Password, string FirstName, string? MiddleName, string LastName, string Role, List<string?> AssignedTags)
         {
             var newUser = await DBUtil.AddUser(Username, Password, FirstName, MiddleName, LastName, Role, AssignedTags);
@@ -134,24 +151,33 @@ namespace GoldenTicket.Hubs
             }
         }
         #endregion
-
         #region FAQ
+
+
+
+
+        #region -   AddFAQ
+        #endregion
         public async Task AddFAQ(string Title, string Description, string Solution, string MainTagName, string SubTagName) 
         {
             DBUtil.AddFAQ(Title, Description, Solution, MainTagName, SubTagName);
             await Clients.All.SendAsync("FAQUpdate", new {faq = DBUtil.GetFAQs()});
         }
+        #region -   UpdateFAQ
+        #endregion
         public async Task UpdateFAQ(int faqID, string Title, string Description, string Solution, string Maintag, string Subtag, bool IsArchived)
         {
             await DBUtil.UpdateFAQ(faqID,Title, Description, Solution, Maintag, Subtag, IsArchived);
             await Clients.All.SendAsync("FAQUpdate", new {faq = DBUtil.GetFAQs()});
         }
         #endregion
-
-        
-
-
         #region Chatroom
+
+
+
+
+        #region -   RequestChat
+        #endregion
         public async Task RequestChat(int AuthorID) 
         {
             var chatrooms = await DBUtil.GetChatrooms(AuthorID, true);
@@ -197,12 +223,16 @@ namespace GoldenTicket.Hubs
             }
         }
 
+        #region -   CloseChatroom
+        #endregion
         public async Task CloseChatroom(int ChatroomID)
         {
                 var chatroom = await DBUtil.CloseChatroom(ChatroomID);
                 await Clients.Caller.SendAsync("ChatroomUpdate", new { chatroom = new ChatroomDTO(chatroom) });
         }
 
+        #region -   JoinChatroom
+        #endregion
         public async Task JoinChatroom(int UserID, int ChatroomID)
         {
             var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID, false)!);
@@ -223,6 +253,8 @@ namespace GoldenTicket.Hubs
                 }
             }
         }
+        #region -   OpenChatroom
+        #endregion
         public async Task OpenChatroom(int UserID, int ChatroomID) 
         {
             var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID)!, true);
@@ -230,6 +262,8 @@ namespace GoldenTicket.Hubs
             await Clients.Caller.SendAsync("ReceiveMessages", new {chatroom = chatroomDTO});
             await UserSeen(UserID, ChatroomID);
         }
+        #region -   UserSeen
+        #endregion
         public async Task UserSeen(int UserID, int ChatroomID) 
         {
             var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID, false)!);
@@ -244,6 +278,8 @@ namespace GoldenTicket.Hubs
                 }
             }
         }
+        #region -   SendMessage
+        #endregion
         public async Task SendMessage(int SenderID, int ChatroomID, string Message) 
         {
             var connectedUsers = _connections.Where(kvp => kvp.Value.Contains(Context.ConnectionId)).ToList();
@@ -294,7 +330,8 @@ namespace GoldenTicket.Hubs
                 await AISendMessage(ChatroomID, Message, SenderID);
             }
         }
-        
+        #region -   AISendMessage
+        #endregion
         public async Task AISendMessage(int chatroomID, string userMessage, int userID) 
         {
             int ChatbotID = AIUtil.GetChatbotID();
@@ -353,9 +390,13 @@ namespace GoldenTicket.Hubs
             await UserSeen(ChatbotID, chatroomID);
         }
         #endregion
-
-
         #region Tags
+
+
+
+
+        #region -   AddMainTag
+        #endregion
         public async Task AddMainTag(string TagName)
         {
             if(DBUtil.AddMainTag(TagName))
@@ -363,6 +404,8 @@ namespace GoldenTicket.Hubs
             else
                 await Clients.Caller.SendAsync("ExistingTag");
         }
+        #region -   AddSubTag
+        #endregion
         public async Task AddSubTag(string TagName, string MainTagName)
         {
             if(DBUtil.AddSubTag(TagName, MainTagName))
@@ -371,9 +414,13 @@ namespace GoldenTicket.Hubs
                 await Clients.Caller.SendAsync("ExistingTag");
         }
         #endregion
-
-
         #region Ticket
+
+
+
+
+        #region -   AddTicket
+        #endregion
         public async Task AddTicket(string TicketTitle, int AuthorID, string MainTagName, string SubTagName, string Priority, int ChatroomID, int? AssignedID = 0)
         {
             var newTicket = await DBUtil.AddTicket(TicketTitle, AuthorID, MainTagName, SubTagName, Priority, ChatroomID, AssignedID);
@@ -403,6 +450,8 @@ namespace GoldenTicket.Hubs
             if (AssignedID != null || AssignedID != 0) await NotifyUser(AssignedID!.Value, 1, "New Ticket Assigned", $"You hav benn assigned to a new ticket! Ticket ID: {ticketDTO.TicketID}", ticketDTO.TicketID);
             else await NotifyGroup(adminUserID, 1, "New Open Ticket", $"A new ticket has been created! Ticket ID: {ticketDTO.TicketID}", ticketDTO.TicketID);
         }
+        #region -   UpdateTicket
+        #endregion
         public async Task UpdateTicket(int TicketID, string Title, string Status, string Priority, string? MainTag, string? SubTag, int? AssignedID)
         {
             
@@ -462,22 +511,34 @@ namespace GoldenTicket.Hubs
 
             
         }
+        #region -   OpenTicket
+        #endregion
         public async Task OpenTicket(int TicketID)
         {
             var ticketDTO = new TicketDTO(DBUtil.GetTicket(TicketID)!);
             await Clients.Caller.SendAsync("TicketUpdate", new {ticket = ticketDTO});
         }
+        #region -   CloseMessage
+        #endregion
         public async Task CloseMessage(int ChatroomID) {
             string message = "Your ticket has been resolved! Thank you for your patience! It would really help us if you rate your experience, your feedback would really be appreciated!";
             await SendMessage(AIUtil.GetChatbotID(), ChatroomID, message);
         }
         #endregion 
         #region Rating
+
+
+
+
+        #region -   GetRating
+        #endregion
         public async Task GetRating(int ChatroomID)
         {
             var ratingDTO = DBUtil.GetRating(ChatroomID);
             await Clients.Caller.SendAsync("RatingReceived", new { rating = ratingDTO });
         }
+        #region -   AddOrUpdateRating
+        #endregion
         public async Task AddOrUpdateRating(int ChatroomID, int Score, string? Feedback)
         {
             var existingRating = DBUtil.GetRating(ChatroomID);
@@ -511,6 +572,11 @@ namespace GoldenTicket.Hubs
         #endregion 
         #region Notification
 
+
+
+
+        #region -   NotifyGroup
+        #endregion
         public async Task NotifyGroup (List<int> userList, int notifType, string title, string description, int? referenceID)
         {
             var notifications = await DBUtil.NotifyGroup(userList, notifType, title, description, referenceID);
@@ -528,7 +594,8 @@ namespace GoldenTicket.Hubs
                 }
             }
         }
-        
+        #region -   NotifyUser
+        #endregion
         public async Task NotifyUser (int userID, int notifType, string title, string description, int? referenceID)
         {
             var newNotif = await DBUtil.NotifyUser(userID, notifType, title, description, referenceID);

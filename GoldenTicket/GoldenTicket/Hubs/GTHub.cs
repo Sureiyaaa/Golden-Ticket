@@ -514,14 +514,16 @@ namespace GoldenTicket.Hubs
         public async Task NotifyGroup (List<int> userList, int notifType, string title, string description, int? referenceID)
         {
             var notifications = await DBUtil.NotifyGroup(userList, notifType, title, description, referenceID);
-            foreach(var user in userList)
+            var notifList = notifications.Select(n => n.Value.NotificationID).ToList();
+            var notificationDTOs = await DBUtil.GetNotification(notifList);
+            foreach(var userID in userList)
             {
-                var newNotif = notifications.Where(n => n.Key == user).Select(n => new NotificationDTO(n.Value));
-                if (_connections.TryGetValue(user, out var connectionIds))
+                var newNotif = notifications.Where(n => n.Key == userID).FirstOrDefault().Value;
+                if (_connections.TryGetValue(userID, out var connectionIds))
                 {
                     foreach (var connectionId in connectionIds)
                     {
-                        await Clients.Client(connectionId).SendAsync("NotificationReceived", new { notification = newNotif } );
+                        await Clients.Client(connectionId).SendAsync("NotificationReceived", new { notification =  notificationDTOs[userID]} );
                     }
                 }
             }
@@ -530,11 +532,18 @@ namespace GoldenTicket.Hubs
         public async Task NotifyUser (int userID, int notifType, string title, string description, int? referenceID)
         {
             var newNotif = await DBUtil.NotifyUser(userID, notifType, title, description, referenceID);
+            var notification = await DBUtil.GetNotification(newNotif.NotificationID);
+            if (notification == null)
+            {
+                Console.WriteLine($"[GTHub] Notification with ID {newNotif.NotificationID} not found.");
+                return;
+            }
+            var newNotifDTO = new NotificationDTO(notification);
             if (_connections.TryGetValue(userID, out var connectionIds))
             {
                 foreach (var connectionId in connectionIds)
                 {
-                    await Clients.Client(connectionId).SendAsync("NotificationReceived", new { notification = new NotificationDTO(newNotif)} );
+                    await Clients.Client(connectionId).SendAsync("NotificationReceived", new { notification = newNotifDTO} );
                 }
             }
         }

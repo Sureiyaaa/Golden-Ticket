@@ -933,6 +933,12 @@ namespace GoldenTicket.Utilities
                     ChatroomID = ChatroomID,
                     MessageContent = Message,
                 };
+
+                var chatroom = context.Chatrooms.Where(c => c.ChatroomID == ChatroomID).Include(c => c.Members).FirstOrDefault();
+                var member = chatroom!.Members.Where(m => m.MemberID == SenderID).FirstOrDefault()!;
+
+                member.LastSeenAt = DateTime.Now;
+                //context.GroupMembers.Update(member);
                 context.Messages.Add(message);
                 await context.SaveChangesAsync();
                 stopwatch.Stop();

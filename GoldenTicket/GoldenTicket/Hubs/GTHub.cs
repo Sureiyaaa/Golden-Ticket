@@ -290,7 +290,7 @@ namespace GoldenTicket.Hubs
             }
             
             var message = await DBUtil.SendMessage(SenderID, ChatroomID, Message);
-            await UserSeen(SenderID, ChatroomID);
+            // await UserSeen(SenderID, ChatroomID);
 
             var messageDTO = new MessageDTO(DBUtil.GetMessage(message.MessageID)!);
             var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID, false)!);

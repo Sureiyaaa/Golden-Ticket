@@ -516,12 +516,12 @@ namespace GoldenTicket.Hubs
             var notifications = await DBUtil.NotifyGroup(userList, notifType, title, description, referenceID);
             foreach(var user in userList)
             {
-                var newNotif = notifications.Where(n => n.Key == user).Select(n => n.Value);
+                var newNotif = notifications.Where(n => n.Key == user).Select(n => new NotificationDTO(n.Value));
                 if (_connections.TryGetValue(user, out var connectionIds))
                 {
                     foreach (var connectionId in connectionIds)
                     {
-                        await Clients.Client(connectionId).SendAsync("NotificationReceived", new { notification = newNotif} );
+                        await Clients.Client(connectionId).SendAsync("NotificationReceived", new { notification = newNotif } );
                     }
                 }
             }
@@ -534,7 +534,7 @@ namespace GoldenTicket.Hubs
             {
                 foreach (var connectionId in connectionIds)
                 {
-                    await Clients.Client(connectionId).SendAsync("NotificationReceived", new { notification = newNotif} );
+                    await Clients.Client(connectionId).SendAsync("NotificationReceived", new { notification = new NotificationDTO(newNotif)} );
                 }
             }
         }

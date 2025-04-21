@@ -323,7 +323,7 @@ namespace GoldenTicket.Hubs
             if(chatroomDTO.Ticket != null && SenderID != AIUtil.GetChatbotID())
             {
                 MembersToInvoke.Remove(SenderID);
-                await NotifyGroup(MembersToInvoke, 2, $"{messageDTO.Sender!.FirstName} sent a Message", messageDTO.MessageContent!, ChatroomID);
+                NotifyGroup(MembersToInvoke, 2, $"{messageDTO.Sender!.FirstName} sent a Message", messageDTO.MessageContent!, ChatroomID);
             }
 
             if(chatroomDTO.Ticket == null && SenderID != 100000001)
@@ -449,9 +449,9 @@ namespace GoldenTicket.Hubs
             await Clients.Caller.SendAsync("TicketUpdate", new {ticket = ticketDTO});
             await Clients.Caller.SendAsync("ChatroomUpdate", new {chatroom = chatroomDTO});
             if (AssignedID != null && AssignedID != 0)
-                await NotifyUser(AssignedID!.Value, 1, "New Ticket Assigned", $"You have been assigned to a new ticket! Ticket ID: {ticketDTO.TicketID}", ticketDTO.TicketID);
+                NotifyUser(AssignedID!.Value, 1, "New Ticket Assigned", $"You have been assigned to a new ticket! Ticket ID: {ticketDTO.TicketID}", ticketDTO.TicketID);
             else 
-                await NotifyGroup(adminUserID, 1, "New Open Ticket", $"A new ticket has been created! Ticket ID: {ticketDTO.TicketID}", ticketDTO.TicketID);
+                NotifyGroup(adminUserID, 1, "New Open Ticket", $"A new ticket has been created! Ticket ID: {ticketDTO.TicketID}", ticketDTO.TicketID);
         }
         #region -   UpdateTicket
         #endregion
@@ -580,7 +580,7 @@ namespace GoldenTicket.Hubs
 
         #region -   NotifyGroup
         #endregion
-        public async Task NotifyGroup (List<int> userList, int notifType, string title, string description, int? referenceID)
+        public async void NotifyGroup (List<int> userList, int notifType, string title, string description, int? referenceID)
         {
             var notifications = await DBUtil.NotifyGroup(userList, notifType, title, description, referenceID);
             var notifList = notifications.Select(n => n.Value.NotificationID).ToList();
@@ -599,7 +599,7 @@ namespace GoldenTicket.Hubs
         }
         #region -   NotifyUser
         #endregion
-        public async Task NotifyUser (int userID, int notifType, string title, string description, int? referenceID)
+        public async void NotifyUser (int userID, int notifType, string title, string description, int? referenceID)
         {
             var newNotif = await DBUtil.NotifyUser(userID, notifType, title, description, referenceID);
             var notification = await DBUtil.GetNotification(newNotif.NotificationID);

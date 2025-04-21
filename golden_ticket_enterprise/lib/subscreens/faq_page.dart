@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:go_router/go_router.dart';
 import 'package:golden_ticket_enterprise/entities/faq.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
@@ -8,6 +7,7 @@ import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:golden_ticket_enterprise/widgets/add_faq_widget.dart';
 import 'package:golden_ticket_enterprise/widgets/edit_faq_widget.dart';
 import 'package:golden_ticket_enterprise/widgets/notification_widget.dart';
+import 'package:golden_ticket_enterprise/widgets/related_ticket_widget.dart';
 import 'package:provider/provider.dart';
 
 class FAQPage extends StatefulWidget {
@@ -277,8 +277,13 @@ class _FAQPageState extends State<FAQPage> {
                                         child: Text("Edit"),
                                       ),
                                       SizedBox(width: 10),
-                                      ElevatedButton(
-                                        onPressed: () {},
+                                      if(widget.session!.user.role != 'Employee')ElevatedButton(
+                                        onPressed: () {
+                                          showDialog(
+                                            context: context,
+                                            builder: (context) => RelatedTicketWidget(session: widget.session!, mainTag: faq.mainTag!.tagName, subTag: faq.subTag!.subTagName)
+                                          );
+                                        },
                                         child: Text("View Ticket Related"),
                                       ),
                                     ],

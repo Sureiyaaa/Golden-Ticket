@@ -139,7 +139,7 @@ class _ChatroomListPageState extends State<ChatroomListPage> {
                       });
                     },
                   ),
-                  CheckboxListTile(
+                  if(widget.session!.user.role != 'Employee') CheckboxListTile(
                     title: Text("My Chatrooms"),
                     value: includeMyChatrooms,
                     onChanged: (bool? value) {

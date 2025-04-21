@@ -185,9 +185,6 @@ namespace GoldenTicket.Models
                 .AsNoTracking()
                 .Include(n => n.User)
                     .ThenInclude(u => u!.Role)
-                .Include(n => n.User)
-                    .ThenInclude(u => u!.AssignedTags)
-                        .ThenInclude(t => t!.MainTag)
                 .Include(n => n.NotificationType)
                 .AsSplitQuery();
             return baseQuery;

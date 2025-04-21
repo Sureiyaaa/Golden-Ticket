@@ -323,7 +323,7 @@ namespace GoldenTicket.Hubs
             if(chatroomDTO.Ticket != null && SenderID != AIUtil.GetChatbotID())
             {
                 MembersToInvoke.Remove(SenderID);
-                await NotifyGroup(MembersToInvoke, 2, $"{messageDTO.Sender!.FirstName} send a Message", messageDTO.MessageContent!, ChatroomID);
+                await NotifyGroup(MembersToInvoke, 2, $"{messageDTO.Sender!.FirstName} sent a Message", messageDTO.MessageContent!, ChatroomID);
             }
 
             if(chatroomDTO.Ticket == null && SenderID != 100000001)
@@ -448,8 +448,10 @@ namespace GoldenTicket.Hubs
             }
             await Clients.Caller.SendAsync("TicketUpdate", new {ticket = ticketDTO});
             await Clients.Caller.SendAsync("ChatroomUpdate", new {chatroom = chatroomDTO});
-            if (AssignedID != null || AssignedID != 0) await NotifyUser(AssignedID!.Value, 1, "New Ticket Assigned", $"You hav benn assigned to a new ticket! Ticket ID: {ticketDTO.TicketID}", ticketDTO.TicketID);
-            else await NotifyGroup(adminUserID, 1, "New Open Ticket", $"A new ticket has been created! Ticket ID: {ticketDTO.TicketID}", ticketDTO.TicketID);
+            if (AssignedID != null || AssignedID != 0) 
+                await NotifyUser(AssignedID!.Value, 1, "New Ticket Assigned", $"You have been assigned to a new ticket! Ticket ID: {ticketDTO.TicketID}", ticketDTO.TicketID);
+            else 
+                await NotifyGroup(adminUserID, 1, "New Open Ticket", $"A new ticket has been created! Ticket ID: {ticketDTO.TicketID}", ticketDTO.TicketID);
         }
         #region -   UpdateTicket
         #endregion

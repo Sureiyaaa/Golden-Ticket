@@ -521,7 +521,7 @@ namespace GoldenTicket.Hubs
                 {
                     foreach (var connectionId in connectionIds)
                     {
-                        await Clients.Client(connectionId).SendAsync("NotificationUpdate", new { notification = newNotif} );
+                        await Clients.Client(connectionId).SendAsync("NotificationReceived", new { notification = newNotif} );
                     }
                 }
             }
@@ -534,7 +534,7 @@ namespace GoldenTicket.Hubs
             {
                 foreach (var connectionId in connectionIds)
                 {
-                    await Clients.Client(connectionId).SendAsync("NotificationUpdate", new { notification = newNotif} );
+                    await Clients.Client(connectionId).SendAsync("NotificationReceived", new { notification = newNotif} );
                 }
             }
         }

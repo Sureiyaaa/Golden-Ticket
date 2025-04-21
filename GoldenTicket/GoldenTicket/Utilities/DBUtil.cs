@@ -612,7 +612,7 @@ namespace GoldenTicket.Utilities
                 if(SubTag != null)
                     subTagID = context.SubTag.Where(s => s.MainTagID == mainTagID! && s.TagName == SubTag).Select(s => s.TagID).FirstOrDefault();
 
-                var newticket = context.Tickets.Where(t => t.TicketID == ticketID).Include(t => t.SubTag).Include(t => t.MainTag).FirstOrDefault();
+                var newticket = context.Tickets.Where(t => t.TicketID == ticketID).Include(t => t.SubTag).Include(t => t.MainTag).Include(t => t.Priority).FirstOrDefault();
                 
                 //TicketHistory Title Creation
                 if (title != newticket!.TicketTitle)

@@ -180,7 +180,10 @@ class _TicketsPageState extends State<TicketsPage> {
                             onViewPressed: () {
                               showDialog(
                                 context: context,
-                                builder: (context) => TicketDetailsPopup(ticket: ticket),
+                                builder: (context) => TicketDetailsPopup(
+                                    ticket: ticket,
+                                    onChatPressed: () => handleChat(dataManager, ticket),
+                                ),
                               );
                             },
                             onChatPressed: () {
@@ -311,7 +314,7 @@ class _TicketsPageState extends State<TicketsPage> {
       spacing: 20,
       runSpacing: 10,
       children: [
-        _buildCheckbox("Assigned to Me", _assignedToMeOnly, (val) {
+        if(widget.session!.user.role != 'Employee')_buildCheckbox("Assigned to Me", _assignedToMeOnly, (val) {
           setState(() => _assignedToMeOnly = val);
           _applyFilters(Provider.of<DataManager>(context, listen: false));
         }),
@@ -351,7 +354,27 @@ class _TicketsPageState extends State<TicketsPage> {
       ],
     );
   }
-
+  void handleChat(DataManager dataManager, Ticket ticket){
+    try {
+      context.push('/hub/chatroom/${dataManager.findChatroomByTicketID(
+          ticket.ticketID)!.chatroomID}');
+      dataManager.signalRService.openChatroom(
+          widget.session!.user.userID,
+          dataManager.findChatroomByTicketID(
+              ticket.ticketID)!.chatroomID);
+    }catch(err){
+      TopNotification.show(
+          context: context,
+          message: "Error chatroom could not be found!",
+          backgroundColor: Colors.redAccent,
+          duration: Duration(seconds: 2),
+          textColor: Colors.white,
+          onTap: () {
+            TopNotification.dismiss();
+          }
+      );
+    }
+  }
   Widget _buildCheckbox(String label, bool value, ValueChanged<bool> onChanged) {
     return Row(
       mainAxisSize: MainAxisSize.min,

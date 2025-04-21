@@ -448,7 +448,7 @@ namespace GoldenTicket.Hubs
             }
             await Clients.Caller.SendAsync("TicketUpdate", new {ticket = ticketDTO});
             await Clients.Caller.SendAsync("ChatroomUpdate", new {chatroom = chatroomDTO});
-            if (AssignedID != null || AssignedID != 0) 
+            if (AssignedID != null && AssignedID != 0)
                 await NotifyUser(AssignedID!.Value, 1, "New Ticket Assigned", $"You have been assigned to a new ticket! Ticket ID: {ticketDTO.TicketID}", ticketDTO.TicketID);
             else 
                 await NotifyGroup(adminUserID, 1, "New Open Ticket", $"A new ticket has been created! Ticket ID: {ticketDTO.TicketID}", ticketDTO.TicketID);

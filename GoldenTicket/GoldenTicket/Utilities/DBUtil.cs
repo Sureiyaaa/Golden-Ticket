@@ -1105,6 +1105,36 @@ namespace GoldenTicket.Utilities
             }
         }
         #endregion
+        #region -   GetNotification
+        public static async Task<Notification?> GetNotification(int notificaitonID)
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                var notification = await ContextUtil.Notification(notificaitonID, context);
+                if(notification != null)
+                {
+                    return notification;
+                } else {
+                    Console.WriteLine($"[DBUtil] Notification with {notificaitonID} ID not found.");
+                    return null;
+                }
+
+            }
+        }
+        public static async Task<Dictionary<int, Notification>> GetNotification(List<int> notificaitonIDs)
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                var notifs = await ContextUtil.Notification(notificaitonIDs, context);
+                var notifications = new Dictionary<int, Notification>();
+                foreach (var notification in notifs)
+                {
+                    notifications.Add(notification.UserID, notification);
+                }
+                return notifications;
+            }
+        }
+        #endregion
         #region -   ReadNotification
         public async static Task<Notification?> ReadNotification(int notificationID)
         {
@@ -1123,7 +1153,7 @@ namespace GoldenTicket.Utilities
             }
         }
         #endregion
-        #region -   AddNotification
+        #region -   NotifyUser
         public async static Task<Notification> NotifyUser(int userID, int notifType, string title, string description, int? referenceID)
         {
             using (var context = new ApplicationDbContext())
@@ -1140,6 +1170,7 @@ namespace GoldenTicket.Utilities
                 };
                 context.Notifications.Add(notification);
                 await context.SaveChangesAsync();
+
                 return notification;
             }
         }

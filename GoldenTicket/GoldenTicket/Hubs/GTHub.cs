@@ -513,16 +513,15 @@ namespace GoldenTicket.Hubs
 
         public async Task NotifyGroup (List<int> userList, int notifType, string title, string description, int? referenceID)
         {
-            await DBUtil.NotifyGroup(userList, notifType, title, description, referenceID);
-            var notif = await DBUtil.GetNotifications(userList);
+            var notifications = await DBUtil.NotifyGroup(userList, notifType, title, description, referenceID);
             foreach(var user in userList)
             {
-                var notifList = notif.Where(n => n.Key == user).ToList();
+                var newNotif = notifications.Where(n => n.Key == user).Select(n => n.Value);
                 if (_connections.TryGetValue(user, out var connectionIds))
                 {
                     foreach (var connectionId in connectionIds)
                     {
-                        await Clients.Client(connectionId).SendAsync("NotificationUpdate", new { notifications = notifList} );
+                        await Clients.Client(connectionId).SendAsync("NotificationUpdate", new { notification = newNotif} );
                     }
                 }
             }
@@ -530,13 +529,12 @@ namespace GoldenTicket.Hubs
         
         public async Task NotifyUser (int userID, int notifType, string title, string description, int? referenceID)
         {
-            await DBUtil.NotifyUser(userID, notifType, title, description, referenceID);
-            var notif = await DBUtil.GetNotifications(userID);
+            var newNotif = await DBUtil.NotifyUser(userID, notifType, title, description, referenceID);
             if (_connections.TryGetValue(userID, out var connectionIds))
             {
                 foreach (var connectionId in connectionIds)
                 {
-                    await Clients.Client(connectionId).SendAsync("NotificationUpdate", new { notifications = notif} );
+                    await Clients.Client(connectionId).SendAsync("NotificationUpdate", new { notification = newNotif} );
                 }
             }
         }

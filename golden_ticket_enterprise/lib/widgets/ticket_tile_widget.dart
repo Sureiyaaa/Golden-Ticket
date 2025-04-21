@@ -70,9 +70,11 @@ class TicketTile extends StatelessWidget {
                     children: [
                       IconButton(icon: const Icon(Icons.chat_bubble_outline, color: Colors.blue), onPressed: onChatPressed),
                       if (
-                      (ticket.assigned != null && ticket.assigned?.userID == session!.user.userID) ||
-                          ticket.assigned == null ||
-                          session!.user.role == "Admin"
+                       session!.user.role != "Employee" && (
+                          (ticket.assigned != null && ticket.assigned?.userID == session!.user.userID) ||
+                              ticket.assigned == null ||
+                              session!.user.role == "Admin"
+                       )
                       )
                         IconButton(
                           icon: const Icon(Icons.edit, color: Colors.orange),

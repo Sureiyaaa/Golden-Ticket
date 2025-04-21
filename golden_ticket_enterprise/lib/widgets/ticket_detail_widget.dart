@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:go_router/go_router.dart';
 import 'package:golden_ticket_enterprise/entities/ticket.dart';
 import 'package:golden_ticket_enterprise/models/time_utils.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
@@ -8,7 +9,9 @@ import 'package:golden_ticket_enterprise/styles/icons.dart';
 class TicketDetailsPopup extends StatelessWidget {
   final Ticket ticket;
 
-  const TicketDetailsPopup({Key? key, required this.ticket}) : super(key: key);
+  final VoidCallback onChatPressed;
+
+  const TicketDetailsPopup({Key? key, required this.ticket, required this.onChatPressed}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -101,8 +104,7 @@ class TicketDetailsPopup extends StatelessWidget {
                                     fontWeight: FontWeight.bold, fontSize: 16)),
                             Chip(
                               label: Text(
-                                  ticket.subTag?.subTagName ??
-                                      "No Sub Tag Provided",
+                                  ticket.subTag?.subTagName ?? "No Sub Tag Provided",
                                   style: TextStyle(fontWeight: FontWeight.normal)),
                               backgroundColor: Colors.blueAccent,
                               labelStyle: TextStyle(color: Colors.white),
@@ -244,6 +246,21 @@ class TicketDetailsPopup extends StatelessWidget {
                           ),
                           child: Text('Close', style: TextStyle(fontSize: 16, color: Colors.white)),
                         ),
+                        SizedBox(width: 16),  // Add space between buttons
+                        ElevatedButton(
+                          onPressed: () {
+                            onChatPressed();
+                            Navigator.pop(context);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                            backgroundColor: kPrimary,
+                          ),
+                          child: Text('Open Chat', style: TextStyle(fontSize: 16, color: Colors.white)),
+                        )
                       ],
                     ),
                   ],

@@ -23,6 +23,7 @@ class SignalRService with ChangeNotifier {
   Function(List<MainTag>)? onTagUpdate;
   final List<void Function(Message, Chatroom)> _onReceiveMessageListeners = [];
   final List<void Function(Chatroom)> _onReceiveSupportListeners = [];
+  final List<void Function(notif.Notification)> _onNotificationListener = [];
   Function(List<String>)? onPriorityUpdate;
   Function(List<FAQ>)? onFAQUpdate;
   Function(Chatroom)? onChatroomUpdate;
@@ -226,7 +227,6 @@ class SignalRService with ChangeNotifier {
         if(arguments != null){
           int chatroomID = arguments[0]['chatroomID'];
           int userID = arguments[0]['userID'];
-          print('Seen comes first');
 
           onSeenUpdate?.call(userID, chatroomID);
           notifyListeners();
@@ -291,7 +291,6 @@ class SignalRService with ChangeNotifier {
         final chatroom = Chatroom.fromJson(arguments[0]['chatroom']);
 
         _triggerOnReceiveMessage(message, chatroom);
-        print('ReceiveMessage comes first');
         notifyListeners();
       }
     });
@@ -355,10 +354,9 @@ class SignalRService with ChangeNotifier {
       }
     });
 
-    _hubConnection!.on('NotificationReceive', (arguments){
+    _hubConnection!.on('NotificationReceived', (arguments){
       if(arguments != null){
-
-        onNotificationReceive?.call(notif.Notification.fromJson(arguments[0]['notification']));
+        _triggerNotification(notif.Notification.fromJson(arguments[0]['notification']));
         notifyListeners();
       }
     });
@@ -398,6 +396,7 @@ class SignalRService with ChangeNotifier {
             "🔹 Updated FAQs: ${updatedFAQs.length}\n"
             "🔹 Updated Chatrooms: ${updatedChatrooms.length}\n"
             "🔹 Updated Tickets: ${updatedTickets.length}\n"
+            "🔹 Updated Notifications: ${updatedNotifications.length}\n"
             "🔹 Updated Ratings: ${updatedRatings.length}\n"
             "🔹 Updated Users: ${updatedUsers.length}\n"
             "🔹 Updated Status: ${updatedStatus.length}\n"
@@ -410,6 +409,7 @@ class SignalRService with ChangeNotifier {
         onStatusUpdate?.call(updatedStatus);
         onUsersUpdate?.call(updatedUsers);
         onChatroomsUpdate?.call(updatedChatrooms);
+        onNotificationsUpdate?.call(updatedNotifications);
         onRatingsUpdate?.call(updatedRatings);
       }
     });
@@ -420,12 +420,19 @@ class SignalRService with ChangeNotifier {
   void addOnReceiveSupportListener(void Function(Chatroom) listener) {
     _onReceiveSupportListeners.add(listener);
   }
+  void addOnNotificationListener(void Function(notif.Notification) listener) {
+    _onNotificationListener.add(listener);
+  }
 
   void removeOnReceiveMessageListener(void Function(Message, Chatroom) listener) {
     _onReceiveMessageListeners.remove(listener);
   }
   void removeOnReceiveSupportListener(void Function(Chatroom) listener) {
     _onReceiveSupportListeners.remove(listener);
+  }
+
+  void removeOnNotificationListener(void Function(notif.Notification) listener) {
+    _onNotificationListener.remove(listener);
   }
   void _triggerOnReceiveMessage(Message message, Chatroom chatroom) {
     for (var listener in _onReceiveMessageListeners) {
@@ -435,6 +442,11 @@ class SignalRService with ChangeNotifier {
   void _triggerOnReceiveSupport(Chatroom chatroom) {
     for (var listener in _onReceiveSupportListeners) {
       listener(chatroom);
+    }
+  }
+  void _triggerNotification(notif.Notification notification) {
+    for (var listener in _onNotificationListener) {
+      listener(notification);
     }
   }
 
@@ -505,3 +517,5 @@ class SignalRService with ChangeNotifier {
     super.dispose();
   }
 }
+
+

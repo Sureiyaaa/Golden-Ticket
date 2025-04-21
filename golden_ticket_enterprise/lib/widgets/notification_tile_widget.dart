@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:golden_ticket_enterprise/entities/notification.dart' as notifClass;
+import 'package:golden_ticket_enterprise/models/string_utils.dart';
 import 'package:golden_ticket_enterprise/models/time_utils.dart';
 
 class NotificationTile extends StatelessWidget {
@@ -13,7 +14,7 @@ class NotificationTile extends StatelessWidget {
     required this.notification,
     this.onTap,
     this.icon = Icons.notifications,
-    this.iconColor = Colors.blue,
+    this.iconColor = Colors.black,
   }) : super(key: key);
 
   @override
@@ -35,8 +36,8 @@ class NotificationTile extends StatelessWidget {
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (notification.message != null)
-            Text(notification.message!),
+
+          Text(StringUtils.limitWithEllipsis(notification.message, 16)),
           const SizedBox(height: 4),
           Text(
             formattedDate,

@@ -64,6 +64,9 @@ class DataManager extends ChangeNotifier {
     signalRService.addOnReceiveMessageListener((message, chatroom) {
       updateLastMessage(chatroom);
     });
+    signalRService.addOnNotificationListener((notification) {
+      updateNotification(notification);
+    });
     signalRService.onSeenUpdate = (userID, chatroomID){
       updateMemberSeen(userID, chatroomID);
     };
@@ -97,11 +100,31 @@ class DataManager extends ChangeNotifier {
       updateRating(updatedRating);
     };
   }
-  void updateNotifications(List<notif.Notification> updatedNotificaitons){
-    notifications = updatedNotificaitons;
+  void updateNotifications(List<notif.Notification> updatedNotifications){
+    for(var notification in updatedNotifications){
+      updateNotification(notification);
+    }
+    notifications.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     notifyListeners();
   }
-  void deleteNotification(int notificationID){
+  void updateNotification(notif.Notification updatedNotification){
+    int index = notifications.indexWhere((c) => c.notificationID == updatedNotification.notificationID);
+    if (index != -1) {
+      notifications[index] = updatedNotification; // Update ticket
+    } else {
+      notifications.add(updatedNotification);
+    }
+
+    notifications.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    notifyListeners();
+  }
+
+  void deleteNotifications(List<int> notificationID){
+    for(var notifID in notificationID){
+      int index = notifications.indexWhere((c) => c.notificationID == notifID);
+      notifications.removeAt(index);
+    }
+
     notifyListeners();
   }
   void updateMainTags(List<MainTag> updatedTags) {
@@ -271,6 +294,9 @@ class DataManager extends ChangeNotifier {
     return users.where((user) => user.role == "Staff").toList();
   }
 
+  List<Ticket> getTicketRelated(String mainTag, String subTag){
+    return tickets.where((t) => t.mainTag?.tagName == mainTag && t.subTag?.subTagName == subTag).toList();
+  }
   List<User> getStaff(){
     return users.where((user) => user.role != "Employee").toList();
   }

@@ -8,6 +8,7 @@ import 'package:golden_ticket_enterprise/entities/notification.dart'
     as notifClass;
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
+import 'package:golden_ticket_enterprise/models/notification_overlay.dart';
 import 'package:golden_ticket_enterprise/screens/connectionstate.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:golden_ticket_enterprise/screens/notification_page.dart';
@@ -43,6 +44,7 @@ class _HubPageState extends State<HubPage> {
     dm = Provider.of<DataManager>(context, listen: false);
 
     dm.signalRService.addOnReceiveSupportListener(_handleReceiveSupport);
+    dm.signalRService.addOnNotificationListener(_handleNotification);
   }
 
   @override
@@ -51,6 +53,7 @@ class _HubPageState extends State<HubPage> {
       log("HubPage: Initializing SignalR Connection...");
       widget.dataManager.signalRService.initializeConnection(widget.session!);
       _isInitialized = true;
+
     }
     super.didChangeDependencies();
   }
@@ -58,12 +61,12 @@ class _HubPageState extends State<HubPage> {
   @override
   void dispose() {
     log("HubPage disposed: $this");
+    dm.signalRService.removeOnNotificationListener(_handleNotification);
+    dm.signalRService.removeOnReceiveSupportListener(_handleReceiveSupport);
     super.dispose();
   }
 
   void _onDrawerItemTapped(int index) {
-    print("Selected Index: $_selectedIndex");
-    print("Navigating to tab: $index");
     setState(() {
       _selectedIndex = index;
     });
@@ -74,11 +77,16 @@ class _HubPageState extends State<HubPage> {
   void _handleReceiveSupport(Chatroom chatroom){
     context.push('/hub/chatroom/${chatroom.chatroomID}');
   }
+  void _handleNotification(notifClass.Notification notification){
+    print(notification.message);
+    NotificationOverlay.show(context, message: notification.title);
+  }
   @override
   Widget build(BuildContext context) {
     if (widget.session == null) {
       return SizedBox.shrink(); // Prevents UI from rendering if redirecting
     }
+
     return Consumer<DataManager>(builder: (context, dataManager, child) {
       if (!dataManager.signalRService.isConnected) {
         return DisconnectedOverlay();
@@ -206,9 +214,7 @@ class _HubPageState extends State<HubPage> {
                 ),
                 _buildDrawerItem(Icons.dashboard, "Dashboard", 0),
                 _buildDrawerItem(Icons.message_outlined, "Chatrooms", 1),
-                if (widget.session?.user.role == "Admin" ||
-                    widget.session?.user.role == "Staff")
-                  _buildDrawerItem(Icons.list, "Tickets", 2),
+                _buildDrawerItem(Icons.list, "Tickets", 2),
                 _buildDrawerItem(Icons.question_mark, "FAQ", 3),
                 if (widget.session?.user.role != "Employee")
                   _buildDrawerItem(Icons.show_chart, "Reports", 4),

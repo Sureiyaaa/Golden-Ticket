@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:golden_ticket_enterprise/entities/ticket.dart';
 import 'package:golden_ticket_enterprise/widgets/edit_ticket_widget.dart';
+import 'package:golden_ticket_enterprise/widgets/notification_widget.dart';
 import 'package:golden_ticket_enterprise/widgets/ticket_detail_widget.dart';
 import 'package:golden_ticket_enterprise/widgets/ticket_tile_widget.dart';
 import 'package:provider/provider.dart';
@@ -29,6 +30,9 @@ class _TicketsPageState extends State<TicketsPage> {
   String? selectedPriority = 'All';
   String? selectedSubTag;
 
+  int _currentPage = 1;
+  int _ticketsPerPage = 10;
+
   @override
   void initState() {
     super.initState();
@@ -53,7 +57,11 @@ class _TicketsPageState extends State<TicketsPage> {
 
     setState(() {
       _filteredTickets = dataManager.tickets.where((ticket) {
-        bool matchesSearch = ticket.ticketTitle.toLowerCase().contains(query);
+        bool matchesSearch = ticket.ticketTitle.toLowerCase().contains(query) ||
+            ticket.ticketID.toString().contains(query) ||
+            ticket.author.firstName.toLowerCase().contains(query) == true ||
+            ticket.author.lastName.toLowerCase().contains(query) == true;
+
         bool matchesStatus = selectedStatus == 'All' || ticket.status == selectedStatus;
         bool matchesMainTag = selectedMainTag == 'All' || (ticket.mainTag?.tagName == selectedMainTag);
         bool matchesSubTag = selectedSubTag == 'All' || selectedSubTag == null || (ticket.subTag?.subTagName == selectedSubTag);
@@ -75,8 +83,29 @@ class _TicketsPageState extends State<TicketsPage> {
             matchesClosed &&
             matchesUnresolved;
       }).toList();
+
+      // Sort tickets by priority (High > Medium > Low)
+      _filteredTickets.sort((a, b) {
+        List<String> priorityOrder = ['High', 'Medium', 'Low'];
+        int priorityCompare = priorityOrder.indexOf(a.priority).compareTo(priorityOrder.indexOf(b.priority));
+        if (priorityCompare != 0) return priorityCompare;
+
+        return b.createdAt.compareTo(a.createdAt);
+      });
     });
+
+    // Reset pagination when filters change
+    _currentPage = 1;
   }
+
+
+  List<Ticket> get _paginatedTickets {
+    int start = (_currentPage - 1) * _ticketsPerPage;
+    int end = (_currentPage * _ticketsPerPage).clamp(0, _filteredTickets.length);
+    return _filteredTickets.sublist(start, end);
+  }
+
+  int get _totalPages => (_filteredTickets.length / _ticketsPerPage).ceil();
 
   @override
   Widget build(BuildContext context) {
@@ -105,7 +134,7 @@ class _TicketsPageState extends State<TicketsPage> {
                   else
                     ExpansionTile(
                       initiallyExpanded:
-                          !isMobile, // ✅ Expanded by default on mobile, collapsed on desktop
+                      !isMobile, // ✅ Expanded by default on mobile, collapsed on desktop
                       title: Text("Filters",
                           style: TextStyle(fontWeight: FontWeight.bold)),
                       children: [
@@ -127,60 +156,111 @@ class _TicketsPageState extends State<TicketsPage> {
                   Expanded(
                     child: _filteredTickets.isEmpty
                         ? Center(
-                            child: Text(
-                              _searchController.text.isEmpty
-                                  ? "No tickets available"
-                                  : "No tickets found",
-                              style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.grey),
-                            ),
-                          )
+                      child: Text(
+                        _searchController.text.isEmpty
+                            ? "No tickets available"
+                            : "No tickets found",
+                        style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey),
+                      ),
+                    )
                         : Scrollbar(
-                            controller: scrollController,
-                            thumbVisibility: true,
-                            child: ListView.builder(
-                              controller: scrollController,
-                              itemCount: _filteredTickets.length,
-                              itemBuilder: (context, index) {
-                                final ticket = _filteredTickets[index];
-                                return TicketTile(
-                                  ticket: ticket,
-                                  onViewPressed: () {
-                                    showDialog(
-                                      context: context,
-                                      builder: (context) => TicketDetailsPopup(ticket: ticket),
-                                    );
-                                  },
-                                  onChatPressed: () {
-                                    try {
-                                      context.push('/hub/chatroom/${dataManager.findChatroomByTicketID(
-                                          ticket.ticketID)!.chatroomID}');
-                                      dataManager.signalRService.openChatroom(
-                                          widget.session!.user.userID,
-                                          dataManager.findChatroomByTicketID(
-                                              ticket.ticketID)!.chatroomID);
-                                    }catch(err){
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Text("Error chatroom could not be found!"),
-                                          backgroundColor: Colors.red,
-                                        ),
-                                      );
+                      controller: scrollController,
+                      thumbVisibility: true,
+                      child: ListView.builder(
+                        controller: scrollController,
+                        itemCount: _paginatedTickets.length,
+                        itemBuilder: (context, index) {
+                          final ticket = _paginatedTickets[index];
+                          return TicketTile(
+                            ticket: ticket,
+                            session: widget.session,
+                            onViewPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) => TicketDetailsPopup(ticket: ticket),
+                              );
+                            },
+                            onChatPressed: () {
+                              try {
+                                context.push('/hub/chatroom/${dataManager.findChatroomByTicketID(
+                                    ticket.ticketID)!.chatroomID}');
+                                dataManager.signalRService.openChatroom(
+                                    widget.session!.user.userID,
+                                    dataManager.findChatroomByTicketID(
+                                        ticket.ticketID)!.chatroomID);
+                              }catch(err){
+                                TopNotification.show(
+                                    context: context,
+                                    message: "Error chatroom could not be found!",
+                                    backgroundColor: Colors.redAccent,
+                                    duration: Duration(seconds: 2),
+                                    textColor: Colors.white,
+                                    onTap: () {
+                                      TopNotification.dismiss();
                                     }
-                                  },
-                                  onEditPressed: () {
-                                    showDialog(
-                                      context: context,
-                                      builder: (context) => TicketModifyPopup(ticket: ticket),
-                                    );
-                                  },
                                 );
-                              },
-                            ),
-                          ),
+                              }
+                            },
+                            onEditPressed: () {
+                              if(ticket.assigned != null){
+                                if(ticket.assigned!.userID != widget.session!.user.userID && widget.session!.user.role != "Admin"){
+                                  TopNotification.show(
+                                      context: context,
+                                      message: "This ticket is not assigned to you",
+                                      backgroundColor: Colors.redAccent,
+                                      duration: Duration(seconds: 2),
+                                      textColor: Colors.white,
+                                      onTap: () {
+                                        TopNotification.dismiss();
+                                      }
+                                  );
+                                  return;
+                                }
+                              }
+                              showDialog(
+                                context: context,
+                                builder: (context) => TicketModifyPopup(ticket: ticket),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ),
                   ),
+                  if (_filteredTickets.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(_totalPages, (index) {
+                          final pageNum = index + 1;
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _currentPage == pageNum
+                                    ? Theme.of(context).colorScheme.primary
+                                    : Colors.grey[300],
+                                foregroundColor: _currentPage == pageNum
+                                    ? Colors.white
+                                    : Colors.black,
+                                minimumSize: Size(36, 36),
+                                padding: EdgeInsets.zero,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _currentPage = pageNum;
+                                });
+                              },
+                              child: Text('$pageNum'),
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
                 ],
               );
             },
@@ -264,8 +344,7 @@ class _TicketsPageState extends State<TicketsPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ...dropdownFilters
-            .expand((widget) => [widget, SizedBox(height: 10)])
-            .toList()
+            .expand((widget) => [widget, SizedBox(height: 10)]).toList()
           ..removeLast(),
         SizedBox(height: 10),
         checkboxRow,
@@ -282,8 +361,6 @@ class _TicketsPageState extends State<TicketsPage> {
       ],
     );
   }
-
-
 
   Widget _buildDropdown(String label, String? value, List<String>? items, ValueChanged<String?>? onChanged, {bool isDisabled = false}) {
     return DropdownButtonFormField<String>(
@@ -302,5 +379,4 @@ class _TicketsPageState extends State<TicketsPage> {
       disabledHint: Text(label, style: TextStyle(color: Colors.grey)), // Greyed-out label
     );
   }
-
 }

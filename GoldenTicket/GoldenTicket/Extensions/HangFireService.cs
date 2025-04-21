@@ -29,7 +29,7 @@ namespace GoldenTicket.Extensions
         {
             DateTime threeDaysAgo = DateTime.UtcNow.AddDays(-3);
             using(var context = new ApplicationDbContext()){
-                var filter = DBUtil.GetChatrooms();
+                var filter = await DBUtil.GetChatrooms();
                 var chatrooms = filter
                     .Where(c => c.Messages!.Any()) // Only chatrooms that have messages
                     .Select(c => new

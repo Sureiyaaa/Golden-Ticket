@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:golden_ticket_enterprise/entities/ticket.dart';
 import 'package:golden_ticket_enterprise/models/time_utils.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
@@ -208,9 +209,15 @@ class TicketDetailsPopup extends StatelessWidget {
                                               fontWeight: FontWeight.bold,
                                               fontSize: 14),
                                         ),
-                                        subtitle: Text(
-                                            historyItem.actionMessage,
-                                            style: TextStyle(fontSize: 14)),
+                                        subtitle: MarkdownBody(
+                                          data: historyItem.actionMessage, // ✅ Render Markdown
+                                          styleSheet: MarkdownStyleSheet(
+                                            p: TextStyle(fontSize: 14, color: Colors.black),
+                                            strong: const TextStyle(fontWeight: FontWeight.bold),
+                                            blockquote: TextStyle(color: Colors.grey[600], fontStyle: FontStyle.italic),
+                                          ),
+                                          selectable: true,
+                                        ),
                                       ),
                                     ),
                                   ),

@@ -45,6 +45,7 @@ class AppInitializer extends StatelessWidget {
     html.window.onBeforeUnload.listen((event) {
       signalRService.stopConnection();
     });
+
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => dataManager),

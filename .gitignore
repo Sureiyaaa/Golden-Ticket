@@ -431,3 +431,6 @@ FodyWeavers.xsd
 golden_ticket_enterprise/windows/flutter/generated_plugin_registrant.cc
 golden_ticket_enterprise/windows/flutter/generated_plugin_registrant.h
 golden_ticket_enterprise/windows/flutter/generated_plugins.cmake
+*.cc
+*.h
+*.cmake

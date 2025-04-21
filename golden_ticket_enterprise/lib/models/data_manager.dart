@@ -1,21 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:golden_ticket_enterprise/entities/chatroom.dart';
 import 'package:golden_ticket_enterprise/entities/faq.dart';
+import 'package:golden_ticket_enterprise/entities/notification.dart' as notif;
 import 'package:golden_ticket_enterprise/entities/main_tag.dart';
 import 'package:golden_ticket_enterprise/entities/message.dart';
+import 'package:golden_ticket_enterprise/entities/rating.dart';
 import 'package:golden_ticket_enterprise/entities/ticket.dart';
 import 'package:golden_ticket_enterprise/entities/user.dart';
 import 'package:golden_ticket_enterprise/models/signalr_service.dart';
 
 class DataManager extends ChangeNotifier {
   final SignalRService signalRService;
+
+  Function(Rating)? onRatingUpdate;
   List<MainTag> mainTags = [];
   List<FAQ> faqs = [];
+  List<notif.Notification> notifications = [];
   List<String> status = [];
   List<Chatroom> chatrooms = [];
   List<Ticket> tickets = [];
   List<User> users = [];
   List<String> priorities = [];
+  List<Rating> ratings = [];
   DataManager({required this.signalRService}) {
     _initializeSignalR();
   }
@@ -45,6 +51,9 @@ class DataManager extends ChangeNotifier {
     signalRService.onFAQUpdate = (updatedFAQs) {
       updateFAQs(updatedFAQs);
     };
+    signalRService.onNotificationsUpdate = (updatedNotifications){
+      updateNotifications(updatedNotifications);
+    };
     signalRService.onChatroomsUpdate = (updatedChatrooms){
       updateChatrooms(updatedChatrooms);
     };
@@ -52,9 +61,9 @@ class DataManager extends ChangeNotifier {
       updateChatroom(updatedChatroom);
     };
 
-    signalRService.onReceiveMessage = (message, chatroom){
+    signalRService.addOnReceiveMessageListener((message, chatroom) {
       updateLastMessage(chatroom);
-    };
+    });
     signalRService.onSeenUpdate = (userID, chatroomID){
       updateMemberSeen(userID, chatroomID);
     };
@@ -70,7 +79,6 @@ class DataManager extends ChangeNotifier {
     };
     signalRService.onStaffJoined = (user, chatroom){
       updateChatroom(chatroom);
-
     };
     signalRService.onPriorityUpdate = (updatedPriorities){
       updatePriorities(updatedPriorities);
@@ -82,8 +90,20 @@ class DataManager extends ChangeNotifier {
     signalRService.onUserUpdate = (updatedUser){
       updateUser(updatedUser);
     };
+    signalRService.onRatingsUpdate = (updatedRatings){
+      updateRatings(updatedRatings);
+    };
+    signalRService.onRatingUpdate = (updatedRating){
+      updateRating(updatedRating);
+    };
   }
-
+  void updateNotifications(List<notif.Notification> updatedNotificaitons){
+    notifications = updatedNotificaitons;
+    notifyListeners();
+  }
+  void deleteNotification(int notificationID){
+    notifyListeners();
+  }
   void updateMainTags(List<MainTag> updatedTags) {
     mainTags = updatedTags;
     notifyListeners();
@@ -95,6 +115,22 @@ class DataManager extends ChangeNotifier {
 
   void updateFAQs(List<FAQ> updatedFAQs) {
     faqs = updatedFAQs;
+    notifyListeners();
+  }
+
+  void updateRatings(List<Rating> updatedRatings) {
+    ratings = updatedRatings;
+    notifyListeners();
+  }
+
+  void updateRating(Rating updatedRating) {
+    int index = ratings.indexWhere((c) => c.ratingID == updatedRating.ratingID);
+    if (index != -1) {
+      ratings[index] = updatedRating; // Update ticket
+    } else {
+      ratings.add(updatedRating);
+    }
+    onRatingUpdate?.call(updatedRating);
     notifyListeners();
   }
 
@@ -173,7 +209,7 @@ class DataManager extends ChangeNotifier {
 
     if (index != -1) {
       chatrooms[index].messages!.add(message);
-      chatrooms[index].messages!.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      chatrooms[index].messages!.sort((a, b) => a.createdAt.compareTo(b.createdAt));
     }
     updateLastMessage(chatroom);
     notifyListeners();
@@ -183,10 +219,10 @@ class DataManager extends ChangeNotifier {
     int chatroomIndex = chatrooms.indexWhere((c) => c.chatroomID == chatroomID);
 
     if (chatroomIndex != -1) {
-      int memberIndex = chatrooms[chatroomIndex].groupMembers.indexWhere((m) => m.member!.userID == userID);
+      int memberIndex = chatrooms[chatroomIndex].groupMembers!.indexWhere((m) => m.member!.userID == userID);
 
       if (memberIndex != -1) { // Ensure member exists
-        chatrooms[chatroomIndex].groupMembers[memberIndex].lastSeenAt = DateTime.now();
+        chatrooms[chatroomIndex].groupMembers![memberIndex].lastSeenAt = DateTime.now();
         notifyListeners();
       }
     }
@@ -220,28 +256,6 @@ class DataManager extends ChangeNotifier {
     } else {
       tickets.add(ticket);
     }
-
-    const priorityOrder = {'High': 0, 'Medium': 1, 'Low': 2};
-    const statusOrder = {
-      'Open': 0,
-      'Assigned': 1,
-      'Postponed': 2,
-      'Closed': 3,
-      'Unresolved': 4,
-    };
-
-    tickets.sort((a, b) {
-      int priorityCompare = (priorityOrder[a.priority] ?? 99)
-          .compareTo(priorityOrder[b.priority] ?? 99);
-      if (priorityCompare != 0) return priorityCompare;
-
-      int statusCompare =
-      (statusOrder[a.status] ?? 99).compareTo(statusOrder[b.status] ?? 99);
-      if (statusCompare != 0) return statusCompare;
-
-      return b.createdAt.compareTo(a.createdAt); // Newest first
-    });
-
     notifyListeners();
   }
 
@@ -285,6 +299,10 @@ class DataManager extends ChangeNotifier {
   Chatroom? findChatroomByTicketID(int ticketID){
     return chatrooms.firstWhere(
             (c) => c.ticket?.ticketID == ticketID);
+  }
+  
+  Rating? findRatingByChatroomID(int chatroomID){
+    return ratings.where((rating) => rating.chatroom.chatroomID == chatroomID).firstOrNull;
   }
 
   Future<void> closeConnection() async {

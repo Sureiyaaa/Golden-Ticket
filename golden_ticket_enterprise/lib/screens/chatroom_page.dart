@@ -1,14 +1,17 @@
-import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:golden_ticket_enterprise/entities/chatroom.dart';
 import 'package:golden_ticket_enterprise/entities/group_member.dart';
+import 'package:golden_ticket_enterprise/entities/message.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
 import 'package:golden_ticket_enterprise/models/time_utils.dart';
+import 'package:golden_ticket_enterprise/screens/connectionstate.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:golden_ticket_enterprise/widgets/chatroom_details_widget.dart';
+import 'package:golden_ticket_enterprise/widgets/notification_widget.dart';
+import 'package:golden_ticket_enterprise/widgets/rating_dialog_widget.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 
@@ -26,74 +29,127 @@ class _ChatroomPageState extends State<ChatroomPage> {
   TextEditingController messageController = TextEditingController();
   FocusNode messageFocusNode = FocusNode();
   bool enableMessage = true;
-  bool _isInitialized = false;
-  late DataManager _dataManager;
+  bool enableRate = true;
+  int _messageLimit = 30;
 
-  void sendMessage(String messageContent, Chatroom chatroom) {
-    if (messageContent.trim().isEmpty) return;
-
-    var userSession = Hive.box<HiveSession>('sessionBox').get('user');
-    if (userSession == null) return;
-
-    Provider.of<DataManager>(context, listen: false)
-        .signalRService
-        .sendMessage(userSession.user.userID, widget.chatroomID, messageContent);
-
-    messageController.clear();
-    if (chatroom.ticket == null) {
-      setState(() {
-        enableMessage = false;
-      });
-    }else{
-      messageFocusNode.requestFocus();
-    }
-  }
-
+  final ScrollController _scrollController = ScrollController();
+  late DataManager dm;
   @override
   void initState() {
     super.initState();
-    messageFocusNode.requestFocus();
-  }
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+        // Near the top (because list is reversed)
+        setState(() {
+          _messageLimit += 30; // Load 30 more
+        });
+      }
+    });
 
+    messageFocusNode.requestFocus();
+    dm = Provider.of<DataManager>(context, listen: false);
+
+    dm.signalRService.addOnReceiveMessageListener(_handleChatroomMessage);
+  }
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+  }
+  @override
+  void dispose(){
+    dm.signalRService.removeOnReceiveMessageListener(_handleChatroomMessage);
 
-    if (!_isInitialized) {
-      _dataManager = Provider.of<DataManager>(context, listen: false);
+    super.dispose();
+  }
+  void _handleChatroomMessage(Message message, Chatroom chatroom) {
 
-      if (!_dataManager.signalRService.isConnected) {
-        log("HubPage: Initializing SignalR Connection...");
+    var userSession = Hive.box<HiveSession>('sessionBox').get('user');
 
-        var userSession = Hive.box<HiveSession>('sessionBox').get('user');
-        _dataManager.signalRService.initializeConnection(userSession!);
+    if (chatroom.chatroomID == widget.chatroomID) {
+      if (!chatroom.messages!.any((msg) => msg.messageID == message.messageID)) {
+        if (message.sender.userID != userSession!.user.userID) {
+          dm.signalRService.sendSeen(userSession.user.userID, widget.chatroomID);
+        } else {
+          dm.updateMemberSeen(userSession.user.userID, widget.chatroomID);
+        }
+        dm.addMessage(message, chatroom);
+        setState(() {
+          _messageLimit += 1;
+        });
       }
-
-      _isInitialized = true;
     }
   }
 
-  @override
   Widget build(BuildContext context) {
     return Consumer<DataManager>(
       builder: (context, dataManager, child) {
-        Chatroom? chatroom = dataManager.findChatroomByID(widget.chatroomID);
-        var userSession = Hive.box<HiveSession>('sessionBox').get('user');
-        String chatTitle = chatroom?.ticket != null ? chatroom?.ticket?.ticketTitle ?? "New Chat" : "New Chat";
+        Chatroom chatroom = dataManager.findChatroomByID(widget.chatroomID)!;
+        if (!dataManager.signalRService.isConnected) {
+          return DisconnectedOverlay();
+        }
+        final allMessages = (chatroom.messages ?? []).toList(); // safety if null
+        if (allMessages.isEmpty) {
+          return const Center(child: CircularProgressIndicator()); // or a 'Loading...' placeholder
+        }
 
-        dataManager.signalRService.onReceiveMessage = (message, chatroom) {
-          if (chatroom.chatroomID == widget.chatroomID) {
-            dataManager.signalRService.sendSeen(userSession!.user.userID, widget.chatroomID);
-            dataManager.addMessage(message, chatroom);
-          }
+        if (_messageLimit > allMessages.length) {
+          _messageLimit = allMessages.length; // Clamp to latest available
+        }
+
+        final totalMessages = allMessages.length;
+        final start = (totalMessages - _messageLimit).clamp(0, totalMessages);
+        final end = totalMessages;
+        final visibleMessages = allMessages.sublist(start, end).reversed.toList();
+
+
+        var userSession = Hive.box<HiveSession>('sessionBox').get('user');
+        String chatTitle = chatroom.ticket != null ? chatroom.ticket?.ticketTitle ?? "New Chat" : "New Chat";
+
+
+        dataManager.onRatingUpdate = (rating) {
+          enableRate = true;
+          TopNotification.show(
+              context: context,
+              message: "Rating submitted!",
+              backgroundColor: Colors.greenAccent,
+              duration: Duration(seconds: 2),
+              textColor: Colors.white,
+              onTap: () {
+                TopNotification.dismiss();
+              }
+          );
         };
+
+        void sendMessage(String messageContent, Chatroom chatroom) {
+          if (messageContent.trim().isEmpty) return;
+
+          var userSession = Hive.box<HiveSession>('sessionBox').get('user');
+          if (userSession == null) return;
+
+          Provider.of<DataManager>(context, listen: false)
+              .signalRService
+              .sendMessage(userSession.user.userID, widget.chatroomID, messageContent);
+
+          messageController.clear();
+          if (chatroom.ticket == null) {
+            setState(() {
+              enableMessage = false;
+            });
+          }else{
+            messageFocusNode.requestFocus();
+          }
+
+        }
         dataManager.signalRService.onAlreadyMember = (){
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text("You are already a member!"),
-              backgroundColor: Colors.red,
-              duration: Duration(milliseconds: 1000),
-            ),
+          TopNotification.show(
+              context: context,
+              message: "You are already a member of this group chat!",
+              backgroundColor: Colors.redAccent,
+              duration: Duration(seconds: 2),
+              textColor: Colors.white,
+              onTap: () {
+                TopNotification.dismiss();
+              }
           );
         };
         dataManager.signalRService.onAllowMessage = () {
@@ -128,92 +184,122 @@ class _ChatroomPageState extends State<ChatroomPage> {
             children: [
               Expanded(
                 child: ListView.builder(
+                  controller: _scrollController,
                   reverse: true, // Show latest messages at the bottom
-                  itemCount: chatroom.messages!.length,
+                  itemCount: visibleMessages.length,
                   itemBuilder: (context, index) {
-                    final message = chatroom.messages![index];
-                    final seenByMembers = chatroom.groupMembers
+                    final message = visibleMessages[index];
+                    final previousMessage = index < visibleMessages.length - 1 ? visibleMessages[index + 1] : null;
+                    final seenByMembers = chatroom.groupMembers!
                         .where((m) => m.lastSeenAt != null && m.lastSeenAt!.isAfter(message.createdAt))
                         .toList();
 
                     final isMe = message.sender.userID == userSession!.user.userID;
                     final isSeen = seenByMembers.isNotEmpty && seenMessageID == message.messageID;
 
-                    return Align(
-                      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                      child: MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              seenMessageID = (seenMessageID == message.messageID) ? null : message.messageID;
-                            });
-                          },
-                          child: Column(
-                            crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                            children: [
-                              // Sender Name Above Message
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                                child: Text(
-                                  "${message.sender.firstName}",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                    color: Colors.grey[800],
-                                  ),
-                                ),
+                    List<Widget> messageColumn = [];
+
+                    if (shouldShowHourSeparator(message, previousMessage)) {
+                      messageColumn.add(
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          child: Center(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade300,
+                                borderRadius: BorderRadius.circular(20),
                               ),
-                              // Message Bubble with Dynamic Resizing
-                              LayoutBuilder(
-                                builder: (context, constraints) {
-                                  return Tooltip(
-                                    message: TimeUtil.formatTimestamp(message.createdAt),
-                                    child: Container(
-                                      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                                      padding: const EdgeInsets.all(10),
-                                      decoration: BoxDecoration(
-                                        color: isMe ? kPrimaryContainer : kTertiaryContainer,
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      constraints: BoxConstraints(
-                                        maxWidth: constraints.maxWidth * 0.5, // ✅ 50% of available width
-                                      ),
-                                      child: MarkdownBody(
-                                        data: message.messageContent, // ✅ Render Markdown
-                                        styleSheet: MarkdownStyleSheet(
-                                          p: TextStyle(fontSize: 14, color: Colors.black),
-                                          strong: const TextStyle(fontWeight: FontWeight.bold),
-                                          blockquote: TextStyle(color: Colors.grey[600], fontStyle: FontStyle.italic),
-                                        ),
-                                        selectable: true,
-                                      ),
-                                    ),
-                                  );
-                                },
+                              child: Text(
+                                TimeUtil.formatTimestamp(message.createdAt),
+                                style: const TextStyle(fontSize: 12, color: Colors.black54),
                               ),
-                              if (isSeen)
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+
+                    messageColumn.add(
+                      Align(
+                        alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                        child: MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                seenMessageID = (seenMessageID == message.messageID) ? null : message.messageID;
+                              });
+                            },
+                            child: Column(
+                              crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                              children: [
                                 Padding(
-                                  padding: const EdgeInsets.only(top: 2, right: 12, left: 12),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
                                   child: Text(
-                                    _formatSeenBy(seenByMembers),
-                                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                    "${message.sender.firstName}",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: Colors.grey[800],
+                                    ),
                                   ),
                                 ),
-                            ],
+                                LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    return Tooltip(
+                                      message: TimeUtil.formatTimestamp(message.createdAt),
+                                      child: Container(
+                                        margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                                        padding: const EdgeInsets.all(10),
+                                        decoration: BoxDecoration(
+                                          color: isMe ? kPrimaryContainer : kTertiaryContainer,
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        constraints: BoxConstraints(
+                                          maxWidth: constraints.maxWidth * 0.5,
+                                        ),
+                                        child: MarkdownBody(
+                                          data: message.messageContent,
+                                          styleSheet: MarkdownStyleSheet(
+                                            p: const TextStyle(fontSize: 14, color: Colors.black),
+                                            strong: const TextStyle(fontWeight: FontWeight.bold),
+                                            blockquote: TextStyle(color: Colors.grey[600], fontStyle: FontStyle.italic),
+                                          ),
+                                          selectable: true,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                if (isSeen)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 2, right: 12, left: 12),
+                                    child: Text(
+                                      _formatSeenBy(seenByMembers, userSession),
+                                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     );
-                  },
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: messageColumn,
+                    );
+                  }
                 ),
               ),
-              if(chatroom.isClosed && chatroom.groupMembers.any((u) => u.member?.userID == userSession?.user.userID))
-                _buildReopenRoom(dataManager, userSession, chatroom)
+              if(chatroom.isClosed && chatroom.author.userID == userSession?.user.userID)
+                _buildReopenAndRateButtons(dataManager, userSession, chatroom)
               else if (chatroom.isClosed)
                 _buildClosedBar(dataManager, userSession, chatroom)
-              else if (chatroom.groupMembers.any((u) => u.member?.userID == userSession?.user.userID))
-                _buildMessageInput(chatroom)
+              else if (chatroom.groupMembers!.any((u) => u.member?.userID == userSession?.user.userID))
+                _buildMessageInput(chatroom, sendMessage)
               else
                 _buildJoinRoomButton(dataManager, userSession, chatroom),
             ],
@@ -221,9 +307,10 @@ class _ChatroomPageState extends State<ChatroomPage> {
         );
       },
     );
+
   }
 
-  Widget _buildMessageInput(Chatroom chatroom) {
+  Widget _buildMessageInput(Chatroom chatroom, Function(String message, Chatroom chatroom) sendMessage) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       child: Row(
@@ -244,7 +331,7 @@ class _ChatroomPageState extends State<ChatroomPage> {
               ),
               onEditingComplete: () {
                 // Ensures the message is sent when Enter is pressed
-                sendMessage(messageController.text.trim(), chatroom);
+                (messageController.text.trim(), chatroom);
                 messageController.clear();
                 enableMessage = false;
               },
@@ -267,9 +354,6 @@ class _ChatroomPageState extends State<ChatroomPage> {
       ),
     );
   }
-
-
-
   Widget _buildJoinRoomButton(DataManager dataManager, HiveSession? userSession, Chatroom chatroom) {
     return Padding(
       padding: const EdgeInsets.all(12.0),
@@ -283,19 +367,48 @@ class _ChatroomPageState extends State<ChatroomPage> {
       ),
     );
   }
-  Widget _buildReopenRoom(DataManager dataManager, HiveSession? userSession, Chatroom chatroom) {
+
+  Widget _buildReopenAndRateButtons(DataManager dataManager, HiveSession? userSession, Chatroom chatroom) {
     return Padding(
       padding: const EdgeInsets.all(12.0),
-      child: ElevatedButton(
-        onPressed: () {
-          if (userSession != null) {
-            dataManager.signalRService.reopenChatroom(userSession.user.userID, chatroom.chatroomID);
-          }
-        },
-        child: Text("Join Room"),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          ElevatedButton(
+            onPressed: () {
+              if (userSession != null && chatroom.ticket?.status == 'Closed') {
+                dataManager.signalRService.updateTicket(chatroom.ticket!.ticketID, chatroom.ticket!.ticketTitle, 'Open', chatroom.ticket!.priority, chatroom.ticket!.mainTag?.tagName, chatroom.ticket!.subTag?.subTagName, chatroom.ticket!.assigned?.userID);
+              }
+            },
+            child: const Text("Reopen Chatroom"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (_) => RatingDialogWidget(
+                  rating: dataManager.findRatingByChatroomID(chatroom.chatroomID),
+                  onSubmit: (rating, feedback) {
+                    // Handle the rating and feedback submission
+                    enableRate = false;
+                    dataManager.signalRService.addRating(
+                      chatroom.chatroomID,
+                      rating,
+                      feedback,
+                    );
+
+                  },
+                ),
+              );
+            },
+            child: const Text("Rate Chatroom"),
+          ),
+        ],
       ),
     );
   }
+
+
   Widget _buildClosedBar(DataManager dataManager, HiveSession? userSession, Chatroom chatroom) {
     return Padding(
       padding: const EdgeInsets.all(12.0),
@@ -303,7 +416,13 @@ class _ChatroomPageState extends State<ChatroomPage> {
     );
   }
 
-  String _formatSeenBy(List<GroupMember> seenBy) {
-    return seenBy.map((u) => u.member!.firstName).join(", ");
+  bool shouldShowHourSeparator(Message current, Message? previous) {
+    if (previous == null) return true; // First message
+    return current.createdAt.difference(previous.createdAt).inMinutes > 90;
   }
+
+  String _formatSeenBy(List<GroupMember> seenBy, HiveSession session) {
+    return 'Seen by ${seenBy.map((u) => u.member?.userID == session.user.userID ? 'You' : u.member?.firstName ?? '').join(", ")}';
+  }
+
 }

@@ -18,7 +18,8 @@
       "Bitrate": "320k"
     },
     "OpenAISettings": {
-      "BaseUrl": "https://models.inference.ai.azure.com/"
+      "BaseUrl": "https://models.inference.ai.azure.com/",
+      "ChatbotID": 100000001
     }
   }
 }

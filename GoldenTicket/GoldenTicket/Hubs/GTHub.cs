@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using GoldenTicket.Entities;
 using GoldenTicket.Models;
+using System.Diagnostics;
 
 
 namespace GoldenTicket.Hubs
@@ -27,6 +28,7 @@ namespace GoldenTicket.Hubs
                     break;
                 }
             }
+            Console.WriteLine($"[SignalR] User {Context.ConnectionId} disconnects");
             await base.OnDisconnectedAsync(exception);
         }
 
@@ -54,14 +56,83 @@ namespace GoldenTicket.Hubs
                 tags = DBUtil.GetTags(), 
                 faq = DBUtil.GetFAQs(), 
                 users = DBUtil.GetUsersByRole(), 
-                chatrooms = DBUtil.GetChatrooms(userID, isEmployee), 
+                chatrooms = await DBUtil.GetChatrooms(userID, isEmployee), 
                 tickets = DBUtil.GetTickets(userID, isEmployee),
                 status = DBUtil.GetStatuses(),
-                priorities = DBUtil.GetPriorities()
+                priorities = DBUtil.GetPriorities(),
+                ratings = await DBUtil.GetRatings()
             });
         }
+        public int? GetAvailableStaff(string? MainTagName)
+        {
+            if (!string.IsNullOrEmpty(MainTagName))
+            {
+                var adminUsers = DBUtil.GetAdminUsers()
+                    .Where(user => (user.Role == "Admin" || user.Role == "Staff") && user.AssignedTags!.Any(tag => tag == MainTagName))
+                    .ToList();
+                var onlineStaff = adminUsers
+                    .Where(user => _connections.ContainsKey(user.UserID))
+                    .ToList();
+                if (onlineStaff.Any())
+                {
+                    var availableStaff = onlineStaff
+                    .OrderBy(user => DBUtil.GetTickets(user.UserID, false).Count)
+                    .FirstOrDefault();
+
+                    if (availableStaff != null)
+                    {
+                        return availableStaff.UserID;
+                    }
+                }
+            }
+            return null; // Return empty string if no staff is available
+        }
         #endregion
-        
+
+        #region User
+        public async Task UpdateUser(int _userID, string? _username, string? _firstname, string? _middlename, string? _lastname, string? _role, List<string?> _assignedTags, string? Password)
+        {
+            var updatedUser = await DBUtil.UpdateUser(_userID, _username, _firstname, _middlename, _lastname, _role, _assignedTags);
+            if(updatedUser != null)
+            {
+                if (Password != null && Password != ""){
+                    await DBUtil.ChangePassword(_userID, Password);
+                }
+
+                var adminUser = DBUtil.GetAdminUsers();
+                foreach(var user in adminUser) {
+                    if(user.Role == "Admin" || user.Role == "Staff" || user.UserID == _userID){
+                        if (_connections.TryGetValue(user.UserID, out var connectionIds)){
+                            foreach (var connectionId in connectionIds)
+                            {
+                                await Clients.Client(connectionId).SendAsync("UserUpdate", new {user = new UserDTO(updatedUser)});
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        public async Task AddUser(string Username, string Password, string FirstName, string? MiddleName, string LastName, string Role, List<string?> AssignedTags)
+        {
+            var newUser = await DBUtil.AddUser(Username, Password, FirstName, MiddleName, LastName, Role, AssignedTags);
+            if(newUser == null)
+            {
+                await Clients.Caller.SendAsync("UserExist");
+                return;
+            }
+            var adminUser = DBUtil.GetAdminUsers();
+            foreach(var user in adminUser){
+                if(user.Role == "Admin" || user.Role == "Staff"){
+                    if (_connections.TryGetValue(user.UserID, out var connectionIds)){
+                        foreach (var connectionId in connectionIds)
+                        {
+                            await Clients.Client(connectionId).SendAsync("UserUpdate", new {user = new UserDTO(newUser)});
+                        }
+                    }
+                }
+            }
+        }
+        #endregion
 
         #region FAQ
         public async Task AddFAQ(string Title, string Description, string Solution, string MainTagName, string SubTagName) 
@@ -82,7 +153,8 @@ namespace GoldenTicket.Hubs
         #region Chatroom
         public async Task RequestChat(int AuthorID) 
         {
-            int openChatroomsCount = DBUtil.GetChatrooms(AuthorID, true).Count(c => c.Ticket == null);
+            var chatrooms = await DBUtil.GetChatrooms(AuthorID, true);
+            int openChatroomsCount = chatrooms.Count(c => c.Ticket == null);
             if (openChatroomsCount >= 3)
             {
                 await Clients.Caller.SendAsync("MaximumChatroom");
@@ -92,23 +164,32 @@ namespace GoldenTicket.Hubs
             var chatroom = await DBUtil.AddChatroom(AuthorID);
             var adminUser = DBUtil.GetAdminUsers();
             var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(chatroom.ChatroomID)!, true);
-            var chatroomDTOAdmin = new ChatroomDTO(DBUtil.GetChatroom(chatroom.ChatroomID)!);
+            var chatroomDTOAdmin = new ChatroomDTO(DBUtil.GetChatroom(chatroom.ChatroomID, false)!);
 
             await Clients.Caller.SendAsync("ReceiveSupport", new { chatroom = chatroomDTO });
         }
 
 
-        public async Task ResolveTickets(List<ChatroomDTO> chatrooms){
-
-            foreach(ChatroomDTO chatroom in chatrooms){
-                foreach(var member in chatroom.GroupMembers)
+        public async Task ResolveTickets(List<ChatroomDTO> Chatrooms)
+        {
+            foreach (ChatroomDTO Chatroom in Chatrooms)
+            {
+                if (Chatroom.LastMessage != null && Chatroom.Ticket == null && (DateTime.UtcNow - Chatroom.LastMessage.CreatedAt).TotalDays >= 4)
                 {
-                    
-                    if (_connections.TryGetValue(member.User.UserID, out var connectionIds))
+                    if (Chatroom.ChatroomID == null){
+                        continue;
+                    }
+                    int chatroomID = Chatroom.ChatroomID ?? 0;
+                    await CloseMessage(chatroomID);
+                    await DBUtil.CloseChatroom(chatroomID);
+                    foreach (var member in Chatroom.GroupMembers)
                     {
-                        foreach (var connectionId in connectionIds)
+                        if (_connections.TryGetValue(member.User.UserID, out var connectionIds))
                         {
-                            await Clients.Client(connectionId).SendAsync("ChatroomUpdate", new {chatroom = chatroom});
+                            foreach (var connectionId in connectionIds)
+                            {
+                                await Clients.Client(connectionId).SendAsync("ChatroomUpdate", new { chatroom = Chatroom });
+                            }
                         }
                     }
                 }
@@ -117,7 +198,7 @@ namespace GoldenTicket.Hubs
 
         public async Task JoinChatroom(int UserID, int ChatroomID)
         {
-            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID)!);
+            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID, false)!);
             if (chatroomDTO!.GroupMembers.Any(m => m.User.UserID == UserID))
             {
                 await Clients.Caller.SendAsync("AlreadyMember");
@@ -138,15 +219,17 @@ namespace GoldenTicket.Hubs
         public async Task OpenChatroom(int UserID, int ChatroomID) 
         {
             var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID)!, true);
-            await UserSeen(UserID, ChatroomID);
+            
             await Clients.Caller.SendAsync("ReceiveMessages", new {chatroom = chatroomDTO});
+            await UserSeen(UserID, ChatroomID);
         }
         public async Task UserSeen(int UserID, int ChatroomID) 
         {
-            var chatroomDTO = DBUtil.GetChatroom(ChatroomID);
-            DBUtil.UpdateLastSeen(UserID, ChatroomID);
-            foreach(var member in chatroomDTO!.Members) {
-                if (_connections.TryGetValue(member.Member!.UserID, out var connectionIds)){
+            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID, false)!);
+            await DBUtil.UpdateLastSeen(UserID, ChatroomID);
+            foreach(var member in chatroomDTO.GroupMembers)
+            {
+                if (_connections.TryGetValue(member.User.UserID, out var connectionIds)){
                     foreach (var connectionId in connectionIds)
                     {
                         await Clients.Client(connectionId).SendAsync("UserSeen", new {userID = UserID, chatroomID = ChatroomID});
@@ -156,42 +239,42 @@ namespace GoldenTicket.Hubs
         }
         public async Task SendMessage(int SenderID, int ChatroomID, string Message) 
         {
+            var connectedUsers = _connections.Where(kvp => kvp.Value.Contains(Context.ConnectionId)).ToList();
+            if (connectedUsers.Count == 0)
+            {
+                Console.WriteLine($"[SignalR] Connection {Context.ConnectionId} is no longer active.");
+                return; // Return early if the connection is not valid
+            }
+            
+            await UserSeen(SenderID, ChatroomID);
             var message = await DBUtil.SendMessage(SenderID, ChatroomID, Message);
             var messageDTO = new MessageDTO(DBUtil.GetMessage(message.MessageID)!);
-            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID)!);
+            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID, false)!);
+            var MembersToInvoke = new List<int>();
+            
             foreach(var member in chatroomDTO.GroupMembers){
-                if (member.User.Role == "Employee")
-                {
-                    if (_connections.TryGetValue(member.User!.UserID, out var connectionIds))
-                    {
-                        foreach (var connectionId in connectionIds)
-                        {
-                            await Clients.Client(connectionId).SendAsync("ReceiveMessage", new {chatroom = chatroomDTO, message = messageDTO});
-                        }
-                    }
-                }
+                MembersToInvoke.Add(member.User.UserID);
             }
 
             if(chatroomDTO.Ticket != null)
             {
                 var adminUser = DBUtil.GetAdminUsers();
                 foreach(var user in adminUser){
-                    if(user.Role == "Admin" || user.Role == "Staff"){
-                        
-                        if (_connections.TryGetValue(user.UserID, out var connectionIds)){
-                            foreach (var connectionId in connectionIds)
-                            {
-                                await Clients.Client(connectionId).SendAsync("ReceiveMessage", new {chatroom = chatroomDTO, message = messageDTO});
-
-                            }
-                        }
+                    if(!MembersToInvoke.Contains(user.UserID)){
+                        MembersToInvoke.Add(user.UserID);
                     }
-                    
                 }
             }
-            
-            await UserSeen(SenderID, ChatroomID);
-            if(chatroomDTO.Ticket == null)
+            foreach(int memberID in MembersToInvoke){
+                if (_connections.TryGetValue(memberID, out var connectionIds)){
+                    foreach (var connectionId in connectionIds)
+                    {
+                        await Clients.Client(connectionId).SendAsync("ReceiveMessage", new {chatroom = chatroomDTO, message = messageDTO});
+                        Console.WriteLine("Yes");
+                    }
+                }
+            }
+            if(chatroomDTO.Ticket == null && SenderID != 100000001)
             {
                 await AISendMessage(ChatroomID, Message, SenderID);
             }
@@ -199,15 +282,15 @@ namespace GoldenTicket.Hubs
         
         public async Task AISendMessage(int chatroomID, string userMessage, int userID) 
         {
-            int SenderID = 100000001;
+            int ChatbotID = AIUtil.GetChatbotID();
             var response = await AIUtil.GetJsonResponseAsync(chatroomID.ToString(), userMessage, userID);
             if (response == null)
             {
                 response = AIResponse.Unavailable();
             }
           
-            var message = await DBUtil.SendMessage(SenderID, chatroomID, response!.Message);
-            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(chatroomID)!);
+            var message = await DBUtil.SendMessage(ChatbotID, chatroomID, response!.Message);
+            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(chatroomID, false)!);
             var messageDTO = new MessageDTO(DBUtil.GetMessage(message.MessageID)!);
             foreach(var member in chatroomDTO.GroupMembers){
                 if(member.User.UserID == userID){
@@ -215,6 +298,7 @@ namespace GoldenTicket.Hubs
                         foreach (var connectionId in connectionIds)
                         {
                             await Clients.Client(connectionId).SendAsync("ReceiveMessage", new {chatroom = chatroomDTO, message = messageDTO});
+                            Console.WriteLine("Wow");
                             await Clients.Client(connectionId).SendAsync("AllowMessage");
                         }
                     }
@@ -225,17 +309,33 @@ namespace GoldenTicket.Hubs
                 if(response.CallAgent)
                 {
                     if (_connections.TryGetValue(userID, out var connectionIds)){
+                        if (response.MainTag != null || response.MainTag != "" || response.MainTag != "null")
+                        {
+                            int StaffID = GetAvailableStaff(response.MainTag) ?? 0;
+                            if(StaffID != 0)
+                            {
+                                await AddTicket(response.Title, userID, response.MainTag!, response.SubTags, response.Priority, chatroomID, StaffID);
+                                var StaffUser = DBUtil.FindUser(StaffID);
+                                await SendMessage(ChatbotID, chatroomID, $"Your ticket has been created! Your issue has been assigned to {StaffUser.FirstName} {StaffUser.LastName}.");
+                            } else {
+                                await AddTicket(response.Title, userID, response.MainTag!, response.SubTags, response.Priority, chatroomID);
+                                await SendMessage(ChatbotID, chatroomID, $"Your ticket has been created! There are currently no online agent for your specific problem, please be patient and wait for a Live Agent to accept.");
+                            }
+                        } else {
+                            await AddTicket(response.Title, userID, response.MainTag!, response.SubTags, response.Priority, chatroomID);
+                            await SendMessage(ChatbotID, chatroomID, $"Your ticket has been created! Its status has been set to \"Open\" and is now waiting for a Live Agent to accept your ticket.");
+                        }
+                        
                         foreach (var connectionId in connectionIds)
                         {
-                            await AddTicket(response.Title, userID, response.MainTag, response.SubTags, response.Priority, chatroomID);
-                            chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(chatroomID)!);
+                            chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(chatroomID, false)!);
                             await Clients.Client(connectionId).SendAsync("AllowMessage");
                         }
                     }
                 }
             }
             
-            await UserSeen(SenderID, chatroomID);
+            await UserSeen(ChatbotID, chatroomID);
         }
         #endregion
 
@@ -259,9 +359,9 @@ namespace GoldenTicket.Hubs
 
 
         #region Ticket
-        public async Task AddTicket(string TicketTitle, int AuthorID, string MainTagName, string SubTagName, string Priority, int ChatroomID)
+        public async Task AddTicket(string TicketTitle, int AuthorID, string MainTagName, string SubTagName, string Priority, int ChatroomID, int? AssignedID = 0)
         {
-            var newTicket = await DBUtil.AddTicket(TicketTitle, AuthorID, MainTagName, SubTagName, Priority, ChatroomID);
+            var newTicket = await DBUtil.AddTicket(TicketTitle, AuthorID, MainTagName, SubTagName, Priority, ChatroomID, AssignedID);
             if (newTicket == null)
             {
                 return;
@@ -280,34 +380,35 @@ namespace GoldenTicket.Hubs
                         }
                     }
                 }
-                
             }
             await Clients.Caller.SendAsync("TicketUpdate", new {ticket = ticketDTO});
             await Clients.Caller.SendAsync("ChatroomUpdate", new {chatroom = chatroomDTO});
-                        
+            
         }
         public async Task UpdateTicket(int TicketID, string Title, string Status, string Priority, string? MainTag, string? SubTag, int? AssignedID)
         {
+            
+            var stopwatch = Stopwatch.StartNew();
             int EditorID = _connections.FirstOrDefault(kvp => kvp.Value.Contains(Context.ConnectionId)).Key;
 
             var updatedTicket = await DBUtil.UpdateTicket(TicketID, Title, Status, Priority, MainTag, SubTag, AssignedID, EditorID);
             var ticketDTO = new TicketDTO(DBUtil.GetTicket(TicketID)!);
             
-            var chatroomDTO = DBUtil.GetChatrooms().Where(c => c.Ticket!.TicketID == TicketID).FirstOrDefault();
+            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroomByTicketID(TicketID)!);
             int chatroomID = chatroomDTO?.ChatroomID ?? throw new InvalidOperationException("ChatroomID cannot be null.");
-
 
             // Chatroom Close
             if(Status == "Closed")
             {
                 await DBUtil.CloseChatroom(chatroomID);
-                chatroomDTO = DBUtil.GetChatrooms().Where(c => c.Ticket!.TicketID == TicketID).FirstOrDefault();
+                chatroomDTO = new ChatroomDTO(DBUtil.GetChatroomByTicketID(TicketID, false)!);
+                await CloseMessage(chatroomID);
             }
             // Chatroom Reopen
-            if(Status == "Open" && chatroomDTO!.IsClosed)
+            if(Status == "Open")
             {
                 await DBUtil.ReopenChatroom(chatroomID);
-                chatroomDTO = DBUtil.GetChatrooms().Where(c => c.Ticket!.TicketID == TicketID).FirstOrDefault();
+                chatroomDTO = new ChatroomDTO(DBUtil.GetChatroomByTicketID(TicketID, false)!);
             }
 
             var adminUser = DBUtil.GetAdminUsers();
@@ -338,12 +439,57 @@ namespace GoldenTicket.Hubs
                     }
                 }
             }
+            stopwatch.Stop();
+            Console.WriteLine($"Ticket Repsonsetime: {stopwatch.ElapsedMilliseconds} ms");
+
+            
         }
         public async Task OpenTicket(int TicketID)
         {
             var ticketDTO = new TicketDTO(DBUtil.GetTicket(TicketID)!);
             await Clients.Caller.SendAsync("TicketUpdate", new {ticket = ticketDTO});
         }
-        #endregion
+        public async Task CloseMessage(int ChatroomID) {
+            string message = "Your ticket has been resolved! Thank you for your patience! It would really help us if you rate your experience, your feedback would really be appreciated!";
+            await SendMessage(AIUtil.GetChatbotID(), ChatroomID, message);
+        }
+        #endregion 
+        #region Rating
+        public async Task GetRating(int ChatroomID)
+        {
+            var ratingDTO = DBUtil.GetRating(ChatroomID);
+            await Clients.Caller.SendAsync("RatingReceived", new { rating = ratingDTO });
+        }
+        public async Task AddOrUpdateRating(int ChatroomID, int Score, string? Feedback)
+        {
+            var existingRating = DBUtil.GetRating(ChatroomID);
+            var rating = new Rating();
+            if(existingRating != null)
+            {
+                rating = await DBUtil.UpdateRating(ChatroomID, Score, Feedback);
+            }
+            else
+            {
+                rating = await DBUtil.AddRating(ChatroomID, Score, Feedback);
+            }
+            
+            var ratingDTO = new RatingDTO(DBUtil.GetRating(rating!.ChatroomID)!);
+            var adminUser = DBUtil.GetAdminUsers();
+            foreach (var user in adminUser)
+            {
+                if (user.Role == "Admin" || user.Role == "Staff")
+                {
+                    if (_connections.TryGetValue(user.UserID, out var connectionIds))
+                    {
+                        foreach (var connectionId in connectionIds)
+                        {
+                            await Clients.Client(connectionId).SendAsync("RatingReceived", new { rating = ratingDTO });
+                        }
+                    }
+                }
+            }
+            await Clients.Caller.SendAsync("RatingReceived", new { rating = ratingDTO });
+        }
+        #endregion 
     }
 }

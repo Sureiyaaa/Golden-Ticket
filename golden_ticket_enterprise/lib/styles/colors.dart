@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart' show Color, Colors;
 
 const Color kSurface = Colors.white;
@@ -52,4 +54,37 @@ Color getPriorityColor(String status){
       return Colors.greenAccent;
   }
   return Colors.black;
+}
+
+Color generateRandomColor() {
+  final Random random = Random();
+  Color color;
+
+  do {
+    int r = 100 + random.nextInt(130); // 100–229
+    int g = 100 + random.nextInt(130);
+    int b = 100 + random.nextInt(130);
+
+    // Avoid grayish tones
+    bool isGrayish = (r - g).abs() < 20 && (g - b).abs() < 20 && (r - b).abs() < 20;
+
+    // Check brightness to avoid too light or too dark
+    int brightness = (r + g + b) ~/ 3;
+    bool isTooBright = brightness > 210;
+    bool isTooDark = brightness < 140;
+
+    if (!isGrayish && !isTooBright && !isTooDark) {
+      color = Color.fromARGB(255, r, g, b);
+      break;
+    }
+  } while (true);
+
+  return color;
+}
+
+class LineColor {
+  final String name;
+  final Color color;
+
+  LineColor({required this.name, required this.color});
 }

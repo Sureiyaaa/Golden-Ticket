@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart'; // Import markdown package
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:go_router/go_router.dart';
 import 'package:golden_ticket_enterprise/entities/faq.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
@@ -7,6 +7,7 @@ import 'package:golden_ticket_enterprise/models/hive_session.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:golden_ticket_enterprise/widgets/add_faq_widget.dart';
 import 'package:golden_ticket_enterprise/widgets/edit_faq_widget.dart';
+import 'package:golden_ticket_enterprise/widgets/notification_widget.dart';
 import 'package:provider/provider.dart';
 
 class FAQPage extends StatefulWidget {
@@ -23,20 +24,42 @@ class _FAQPageState extends State<FAQPage> {
   String? selectedMainTag = "All";
   String? selectedSubTag;
 
+  final ScrollController _scrollController = ScrollController();
+  int _itemsPerPage = 10;
+  int _currentMaxItems = 10;
+  late DataManager dm;
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 100) {
+        setState(() {
+          _currentMaxItems += _itemsPerPage;
+        });
+      }
+    });
+    dm = Provider.of<DataManager>(context, listen: false);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<DataManager>(
       builder: (context, dataManager, child) {
-        dataManager.signalRService.onReceiveSupport = (chatroom) {
-          context.push('/hub/chatroom/${chatroom.chatroomID}');
-        };
 
         dataManager.signalRService.onMaximumChatroom = () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text("You can only have a maximum of 3 chatrooms with no tickets!"),
-              backgroundColor: Colors.red,
-            ),
+          TopNotification.show(
+            context: context,
+            message: "Maximum Chatroom has been reached",
+            backgroundColor: Colors.redAccent,
+            duration: Duration(seconds: 2),
+            textColor: Colors.white,
+            onTap: () => TopNotification.dismiss(),
           );
         };
 
@@ -48,6 +71,8 @@ class _FAQPageState extends State<FAQPage> {
           return matchesSearch && matchesMainTag && matchesSubTag && includeArchived;
         }).toList();
 
+        List<FAQ> displayedFAQs = filteredFAQs.take(_currentMaxItems).toList();
+
         void addFAQ(String title, String description, String solution, String mainTag, String subTag) {
           setState(() {
             dataManager.signalRService.addFAQ(title, description, solution, mainTag, subTag);
@@ -57,18 +82,15 @@ class _FAQPageState extends State<FAQPage> {
         return Scaffold(
           floatingActionButton: FloatingActionButton(
             heroTag: "add_faq",
+            tooltip: widget.session!.user.role == "Employee" ? "Request Chat" : "Add FAQ",
             onPressed: () {
               if (widget.session!.user.role == "Employee") {
-                // Request Chat Support
                 dataManager.signalRService.requestChat(widget.session!.user.userID);
               } else {
-                // Navigate to Add FAQ Page
                 showDialog(
                   context: context,
                   builder: (context) => AddFAQDialog(
-                    onSubmit: (title, description, solution, mainTag, subTag) {
-                      addFAQ(title, description, solution, mainTag, subTag);
-                    },
+                    onSubmit: addFAQ,
                   ),
                 );
               }
@@ -85,6 +107,7 @@ class _FAQPageState extends State<FAQPage> {
                   onChanged: (value) {
                     setState(() {
                       searchQuery = value;
+                      _currentMaxItems = _itemsPerPage; // Reset pagination on new search
                     });
                   },
                   decoration: InputDecoration(
@@ -111,6 +134,7 @@ class _FAQPageState extends State<FAQPage> {
                           setState(() {
                             selectedMainTag = value;
                             selectedSubTag = null;
+                            _currentMaxItems = _itemsPerPage; // Reset pagination on filter change
                           });
                         },
                         decoration: InputDecoration(
@@ -135,6 +159,7 @@ class _FAQPageState extends State<FAQPage> {
                         onChanged: (value) {
                           setState(() {
                             selectedSubTag = value;
+                            _currentMaxItems = _itemsPerPage; // Reset pagination on filter change
                           });
                         },
                         decoration: InputDecoration(
@@ -149,15 +174,26 @@ class _FAQPageState extends State<FAQPage> {
                 // FAQ List
                 Expanded(
                   child: filteredFAQs.isEmpty
-                      ? Center(child: Text("No FAQs found", style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey),
-                  ))
+                      ? Center(
+                    child: Text(
+                      "No FAQs found",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey),
+                    ),
+                  )
                       : ListView.builder(
-                    itemCount: filteredFAQs.length,
+                    controller: _scrollController,
+                    itemCount: displayedFAQs.length + (filteredFAQs.length > displayedFAQs.length ? 1 : 0),
                     itemBuilder: (context, index) {
-                      var faq = filteredFAQs[index];
+                      if (index == displayedFAQs.length) {
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      }
+
+                      var faq = displayedFAQs[index];
                       return ExpansionTile(
                         title: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -165,17 +201,12 @@ class _FAQPageState extends State<FAQPage> {
                             Expanded(
                               child: Text(
                                 faq.title,
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                               ),
                             ),
-                            // LayoutBuilder to adjust for screen size
                             LayoutBuilder(
                               builder: (context, constraints) {
                                 if (constraints.maxWidth < 600) {
-                                  // Mobile layout: Chips below the title
                                   return Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
@@ -192,7 +223,6 @@ class _FAQPageState extends State<FAQPage> {
                                     ],
                                   );
                                 } else {
-                                  // Desktop layout: Chips beside the title
                                   return Row(
                                     children: [
                                       if (faq.mainTag != null)
@@ -221,7 +251,7 @@ class _FAQPageState extends State<FAQPage> {
                               children: [
                                 MarkdownBody(
                                   data: faq.description,
-                                  selectable: true, // Allows users to copy text
+                                  selectable: true,
                                 ),
                                 SizedBox(height: 8),
                                 SelectableText(
@@ -233,12 +263,11 @@ class _FAQPageState extends State<FAQPage> {
                                   selectable: true,
                                 ),
                                 SizedBox(height: 8),
-                                if(widget.session!.user.role != "Employee")Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    Align(
-                                      alignment: Alignment.centerRight,
-                                      child: ElevatedButton(
+                                if (widget.session!.user.role != "Employee")
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      ElevatedButton(
                                         onPressed: () {
                                           showDialog(
                                             context: context,
@@ -247,16 +276,13 @@ class _FAQPageState extends State<FAQPage> {
                                         },
                                         child: Text("Edit"),
                                       ),
-                                    ),
-                                    if(widget.session!.user.role != "Employee") Align(
-                                      alignment: Alignment.centerRight,
-                                      child: ElevatedButton(
+                                      SizedBox(width: 10),
+                                      ElevatedButton(
                                         onPressed: () {},
                                         child: Text("View Ticket Related"),
                                       ),
-                                    ),
-                                  ],
-                                ),
+                                    ],
+                                  ),
                               ],
                             ),
                           ),

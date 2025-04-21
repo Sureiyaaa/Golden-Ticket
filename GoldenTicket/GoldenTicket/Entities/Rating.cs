@@ -22,12 +22,14 @@ namespace GoldenTicket.Entities
     }
 
     public class RatingDTO {
+        public int RatingID { get; set; }
         public ChatroomDTO Chatroom { get; set; }
         public int Score { get; set; }
         public string? Feedback { get; set; } = "None Provided";
         public DateTime CreatedAt { get; set; } 
 
         public RatingDTO(Rating rating){
+            this.RatingID = rating.RatingID;
             this.Chatroom = new ChatroomDTO(rating.Chatroom!);
             this.Score = rating.Score;
             this.Feedback = rating.Feedback;

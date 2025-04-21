@@ -9,6 +9,7 @@ namespace GoldenTicket.Utilities
 {
     public class DBUtil()
     {
+        static bool debug = false;
         public static int ChatbotID = AIUtil.GetChatbotID();
         #region FAQ
 
@@ -508,7 +509,7 @@ namespace GoldenTicket.Utilities
             context.TicketHistory.AddRange(histories);
             await context.SaveChangesAsync();
             stopwatch.Stop();
-            Console.WriteLine($"Adding Ticket Successfull: {stopwatch.ElapsedMilliseconds} ms");
+            if(debug) Console.WriteLine($"Adding Ticket Successfull: {stopwatch.ElapsedMilliseconds} ms");
 
 
             return newTicket;
@@ -518,7 +519,7 @@ namespace GoldenTicket.Utilities
         #region -   GetTickets
         public static List<TicketDTO> GetTickets(int userID, bool isEmployee)
         {
-            Console.WriteLine($"GetTickets(userID:{userID}, isEmployee:{isEmployee}) ran!");
+            if(debug) Console.WriteLine($"GetTickets(userID:{userID}, isEmployee:{isEmployee}) ran!");
             var stopwatch = Stopwatch.StartNew();
             using(var context = new ApplicationDbContext())
             {
@@ -542,7 +543,7 @@ namespace GoldenTicket.Utilities
                         .Include(t => t.Status)
                         .Include(t => t.Priority)
                         .ToList();
-                Console.WriteLine($"GetTickets(userID:{userID}, isEmployee:{isEmployee}) finish reading data at: {stopwatch.ElapsedMilliseconds} ms");
+                if(debug) Console.WriteLine($"GetTickets(userID:{userID}, isEmployee:{isEmployee}) finish reading data at: {stopwatch.ElapsedMilliseconds} ms");
                 if (isEmployee)
                 {
                     foreach(var ticket in ticketList.Where(c => c.AuthorID == userID)){
@@ -555,7 +556,7 @@ namespace GoldenTicket.Utilities
                         ticketDTOs.Add(new TicketDTO(ticket));
                     }
                 }
-                Console.WriteLine($"GetTickets(int userID, bool isEmployee) sent successfully: {stopwatch.ElapsedMilliseconds} ms");
+                if(debug) Console.WriteLine($"GetTickets(int userID, bool isEmployee) sent successfully: {stopwatch.ElapsedMilliseconds} ms");
                 return ticketDTOs;
             }
         }
@@ -727,7 +728,7 @@ namespace GoldenTicket.Utilities
                 context.TicketHistory.AddRange(histories);
                 await context.SaveChangesAsync();
                 stopwatch.Stop();
-                Console.WriteLine($"Updated Ticket Successfull: {stopwatch.ElapsedMilliseconds} ms");
+                if(debug) Console.WriteLine($"Updated Ticket Successfull: {stopwatch.ElapsedMilliseconds} ms");
 
                 return newticket;
             }
@@ -846,11 +847,11 @@ namespace GoldenTicket.Utilities
         {
             using(var context = new ApplicationDbContext())
             {
-                Console.WriteLine($"GetChatrooms(userID:{userID}, {isEmployee}) ran!");
+                if(debug) Console.WriteLine($"GetChatrooms(userID:{userID}, {isEmployee}) ran!");
                 var stopwatch = Stopwatch.StartNew();
                 List<ChatroomDTO> dtos = new List<ChatroomDTO>();
                 List<Chatroom> chatrooms = await ContextUtil.Chatrooms(context, false);
-                Console.WriteLine($"GetChatrooms({userID}, {isEmployee}) finish reading data at: {stopwatch.ElapsedMilliseconds} ms");
+                if(debug) Console.WriteLine($"GetChatrooms({userID}, {isEmployee}) finish reading data at: {stopwatch.ElapsedMilliseconds} ms");
                 if(isEmployee){   
                     foreach(var chatroom in chatrooms.Where(c => c.AuthorID == userID)){
                         dtos.Add(new ChatroomDTO(chatroom));
@@ -861,7 +862,7 @@ namespace GoldenTicket.Utilities
                     }
                 }
                 stopwatch.Stop();
-                Console.WriteLine($"GetChatrooms({userID}, {isEmployee}) sent successfully: {stopwatch.ElapsedMilliseconds} ms");
+                if(debug) Console.WriteLine($"GetChatrooms({userID}, {isEmployee}) sent successfully: {stopwatch.ElapsedMilliseconds} ms");
                 return dtos;
             }
         }
@@ -877,7 +878,7 @@ namespace GoldenTicket.Utilities
                     dtos.Add(new ChatroomDTO(chatroom));
                 }
                 stopwatch.Stop();
-                Console.WriteLine($"GetChatrooms() sent successfully: {stopwatch.ElapsedMilliseconds} ms");
+                if(debug) Console.WriteLine($"GetChatrooms() sent successfully: {stopwatch.ElapsedMilliseconds} ms");
                 return dtos;
             }
         }
@@ -889,7 +890,7 @@ namespace GoldenTicket.Utilities
             {
                 var chatroom = ContextUtil.Chatroom(ChatroomID, context, includeMessages);
                 stopwatch.Stop();
-                Console.WriteLine($"GetChatroom(chatroomID:{ChatroomID}) sent successfully: {stopwatch.ElapsedMilliseconds} ms");
+                if(debug) Console.WriteLine($"GetChatroom(chatroomID:{ChatroomID}) sent successfully: {stopwatch.ElapsedMilliseconds} ms");
                 return chatroom;
             }
         }
@@ -901,7 +902,7 @@ namespace GoldenTicket.Utilities
             {
                 var chatroom = ContextUtil.ChatroomByTicketID(TicketID, context, includeMessages);
                 stopwatch.Stop();
-                Console.WriteLine($"GetChatroom(chatroomID:{TicketID}) sent successfully: {stopwatch.ElapsedMilliseconds} ms");
+                if(debug) Console.WriteLine($"GetChatroom(chatroomID:{TicketID}) sent successfully: {stopwatch.ElapsedMilliseconds} ms");
                 return chatroom;
             }
         }
@@ -935,7 +936,7 @@ namespace GoldenTicket.Utilities
                 context.Messages.Add(message);
                 await context.SaveChangesAsync();
                 stopwatch.Stop();
-                Console.WriteLine($"Adding Message Successfull: {stopwatch.ElapsedMilliseconds} ms");
+                if(debug) Console.WriteLine($"Adding Message Successfull: {stopwatch.ElapsedMilliseconds} ms");
                 return message;
             }
         }
@@ -945,14 +946,7 @@ namespace GoldenTicket.Utilities
         {
             using (var context = new ApplicationDbContext())
             {
-                return context.Messages
-                    .AsNoTracking()
-                    .Include(m => m.Sender)
-                        .ThenInclude(s => s!.Role)
-                    .Include(m => m.Sender)
-                        .ThenInclude(s => s!.AssignedTags)
-                            .ThenInclude(t => t!.MainTag)
-                    .FirstOrDefault(m => m.MessageID == MessageID);
+                return ContextUtil.Message(MessageID, context);
             }
         }
         #endregion
@@ -1001,7 +995,7 @@ namespace GoldenTicket.Utilities
         }
         public async static Task<List<RatingDTO>> GetRatings()
         {
-            Console.WriteLine($"GetRating() ran!");
+            if(debug) Console.WriteLine($"GetRating() ran!");
             var stopwatch = Stopwatch.StartNew();
             var RatingList = new List<RatingDTO>();
             using (var context = new ApplicationDbContext())
@@ -1009,14 +1003,14 @@ namespace GoldenTicket.Utilities
                 var ratings = await ContextUtil.Ratings(context);
                 if(ratings != null)
                 {
-                    Console.WriteLine($"GetRating() data read at: {stopwatch.ElapsedMilliseconds} ms");
+                    if(debug) Console.WriteLine($"GetRating() data read at: {stopwatch.ElapsedMilliseconds} ms");
                     foreach (var rating in ratings!)
                     {
                         RatingList.Add(new RatingDTO(rating));
                     }
                 } 
                 else Console.WriteLine($"[DBUtil] Rating table empty, no data found.");
-                Console.WriteLine($"GetRating() sent successfully: {stopwatch.ElapsedMilliseconds} ms");
+                if(debug) Console.WriteLine($"GetRating() sent successfully: {stopwatch.ElapsedMilliseconds} ms");
                 return RatingList;
             }
         }
@@ -1056,6 +1050,124 @@ namespace GoldenTicket.Utilities
             }
         }
         #endregion
+        #endregion
+
+        #region Notifications
+
+
+
+
+        #region -   GetNotifications
+        public async static Task<List<NotificationDTO>> GetNotifications(int userID)
+        {
+            if(debug) Console.WriteLine($"GetNotifications(userID:{userID}) ran!");
+            var stopwatch = Stopwatch.StartNew();
+            var notifList = new List<NotificationDTO>();
+            using (var context = new ApplicationDbContext())
+            {
+                var notifications = await ContextUtil.Notifications(userID, context);
+                if(notifications != null)
+                {
+                    if(debug) Console.WriteLine($"GetRating() data read at: {stopwatch.ElapsedMilliseconds} ms");
+                    foreach (var notif in notifications!)
+                    {
+                        notifList.Add(new NotificationDTO(notif));
+                    }
+                } else Console.WriteLine($"[DBUtil] Notification table empty, no data found.");
+                if(debug) Console.WriteLine($"GetNotifications(userID:{userID}) sent successfully: {stopwatch.ElapsedMilliseconds} ms");
+                return notifList;
+            }
+        }
+        public async static Task<Dictionary<int, NotificationDTO>> GetNotifications(List<int> userIDs)
+        {
+            if(debug) Console.WriteLine($"GetNotifications(List userIDs:{userIDs}) ran!");
+            var stopwatch = Stopwatch.StartNew();
+            var notifList = new Dictionary<int, NotificationDTO>();
+            using (var context = new ApplicationDbContext())
+            {
+                var notifications = await ContextUtil.Notifications(userIDs, context);
+                if(debug) Console.WriteLine($"GetNotifications() data read at: {stopwatch.ElapsedMilliseconds} ms");
+                if(notifications != null)
+                {
+                    foreach (var userID in userIDs)
+                    {
+                        foreach (var notif in notifications!)
+                        {
+                            if (notif.UserID == userID)
+                            {
+                                notifList.Add(userID, new NotificationDTO(notif));
+                            }
+                        }
+                    }
+                } else Console.WriteLine($"[DBUtil] Notification table empty, no data found.");
+                if(debug) Console.WriteLine($"GetNotifications(List userIDs:{userIDs}) sent successfully: {stopwatch.ElapsedMilliseconds} ms");
+                return notifList;
+            }
+        }
+        #endregion
+        #region -   ReadNotification
+        public async static Task<Notification?> ReadNotification(int notificationID)
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                var notification  = context.Notifications
+                    .Where(n => n.NotificationID == notificationID)
+                    .FirstOrDefault();
+                if(notification != null)
+                {
+                    notification!.IsRead = true;
+                } 
+                else Console.WriteLine($"[DBUtil] Notification with {notificationID} ID not found.");
+                await context.SaveChangesAsync();
+                return notification;
+            }
+        }
+        #endregion
+        #region -   AddNotification
+        public async static Task<Notification> NotifyUser(int userID, int notifType, string title, string description, int? referenceID)
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                var notification = new Notification
+                {
+                    UserID = userID,
+                    Title = title,
+                    Description = description,
+                    CreatedAt = DateTime.Now,
+                    NotificationTypeID = notifType,
+                    IsRead = false,
+                    ReferenceID = referenceID
+                };
+                context.Notifications.Add(notification);
+                await context.SaveChangesAsync();
+                return notification;
+            }
+        }
+        #endregion
+        public async static Task<Dictionary<int, Notification>> NotifyGroup(List<int> userList, int notifType, string title, string description, int? referenceID)
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                var notifications = new Dictionary<int, Notification>();
+                foreach(var user in userList)
+                {
+                    var newNotif = new Notification
+                    {
+                        UserID = user,
+                        Title = title,
+                        Description = description,
+                        CreatedAt = DateTime.Now,
+                        NotificationTypeID = notifType,
+                        IsRead = false,
+                        ReferenceID = referenceID
+                    };
+                    context.Notifications.Add(newNotif);
+                    notifications.Add(user, newNotif);
+                }
+                await context.SaveChangesAsync();
+                return notifications;
+            }
+        }
         #endregion
     }
 }

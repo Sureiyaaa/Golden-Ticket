@@ -17,7 +17,7 @@ namespace GoldenTicket.Entities
         public string? Title {get;set;} = "None provided";
         [Required]
         public string? Description { get; set;} = "None Provided";
-        public DateTime CreatedAt { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
         [Required]
         public int NotificationTypeID { get; set; }
         [ForeignKey("NotificationTypeID")]
@@ -36,7 +36,7 @@ namespace GoldenTicket.Entities
         public NotificationDTO(Notification notification){
             this.NotificationID = notification.NotificationID;
             this.Title = notification.Title;
-            this.Title = notification.Description;
+            this.Description = notification.Description;
             this.NotificationType = notification.NotificationType!.NotificationName;
             this.CreatedAt = notification.CreatedAt;
             this.isRead = notification.IsRead;

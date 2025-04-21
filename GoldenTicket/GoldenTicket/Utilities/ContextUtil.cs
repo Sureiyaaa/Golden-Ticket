@@ -29,6 +29,13 @@ namespace GoldenTicket.Utilities
                 .Where(c => ticketID == null ? c.TicketID == null : c.TicketID == ticketID)
                 .FirstOrDefault();
         }
+        public static Message? Message (int MessageID, ApplicationDbContext context) 
+        {
+            return context.Messages
+                    .BuildBaseMessageQuery()
+                    .Where(m => m.MessageID == MessageID)
+                    .FirstOrDefault();
+        }
         public async static Task<List<Rating>> Ratings(ApplicationDbContext context)
         {
             return await context.Rating
@@ -42,6 +49,21 @@ namespace GoldenTicket.Utilities
                 .BuildBaseRatingQuery()
                 .Where(r => r.ChatroomID == ChatroomID)
                 .FirstOrDefault();
+        }
+
+        public async static Task<List<Notification>> Notifications (int userID, ApplicationDbContext context)
+        {
+            return await context.Notifications
+                .BuildBaseNotificationQuery()
+                .Where(n => n.UserID == userID)
+                .ToListAsync();
+        }
+        public async static Task<List<Notification>> Notifications (List<int> userIDs, ApplicationDbContext context)
+        {
+            return await context.Notifications
+            .BuildBaseNotificationQuery()
+            .Where(n => userIDs.Contains(n.UserID))
+            .ToListAsync();
         }
     }
 }

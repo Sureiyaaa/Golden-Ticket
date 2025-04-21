@@ -60,7 +60,8 @@ namespace GoldenTicket.Hubs
                 tickets = DBUtil.GetTickets(userID, isEmployee),
                 status = DBUtil.GetStatuses(),
                 priorities = DBUtil.GetPriorities(),
-                ratings = await DBUtil.GetRatings()
+                ratings = await DBUtil.GetRatings(),
+                notifications = await DBUtil.GetNotifications(userID)
             });
         }
         public int? GetAvailableStaff(string? MainTagName)
@@ -196,6 +197,12 @@ namespace GoldenTicket.Hubs
             }
         }
 
+        public async Task CloseChatroom(int ChatroomID)
+        {
+                var chatroom = await DBUtil.CloseChatroom(ChatroomID);
+                await Clients.Caller.SendAsync("ChatroomUpdate", new { chatroom = new ChatroomDTO(chatroom) });
+        }
+
         public async Task JoinChatroom(int UserID, int ChatroomID)
         {
             var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID, false)!);
@@ -274,6 +281,14 @@ namespace GoldenTicket.Hubs
                     }
                 }
             }
+
+            // Notification System here brotah
+            if(chatroomDTO.Ticket != null && SenderID != AIUtil.GetChatbotID())
+            {
+                MembersToInvoke.Remove(SenderID);
+                await NotifyGroup(MembersToInvoke, 2, $"{messageDTO.Sender!.FirstName} send a Message", messageDTO.MessageContent!, ChatroomID);
+            }
+
             if(chatroomDTO.Ticket == null && SenderID != 100000001)
             {
                 await AISendMessage(ChatroomID, Message, SenderID);
@@ -369,9 +384,11 @@ namespace GoldenTicket.Hubs
             var ticketDTO = new TicketDTO(DBUtil.GetTicket(newTicket.TicketID)!);
             var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID)!);
             var adminUser = DBUtil.GetAdminUsers();
+            var adminUserID = new List<int>();
             foreach(var user in adminUser){
-                if(user.Role == "Admin" || user.Role == "Staff"){
-                    
+                if(user.Role == "Admin" || user.Role == "Staff")
+                {
+                    adminUserID.Add(user.UserID);
                     if (_connections.TryGetValue(user.UserID, out var connectionIds)){
                         foreach (var connectionId in connectionIds)
                         {
@@ -383,7 +400,8 @@ namespace GoldenTicket.Hubs
             }
             await Clients.Caller.SendAsync("TicketUpdate", new {ticket = ticketDTO});
             await Clients.Caller.SendAsync("ChatroomUpdate", new {chatroom = chatroomDTO});
-            
+            if (AssignedID != null || AssignedID != 0) await NotifyUser(AssignedID!.Value, 1, "New Ticket Assigned", $"You hav benn assigned to a new ticket! Ticket ID: {ticketDTO.TicketID}", ticketDTO.TicketID);
+            else await NotifyGroup(adminUserID, 1, "New Open Ticket", $"A new ticket has been created! Ticket ID: {ticketDTO.TicketID}", ticketDTO.TicketID);
         }
         public async Task UpdateTicket(int TicketID, string Title, string Status, string Priority, string? MainTag, string? SubTag, int? AssignedID)
         {
@@ -491,5 +509,35 @@ namespace GoldenTicket.Hubs
             await Clients.Caller.SendAsync("RatingReceived", new { rating = ratingDTO });
         }
         #endregion 
+        #region Notification
+
+        public async Task NotifyGroup (List<int> userList, int notifType, string title, string description, int? referenceID)
+        {
+            var notifications = await DBUtil.NotifyGroup(userList, notifType, title, description, referenceID);
+            foreach(var user in userList)
+            {
+                var newNotif = notifications.Where(n => n.Key == user).Select(n => n.Value);
+                if (_connections.TryGetValue(user, out var connectionIds))
+                {
+                    foreach (var connectionId in connectionIds)
+                    {
+                        await Clients.Client(connectionId).SendAsync("NotificationUpdate", new { notification = newNotif} );
+                    }
+                }
+            }
+        }
+        
+        public async Task NotifyUser (int userID, int notifType, string title, string description, int? referenceID)
+        {
+            var newNotif = await DBUtil.NotifyUser(userID, notifType, title, description, referenceID);
+            if (_connections.TryGetValue(userID, out var connectionIds))
+            {
+                foreach (var connectionId in connectionIds)
+                {
+                    await Clients.Client(connectionId).SendAsync("NotificationUpdate", new { notification = newNotif} );
+                }
+            }
+        }
+        #endregion
     }
 }

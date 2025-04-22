@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
 using GoldenTicket.Entities;
+using GoldenTicket.Utilities;
 
 namespace GoldenTicket.Entities
 {

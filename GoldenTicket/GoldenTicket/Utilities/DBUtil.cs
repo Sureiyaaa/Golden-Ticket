@@ -962,6 +962,15 @@ namespace GoldenTicket.Utilities
             }
         }
         #endregion
+        #region -   Unread
+        #endregion
+        public async static Task<int> Unread(int userID, int chatroomID)
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                return await ContextUtil.Unread(userID, chatroomID, context);
+            }
+        }
         #endregion
         #region Rating
 

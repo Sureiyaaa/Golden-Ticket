@@ -227,9 +227,9 @@ namespace GoldenTicket.Hubs
         #endregion
         public async Task CloseChatroom(int ChatroomID)
         {
-                var chatroom = await DBUtil.CloseChatroom(ChatroomID);
-                var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(chatroom.ChatroomID)!);
-                await Clients.Caller.SendAsync("ChatroomUpdate", new { chatroom = chatroomDTO });
+            var chatroom = await DBUtil.CloseChatroom(ChatroomID);
+            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(chatroom.ChatroomID)!);
+            await Clients.Caller.SendAsync("ChatroomUpdate", new { chatroom = chatroomDTO });
         }
 
         #region -   JoinChatroom
@@ -621,7 +621,7 @@ namespace GoldenTicket.Hubs
         public async void ReadNotification(List<int> NotificationID, int UserID)
         {
             await DBUtil.ReadNotification(NotificationID);
-            var newNotifDTO = DBUtil.GetNotifications(UserID);
+            List<NotificationDTO> newNotifDTO = await DBUtil.GetNotifications(UserID);
             if (_connections.TryGetValue(UserID, out var connectionIds))
             {
                 foreach (var connectionId in connectionIds)
@@ -629,6 +629,7 @@ namespace GoldenTicket.Hubs
                     await Clients.Client(connectionId).SendAsync("NotificationListReceived", new { notification = newNotifDTO} );
                 }
             }
+            
         }
         
         #endregion

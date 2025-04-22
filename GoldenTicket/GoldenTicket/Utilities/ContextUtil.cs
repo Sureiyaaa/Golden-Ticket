@@ -79,5 +79,18 @@ namespace GoldenTicket.Utilities
                 .Where(n => notificationIDs.Contains(n.NotificationID))
                 .ToListAsync();
         }
+        public async static Task<int> Unread (int userID, int chatroomID, ApplicationDbContext context)
+        {
+            var chatroom = await context.Chatrooms
+                .Where(c => c.IsClosed == false && c.ChatroomID == chatroomID)
+                .AsNoTracking()
+                .Include(c => c.Members)
+                    .ThenInclude(m => m.Member)
+                .Include(c => c.Messages)
+                    .ThenInclude(m => m.Sender)
+                .FirstOrDefaultAsync();
+            int count = chatroom!.Messages.Count(m => m.SenderID != userID && m.CreatedAt > chatroom.Members.FirstOrDefault(m => m.MemberID == userID)?.LastSeenAt);
+            return count;
+        }
     }
 }

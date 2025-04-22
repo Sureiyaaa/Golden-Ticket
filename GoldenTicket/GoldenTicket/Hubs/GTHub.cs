@@ -639,6 +639,13 @@ namespace GoldenTicket.Hubs
         {
             DBUtil.DeleteNotification(NotificationID);
             List<NotificationDTO> newNotifDTO = await DBUtil.GetNotifications(UserID);
+            if (_connections.TryGetValue(UserID, out var connectionIds))
+            {
+                foreach (var connectionId in connectionIds)
+                {
+                    await Clients.Client(connectionId).SendAsync("NotificationListRemoved", new { notification = newNotifDTO} );
+                }
+            }
         }
         #endregion
     }

@@ -230,6 +230,9 @@ namespace GoldenTicket.Hubs
             var chatroom = await DBUtil.CloseChatroom(ChatroomID);
             var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(chatroom.ChatroomID)!);
             await Clients.Caller.SendAsync("ChatroomUpdate", new { chatroom = chatroomDTO });
+            int callerID = _connections.FirstOrDefault(kvp => kvp.Value.Contains(Context.ConnectionId)).Key;
+            string userName = DBUtil.FindUser(callerID).FirstName!;
+            NotifyUser(chatroom.Ticket!.AssignedID!.Value, 2, $"{userName} has closed the chatroom!", $"{userName} has closed the chatroom and is now ready for rating", ChatroomID);
         }
 
         #region -   JoinChatroom
@@ -248,7 +251,8 @@ namespace GoldenTicket.Hubs
             string userName = DBUtil.FindUser(UserID).FirstName!;
             foreach(var member in chatroomDTO.GroupMembers)
             {
-                userIDList.Add(member.User.UserID);
+                if(UserID != member.User.UserID)
+                    userIDList.Add(member.User.UserID);
                 if (_connections.TryGetValue(member.User.UserID, out var connectionIds)){
                     foreach (var connectionId in connectionIds)
                     {
@@ -375,6 +379,7 @@ namespace GoldenTicket.Hubs
                                 await AddTicket(response.Title, userID, response.MainTag!, response.SubTags, response.Priority, chatroomID, StaffID);
                                 var StaffUser = DBUtil.FindUser(StaffID);
                                 await SendMessage(ChatbotID, chatroomID, $"Your ticket has been created! Your issue has been assigned to **{StaffUser.FirstName} {StaffUser.LastName}**.");
+                                
                             } else {
                                 await AddTicket(response.Title, userID, response.MainTag!, response.SubTags, response.Priority, chatroomID);
                                 await SendMessage(ChatbotID, chatroomID, $"Your ticket has been created! There are currently no online agent for your specific problem, please be patient and wait for a **Live Agent** to accept.");
@@ -521,7 +526,7 @@ namespace GoldenTicket.Hubs
             string EditorName = DBUtil.FindUser(EditorID).FirstName!;
             foreach(var member in chatroomDTO.GroupMembers)
             {
-                if (EditorID == member.User.UserID)
+                if (EditorID != member.User.UserID)
                     userIDList.Add(member.User.UserID);
             }
 
@@ -529,13 +534,13 @@ namespace GoldenTicket.Hubs
             switch(Status)
             {
                 case "Open":
-                    NotifyGroup(userIDList, 1, $"Ticket **{TicketID}** Re-Opened!", $"Your ticket has been Re-Opened by **{EditorName}**", TicketID);
+                    NotifyGroup(userIDList, 1, $"Ticket {TicketID} Re-Opened!", $"Your ticket has been Re-Opened by {EditorName}", TicketID);
                     break;
                 case "Closed":
-                    NotifyGroup(userIDList, 1, $"Ticket **{TicketID}** Closed!", $"Your ticket has been Close by **{EditorName}**", TicketID);
+                    NotifyGroup(userIDList, 1, $"Ticket {TicketID} Closed!", $"Your ticket has been Close by {EditorName}", TicketID);
                     break;
                 case "In-Progress":
-                    NotifyGroup(userIDList, 1, $"Ticket **{TicketID}** In Progress", $"Your ticket has been assigned to **{chatroomDTO.Ticket!.Assigned!.FirstName}**", TicketID);
+                    NotifyGroup(userIDList, 1, $"Ticket {TicketID} In Progress", $"Your ticket has been assigned to {chatroomDTO.Ticket!.Assigned!.FirstName}", TicketID);
                     break;
                 default:
                     NotifyGroup(userIDList, 1, $"Ticket updated!", $"Your ticket has been updated by {EditorName}", TicketID);
@@ -650,7 +655,7 @@ namespace GoldenTicket.Hubs
         #endregion
         public async void ReadNotification(List<int> NotificationID, int UserID)
         {
-            DBUtil.ReadNotification(NotificationID);
+            await DBUtil.ReadNotification(NotificationID);
             List<NotificationDTO> newNotifDTO = await DBUtil.GetNotifications(UserID);
             if (_connections.TryGetValue(UserID, out var connectionIds))
             {
@@ -665,13 +670,12 @@ namespace GoldenTicket.Hubs
         #endregion
         public async void DeleteNotification(List<int> NotificationID, int UserID)
         {
-            DBUtil.DeleteNotification(NotificationID);
-            List<NotificationDTO> newNotifDTO = await DBUtil.GetNotifications(UserID);
+            await DBUtil.DeleteNotification(NotificationID);
             if (_connections.TryGetValue(UserID, out var connectionIds))
             {
                 foreach (var connectionId in connectionIds)
                 {
-                    await Clients.Client(connectionId).SendAsync("NotificationListRemoved", new { notification = newNotifDTO} );
+                    await Clients.Client(connectionId).SendAsync("NotificationListRemoved", new { notification = NotificationID } );
                 }
             }
         }

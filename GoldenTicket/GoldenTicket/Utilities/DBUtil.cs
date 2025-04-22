@@ -1157,7 +1157,7 @@ namespace GoldenTicket.Utilities
         }
         #endregion
         #region -   ReadNotification
-        public async static void ReadNotification(List<int> notificationIDs)
+        public async static Task ReadNotification(List<int> notificationIDs)
         {
             using (var context = new ApplicationDbContext())
             {
@@ -1172,7 +1172,7 @@ namespace GoldenTicket.Utilities
         }
         #endregion
         #region -   DeleteNotification
-        public async static void DeleteNotification(List<int> notificationIDs)
+        public async static Task DeleteNotification(List<int> notificationIDs)
         {
             using (var context = new ApplicationDbContext())
             {

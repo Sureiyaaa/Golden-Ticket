@@ -843,7 +843,7 @@ namespace GoldenTicket.Utilities
         }
         #endregion
         #region -   GetChatrooms
-        public async static Task<List<ChatroomDTO>> GetChatrooms(int userID, bool isEmployee = false)
+        public async static Task<List<ChatroomDTO>> GetChatrooms(int userID, bool isEmployee = false, bool IncludeAll = false)
         {
             using(var context = new ApplicationDbContext())
             {
@@ -854,11 +854,17 @@ namespace GoldenTicket.Utilities
                 if(debug) Console.WriteLine($"GetChatrooms({userID}, {isEmployee}) finish reading data at: {stopwatch.ElapsedMilliseconds} ms");
                 if(isEmployee){   
                     foreach(var chatroom in chatrooms.Where(c => c.AuthorID == userID)){
-                        dtos.Add(new ChatroomDTO(chatroom));
+                        if(IncludeAll && chatroom.IsClosed == false)
+                            dtos.Add(new ChatroomDTO(chatroom, true, true, userID));
+                        else
+                            dtos.Add(new ChatroomDTO(chatroom));
                     }
                 }else{
                     foreach(var chatroom in chatrooms.Where(c => c.TicketID != null)){
-                        dtos.Add(new ChatroomDTO(chatroom));
+                        if(IncludeAll && chatroom.IsClosed == false)
+                            dtos.Add(new ChatroomDTO(chatroom, true, true, userID));
+                        else
+                            dtos.Add(new ChatroomDTO(chatroom));
                     }
                 }
                 stopwatch.Stop();
@@ -1142,20 +1148,18 @@ namespace GoldenTicket.Utilities
         }
         #endregion
         #region -   ReadNotification
-        public async static Task<Notification?> ReadNotification(int notificationID)
+        public async static Task<List<Notification>> ReadNotification(List<int> notificationIDs)
         {
             using (var context = new ApplicationDbContext())
             {
-                var notification  = context.Notifications
-                    .Where(n => n.NotificationID == notificationID)
-                    .FirstOrDefault();
-                if(notification != null)
+                var notifications  = await ContextUtil.Notification(notificationIDs, context);
+                foreach(var notification in notifications)
                 {
-                    notification!.IsRead = true;
-                } 
-                else Console.WriteLine($"[DBUtil] Notification with {notificationID} ID not found.");
+                    if(notification != null)
+                        notification!.IsRead = true;
+                }
                 await context.SaveChangesAsync();
-                return notification;
+                return notifications;
             }
         }
         #endregion

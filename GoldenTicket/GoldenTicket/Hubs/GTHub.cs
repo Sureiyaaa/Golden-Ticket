@@ -321,11 +321,11 @@ namespace GoldenTicket.Hubs
             }
 
             // Notification System here brotah
-            if(chatroomDTO.Ticket != null && SenderID != AIUtil.GetChatbotID())
-            {
-                MembersToInvoke.Remove(SenderID);
-                NotifyGroup(MembersToInvoke, 2, $"{messageDTO.Sender!.FirstName} sent a Message", messageDTO.MessageContent!, ChatroomID);
-            }
+            // if(chatroomDTO.Ticket != null && SenderID != AIUtil.GetChatbotID())
+            // {
+            //     MembersToInvoke.Remove(SenderID);
+            //     NotifyGroup(MembersToInvoke, 2, $"{messageDTO.Sender!.FirstName} sent a Message", messageDTO.MessageContent!, ChatroomID);
+            // }
 
             if(chatroomDTO.Ticket == null && SenderID != 100000001)
             {

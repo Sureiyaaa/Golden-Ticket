@@ -860,7 +860,7 @@ namespace GoldenTicket.Utilities
                             dtos.Add(new ChatroomDTO(chatroom));
                     }
                 }else{
-                    foreach(var chatroom in chatrooms.Where(c => c.TicketID != null)){
+                    foreach(var chatroom in chatrooms){
                         if(IncludeAll && chatroom.IsClosed == false)
                             dtos.Add(new ChatroomDTO(chatroom, true, true, userID));
                         else

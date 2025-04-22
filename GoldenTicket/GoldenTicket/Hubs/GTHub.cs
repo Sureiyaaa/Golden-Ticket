@@ -244,8 +244,11 @@ namespace GoldenTicket.Hubs
             }
             chatroomDTO = DBUtil.JoinChatroom(UserID, ChatroomID);
             var userDTO = new UserDTO(DBUtil.FindUser(UserID));
+            List<int> userIDList = new List<int>();
+            string userName = DBUtil.FindUser(UserID).FirstName!;
             foreach(var member in chatroomDTO.GroupMembers)
             {
+                userIDList.Add(member.User.UserID);
                 if (_connections.TryGetValue(member.User.UserID, out var connectionIds)){
                     foreach (var connectionId in connectionIds)
                     {
@@ -253,6 +256,7 @@ namespace GoldenTicket.Hubs
                     }
                 }
             }
+            NotifyGroup(userIDList, 2, $"{userName} has joined the chatroom!", $"A staff has joined the chatroom", ChatroomID);
         }
         #region -   OpenChatroom
         #endregion
@@ -370,14 +374,14 @@ namespace GoldenTicket.Hubs
                             {
                                 await AddTicket(response.Title, userID, response.MainTag!, response.SubTags, response.Priority, chatroomID, StaffID);
                                 var StaffUser = DBUtil.FindUser(StaffID);
-                                await SendMessage(ChatbotID, chatroomID, $"Your ticket has been created! Your issue has been assigned to {StaffUser.FirstName} {StaffUser.LastName}.");
+                                await SendMessage(ChatbotID, chatroomID, $"Your ticket has been created! Your issue has been assigned to **{StaffUser.FirstName} {StaffUser.LastName}**.");
                             } else {
                                 await AddTicket(response.Title, userID, response.MainTag!, response.SubTags, response.Priority, chatroomID);
-                                await SendMessage(ChatbotID, chatroomID, $"Your ticket has been created! There are currently no online agent for your specific problem, please be patient and wait for a Live Agent to accept.");
+                                await SendMessage(ChatbotID, chatroomID, $"Your ticket has been created! There are currently no online agent for your specific problem, please be patient and wait for a **Live Agent** to accept.");
                             }
                         } else {
                             await AddTicket(response.Title, userID, response.MainTag!, response.SubTags, response.Priority, chatroomID);
-                            await SendMessage(ChatbotID, chatroomID, $"Your ticket has been created! Its status has been set to \"Open\" and is now waiting for a Live Agent to accept your ticket.");
+                            await SendMessage(ChatbotID, chatroomID, $"Your ticket has been created! Its status has been set to **\"Open\"** and is now waiting for a **Live Agent** to accept your ticket.");
                         }
                         
                         foreach (var connectionId in connectionIds)
@@ -497,7 +501,7 @@ namespace GoldenTicket.Hubs
                     }
                 }
             }
-
+            
             foreach (var member in chatroomDTO!.GroupMembers)
             {
                 if (_connections.TryGetValue(member.User.UserID, out var connectionIds))
@@ -513,6 +517,30 @@ namespace GoldenTicket.Hubs
             stopwatch.Stop();
             Console.WriteLine($"Ticket Repsonsetime: {stopwatch.ElapsedMilliseconds} ms");
 
+            List<int> userIDList = new List<int>();
+            string EditorName = DBUtil.FindUser(EditorID).FirstName!;
+            foreach(var member in chatroomDTO.GroupMembers)
+            {
+                if (EditorID == member.User.UserID)
+                    userIDList.Add(member.User.UserID);
+            }
+
+            // Notification system
+            switch(Status)
+            {
+                case "Open":
+                    NotifyGroup(userIDList, 1, $"Ticket **{TicketID}** Re-Opened!", $"Your ticket has been Re-Opened by **{EditorName}**", TicketID);
+                    break;
+                case "Closed":
+                    NotifyGroup(userIDList, 1, $"Ticket **{TicketID}** Closed!", $"Your ticket has been Close by **{EditorName}**", TicketID);
+                    break;
+                case "In-Progress":
+                    NotifyGroup(userIDList, 1, $"Ticket **{TicketID}** In Progress", $"Your ticket has been assigned to **{chatroomDTO.Ticket!.Assigned!.FirstName}**", TicketID);
+                    break;
+                default:
+                    NotifyGroup(userIDList, 1, $"Ticket updated!", $"Your ticket has been updated by {EditorName}", TicketID);
+                    break;
+            }
             
         }
         #region -   OpenTicket

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:golden_ticket_enterprise/entities/ticket.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
+import 'package:golden_ticket_enterprise/models/signalr_service.dart';
 import 'package:golden_ticket_enterprise/widgets/notification_widget.dart';
 import 'package:golden_ticket_enterprise/widgets/ticket_detail_widget.dart';
 import 'package:golden_ticket_enterprise/widgets/ticket_tile_widget.dart';
@@ -21,10 +22,7 @@ class _RelatedTicketWidgetState extends State<RelatedTicketWidget> {
   // Function to show the popup
   void handleChat(DataManager dataManager, Ticket ticket) {
     try {
-      context.push('/hub/chatroom/${dataManager.findChatroomByTicketID(ticket.ticketID)!.chatroomID}');
-      dataManager.signalRService.openChatroom(
-          widget.session!.user.userID,
-          dataManager.findChatroomByTicketID(ticket.ticketID)!.chatroomID);
+      openChatroom(context, widget.session, dataManager, dataManager.findChatroomByTicketID(ticket.ticketID)!.chatroomID);
     } catch (err) {
       TopNotification.show(
           context: context,

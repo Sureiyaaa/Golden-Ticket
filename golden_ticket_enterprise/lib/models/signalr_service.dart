@@ -1,5 +1,6 @@
 import 'dart:developer';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:golden_ticket_enterprise/entities/chatroom.dart';
 import 'package:golden_ticket_enterprise/entities/faq.dart';
 import 'package:golden_ticket_enterprise/entities/notification.dart' as notif;
@@ -8,8 +9,11 @@ import 'package:golden_ticket_enterprise/entities/message.dart';
 import 'package:golden_ticket_enterprise/entities/rating.dart';
 import 'package:golden_ticket_enterprise/entities/ticket.dart';
 import 'package:golden_ticket_enterprise/entities/user.dart' as UserDTO;
+import 'package:golden_ticket_enterprise/models/data_manager.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart' as UserSession;
 import 'package:golden_ticket_enterprise/secret.dart';
+import 'package:golden_ticket_enterprise/widgets/notification_widget.dart';
+import 'package:golden_ticket_enterprise/widgets/ticket_detail_widget.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:logger/logger.dart';
 import 'package:signalr_core/signalr_core.dart';
@@ -35,7 +39,7 @@ class SignalRService with ChangeNotifier {
   Function(List<UserDTO.User>)? onUsersUpdate;
   Function(UserDTO.User)? onUserUpdate;
   Function(notif.Notification)? onNotificationReceive;
-  Function(notif.Notification)? onNotificationDeleted;
+  Function(List<int>)? onNotificationDeleted;
   Function(List<notif.Notification>)? onNotificationsUpdate;
   Function(Chatroom)? onReceiveSupport;
   Function(List<String>)? onStatusUpdate;
@@ -178,6 +182,16 @@ class SignalRService with ChangeNotifier {
       });
   }
 
+  void markAsRead(List<int> notifications, int userID) async{
+    await _hubConnection!.invoke('ReadNotification', args: [notifications, userID]).catchError((err) {
+    logger.e("There was an error caught while marking as read", error: err.toString().isEmpty ? "None provided" : err.toString());
+    });
+  }
+  void markAsDelete(List<int> notifications, int userID) async{
+    await _hubConnection!.invoke('DeleteNotification', args: [notifications, userID]).catchError((err) {
+      logger.e("There was an error caught while deleting notification", error: err.toString().isEmpty ? "None provided" : err.toString());
+    });
+  }
   void updateUser(int userID, String? username, String? password, String? firstName, String? middleName, String? lastName, String? role, List<String?> assignedTags) async {
       await _hubConnection!.invoke('UpdateUser', args: [userID, username, firstName, middleName, lastName, role, assignedTags, password]).catchError((err) {
         logger.e("There was an error caught while updating user", error: err.toString().isEmpty ? "None provided" : err.toString());
@@ -193,6 +207,11 @@ class SignalRService with ChangeNotifier {
   void sendMessage(int userID, int chatroomID, String messageContent) async {
     await _hubConnection!.invoke('SendMessage', args: [userID, chatroomID, messageContent]).catchError((err) {
       logger.e("There was an error caught while sending a message", error: err.toString());
+    });
+  }
+  void closeChatroom(int chatroomID) async {
+    await _hubConnection!.invoke('CloseChatroom', args: [chatroomID]).catchError((err) {
+      logger.e("There was an error caught while sending close chatroom", error: err.toString());
     });
   }
   void sendSeen(int userID, int chatroomID) async {
@@ -279,6 +298,15 @@ class SignalRService with ChangeNotifier {
         notifyListeners();
       }
     });
+
+    _hubConnection!.on('NotificationListReceived', (arguments){
+      if(arguments != null){
+        List<notif.Notification> updatedNotifications =
+        (arguments[0]['notification'] as List).map((notification) => notif.Notification.fromJson(notification)).toList();
+        onNotificationsUpdate?.call(updatedNotifications);
+        notifyListeners();
+      }
+    });
     _hubConnection!.on('TicketClosed', (arguments) {
       if(arguments != null){
         notifyListeners();
@@ -357,6 +385,14 @@ class SignalRService with ChangeNotifier {
     _hubConnection!.on('NotificationReceived', (arguments){
       if(arguments != null){
         _triggerNotification(notif.Notification.fromJson(arguments[0]['notification']));
+        notifyListeners();
+      }
+    });
+    _hubConnection!.on('NotificationListRemoved', (arguments){
+      if(arguments != null){
+        List<int> deletedNotifications =
+        (arguments[0]['notification'] as List).map((notif) => int.parse(notif.toString())).toList();
+        onNotificationDeleted?.call(deletedNotifications);
         notifyListeners();
       }
     });
@@ -519,3 +555,52 @@ class SignalRService with ChangeNotifier {
 }
 
 
+void handleNotificationRedirect(BuildContext context, DataManager dataManager, UserSession.HiveSession session, notif.Notification notification){
+  switch(notification.notificationType){
+    case "Chatroom":
+        if(dataManager.isInChatroom) Navigator.pop(context);
+        Future.microtask(() {
+          openChatroom(context, session, dataManager, notification.referenceID!);
+        });
+      break;
+    case "Ticket":
+      Ticket? ticket = dataManager.tickets.where((t) => t.ticketID == notification.referenceID).firstOrNull;
+      showDialog(
+        context: context,
+        builder: (context) => TicketDetailsPopup(
+          ticket: ticket!,
+          onChatPressed: () => handleChat(context, session, dataManager, ticket),
+        ),
+      );
+      break;
+  }
+  dataManager.signalRService.markAsRead([notification.notificationID], session.user.userID);
+}
+void handleChat(BuildContext context, UserSession.HiveSession session, DataManager dataManager, Ticket ticket){
+  try {
+
+    openChatroom(context, session, dataManager, dataManager.findChatroomByTicketID(ticket.ticketID)!.chatroomID);
+
+  }catch(err){
+    TopNotification.show(
+        context: context,
+        message: "Error chatroom could not be found!",
+        backgroundColor: Colors.redAccent,
+        duration: Duration(seconds: 2),
+        textColor: Colors.white,
+        onTap: () {
+          TopNotification.dismiss();
+        }
+    );
+  }
+}
+
+void openChatroom(BuildContext context, UserSession.HiveSession session, DataManager dataManager, int chatroomID){
+  dataManager.chatroomID = chatroomID;
+  dataManager.isInChatroom = true;
+  context.push('/hub/chatroom/${chatroomID}');
+  dataManager.signalRService.openChatroom(
+      session.user.userID,
+      chatroomID);
+
+}

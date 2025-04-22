@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:golden_ticket_enterprise/entities/ticket.dart';
+import 'package:golden_ticket_enterprise/models/signalr_service.dart';
 import 'package:golden_ticket_enterprise/widgets/edit_ticket_widget.dart';
 import 'package:golden_ticket_enterprise/widgets/notification_widget.dart';
 import 'package:golden_ticket_enterprise/widgets/ticket_detail_widget.dart';
@@ -188,12 +189,7 @@ class _TicketsPageState extends State<TicketsPage> {
                             },
                             onChatPressed: () {
                               try {
-                                context.push('/hub/chatroom/${dataManager.findChatroomByTicketID(
-                                    ticket.ticketID)!.chatroomID}');
-                                dataManager.signalRService.openChatroom(
-                                    widget.session!.user.userID,
-                                    dataManager.findChatroomByTicketID(
-                                        ticket.ticketID)!.chatroomID);
+                                openChatroom(context, widget.session!, dataManager, dataManager.findChatroomByTicketID(ticket.ticketID)!.chatroomID);
                               }catch(err){
                                 TopNotification.show(
                                     context: context,
@@ -356,12 +352,7 @@ class _TicketsPageState extends State<TicketsPage> {
   }
   void handleChat(DataManager dataManager, Ticket ticket){
     try {
-      context.push('/hub/chatroom/${dataManager.findChatroomByTicketID(
-          ticket.ticketID)!.chatroomID}');
-      dataManager.signalRService.openChatroom(
-          widget.session!.user.userID,
-          dataManager.findChatroomByTicketID(
-              ticket.ticketID)!.chatroomID);
+      openChatroom(context, widget.session!, dataManager, dataManager.findChatroomByTicketID(ticket.ticketID)!.chatroomID);
     }catch(err){
       TopNotification.show(
           context: context,

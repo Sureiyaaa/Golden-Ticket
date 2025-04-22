@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
 import 'package:golden_ticket_enterprise/entities/ticket.dart';
+import 'package:golden_ticket_enterprise/models/signalr_service.dart';
 import 'package:golden_ticket_enterprise/models/time_utils.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:golden_ticket_enterprise/widgets/notification_widget.dart';
@@ -177,12 +178,8 @@ class _DashboardPageState extends State<DashboardPage> {
   }
   void handleChat(DataManager dataManager, Ticket ticket){
     try {
-      context.push('/hub/chatroom/${dataManager.findChatroomByTicketID(
-          ticket.ticketID)!.chatroomID}');
-      dataManager.signalRService.openChatroom(
-          widget.session!.user.userID,
-          dataManager.findChatroomByTicketID(
-              ticket.ticketID)!.chatroomID);
+      openChatroom(context, widget.session!, dataManager, dataManager.findChatroomByTicketID(
+          ticket.ticketID)!.chatroomID);
     }catch(err){
       TopNotification.show(
           context: context,

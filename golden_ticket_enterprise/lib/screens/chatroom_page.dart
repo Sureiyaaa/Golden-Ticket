@@ -46,21 +46,26 @@ class _ChatroomPageState extends State<ChatroomPage> {
       }
     });
 
+
     messageFocusNode.requestFocus();
     dm = Provider.of<DataManager>(context, listen: false);
 
     dm.signalRService.addOnReceiveMessageListener(_handleChatroomMessage);
+    dm.enterChatroom(widget.chatroomID);
   }
   @override
   void didChangeDependencies() {
+
     super.didChangeDependencies();
   }
   @override
   void dispose(){
     dm.signalRService.removeOnReceiveMessageListener(_handleChatroomMessage);
-
+    dm.exitChatroom(widget.chatroomID);
     super.dispose();
   }
+
+
   void _handleChatroomMessage(Message message, Chatroom chatroom) {
 
     var userSession = Hive.box<HiveSession>('sessionBox').get('user');

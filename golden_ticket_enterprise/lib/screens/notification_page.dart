@@ -1,22 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:golden_ticket_enterprise/entities/notification.dart' as notifClass;
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
+import 'package:golden_ticket_enterprise/models/hive_session.dart';
+import 'package:golden_ticket_enterprise/models/signalr_service.dart';
 import 'package:golden_ticket_enterprise/screens/connectionstate.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:golden_ticket_enterprise/widgets/selectable_notification_tile_widget.dart';
 import 'package:provider/provider.dart';
 
 class NotificationsPage extends StatefulWidget {
-  final List<notifClass.Notification> notifications;
-
-  const NotificationsPage({super.key, required this.notifications});
+  final HiveSession session;
+  const NotificationsPage({super.key, required this.session});
 
   @override
   State<NotificationsPage> createState() => _NotificationsPageState();
 }
 
 class _NotificationsPageState extends State<NotificationsPage> {
-  final Set<int> _selectedNotificationIds = {};
+  final List<int> _selectedNotificationIds = [];
   bool _selectionMode = false;
   String _filter = 'All';
   String _searchQuery = '';
@@ -39,43 +40,49 @@ class _NotificationsPageState extends State<NotificationsPage> {
     });
   }
 
-  void _deleteSelected() {
-    setState(() {
-      widget.notifications.removeWhere((notif) =>
-          _selectedNotificationIds.contains(notif.notificationID));
-      _selectedNotificationIds.clear();
-      _selectionMode = false;
-    });
-  }
 
-  void _handleTap(notifClass.Notification notif) {
-    if (_selectionMode) {
-      _toggleSelection(notif.notificationID);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Tapped on: ${notif.title}')),
-      );
-    }
-  }
-
-  List<notifClass.Notification> getFilteredNotifications() {
-    return widget.notifications.where((notif) {
-      final matchesFilter = _filter == 'All' ||
-          (_filter == 'Read' && notif.isRead) ||
-          (_filter == 'Unread' && !notif.isRead);
-      final query = _searchQuery.toLowerCase();
-      final matchesSearch = notif.title.toLowerCase().contains(query) ||
-          (notif.message?.toLowerCase().contains(query) ?? false) ||
-          notif.notificationType.toLowerCase().contains(query);
-      return matchesFilter && matchesSearch;
-    }).toList();
-  }
 
   @override
   Widget build(BuildContext context) {
     return Consumer<DataManager>(builder: (context, dataManager, child) {
+      List<notifClass.Notification> getFilteredNotifications() {
+        return dataManager.notifications.where((notif) {
+          final matchesFilter = _filter == 'All' ||
+              (_filter == 'Read' && notif.isRead) ||
+              (_filter == 'Unread' && !notif.isRead);
+          final query = _searchQuery.toLowerCase();
+          final matchesSearch = notif.title.toLowerCase().contains(query) ||
+              (notif.message?.toLowerCase().contains(query) ?? false) ||
+              notif.notificationType.toLowerCase().contains(query);
+          return matchesFilter && matchesSearch;
+        }).toList();
+      }
+
       if (!dataManager.signalRService.isConnected) {
         return DisconnectedOverlay();
+      }
+      void _handleTap(notifClass.Notification notif) {
+        if (_selectionMode) {
+          _toggleSelection(notif.notificationID);
+        } else {
+          handleNotificationRedirect(context, dataManager, widget.session, notif);
+        }
+      }
+
+      void _deleteSelected() {
+        dataManager.signalRService.markAsDelete(_selectedNotificationIds, widget.session.user.userID);
+        setState(() {
+          _selectedNotificationIds.clear();
+          _selectionMode = false;
+        });
+      }
+
+      void _readSelected(){
+        dataManager.signalRService.markAsRead(_selectedNotificationIds, widget.session.user.userID);
+        setState(() {
+          _selectedNotificationIds.clear();
+          _selectionMode = false;
+        });
       }
 
       return Scaffold(
@@ -88,7 +95,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
               IconButton(
                 icon: const Icon(Icons.mark_as_unread),
                 onPressed:
-                _selectedNotificationIds.isEmpty ? null : _deleteSelected,
+                _selectedNotificationIds.isEmpty ? null : _readSelected,
               ),
             if (_selectionMode)
               IconButton(
@@ -155,6 +162,40 @@ class _NotificationsPageState extends State<NotificationsPage> {
                 ],
               ),
             ),
+            if (_selectionMode)
+              Row(
+                children: [
+                  Checkbox(
+                    value: _selectedNotificationIds.length ==
+                        getFilteredNotifications().length &&
+                        getFilteredNotifications().isNotEmpty,
+                    onChanged: (bool? value) {
+                      setState(() {
+                        if (value == true) {
+                          _selectedNotificationIds.clear();
+                          _selectedNotificationIds.addAll(
+                            getFilteredNotifications().map((n) => n.notificationID),
+                          );
+                        } else {
+                          _selectedNotificationIds.clear();
+                        }
+                      });
+                    },
+                  ),
+                  Text("Select All"),
+                  if (_selectionMode)
+                    IconButton(
+                      icon: Icon(Icons.close),
+                      onPressed: () {
+                        setState(() {
+                          _selectionMode = false;
+                          _selectedNotificationIds.clear();
+                        });
+                      },
+                    ),
+
+                ],
+              ),
             Expanded(
               child: getFilteredNotifications().isEmpty
                   ? const Center(child: Text("No notifications found"))

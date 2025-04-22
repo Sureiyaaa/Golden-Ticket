@@ -618,9 +618,11 @@ namespace GoldenTicket.Hubs
                 }
             }
         }
+        #region -   ReadNotification
+        #endregion
         public async void ReadNotification(List<int> NotificationID, int UserID)
         {
-            await DBUtil.ReadNotification(NotificationID);
+            DBUtil.ReadNotification(NotificationID);
             List<NotificationDTO> newNotifDTO = await DBUtil.GetNotifications(UserID);
             if (_connections.TryGetValue(UserID, out var connectionIds))
             {
@@ -631,7 +633,13 @@ namespace GoldenTicket.Hubs
             }
             
         }
-        
+        #region -   DeleteNotification
+        #endregion
+        public async void DeleteNotification(List<int> NotificationID, int UserID)
+        {
+            DBUtil.DeleteNotification(NotificationID);
+            List<NotificationDTO> newNotifDTO = await DBUtil.GetNotifications(UserID);
+        }
         #endregion
     }
 }

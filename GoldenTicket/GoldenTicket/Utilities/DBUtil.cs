@@ -1157,7 +1157,7 @@ namespace GoldenTicket.Utilities
         }
         #endregion
         #region -   ReadNotification
-        public async static Task<List<Notification>> ReadNotification(List<int> notificationIDs)
+        public async static void ReadNotification(List<int> notificationIDs)
         {
             using (var context = new ApplicationDbContext())
             {
@@ -1168,11 +1168,21 @@ namespace GoldenTicket.Utilities
                     //context.Notifications.Update(notification);
                 }
                 await context.SaveChangesAsync();
-                return notifications;
             }
         }
         #endregion
+        #region -   DeleteNotification
+        public async static void DeleteNotification(List<int> notificationIDs)
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                var notifications  = context.Notifications.Where(n => notificationIDs.Contains(n.NotificationID)).ToList();
+                context.Notifications.RemoveRange(notifications);
+                await context.SaveChangesAsync();
+            }
+        }
         #region -   NotifyUser
+        #endregion
         public async static Task<Notification> NotifyUser(int userID, int notifType, string title, string description, int? referenceID)
         {
             using (var context = new ApplicationDbContext())

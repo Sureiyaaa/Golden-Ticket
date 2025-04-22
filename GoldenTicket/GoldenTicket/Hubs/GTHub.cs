@@ -539,7 +539,7 @@ namespace GoldenTicket.Hubs
                 case "Closed":
                     NotifyGroup(userIDList, 1, $"Ticket {TicketID} Closed!", $"Your ticket has been Close by {EditorName}.", TicketID);
                     break;
-                case "In-Progress":
+                case "In Progress":
                     NotifyGroup(userIDList, 1, $"Ticket {TicketID} In Progress", $"Your ticket has been assigned to {chatroomDTO.Ticket!.Assigned!.FirstName}.", TicketID);
                     break;
                 case "Unresolved":

@@ -51,9 +51,9 @@ namespace GoldenTicket.Entities
             this.IsClosed = chatroom.IsClosed;
             this.Ticket = chatroom.Ticket != null ? new TicketDTO(chatroom.Ticket) : null;
 
-            if (IncludeMessages && IncludeUnread && userID != 0)
+            if (IncludeUnread && userID != 0)
             {
-                this.Unread = chatroom.Messages.Count(m => m.SenderID != userID && m.CreatedAt > chatroom.Members.FirstOrDefault(m => m.MemberID == userID)?.LastSeenAt);
+                this.Unread = DBUtil.Unread(userID, chatroom.ChatroomID);
             }
 
             // Sort messages from latest to earliest

@@ -9,7 +9,7 @@ namespace GoldenTicket.Utilities
 {
     public class DBUtil()
     {
-        static bool debug = false;
+        const bool debug = true;
         public static int ChatbotID = AIUtil.GetChatbotID();
         #region FAQ
 
@@ -855,14 +855,14 @@ namespace GoldenTicket.Utilities
                 if(isEmployee){   
                     foreach(var chatroom in chatrooms.Where(c => c.AuthorID == userID)){
                         if(IncludeAll && chatroom.IsClosed == false)
-                            dtos.Add(new ChatroomDTO(chatroom, true, true, userID));
+                            dtos.Add(new ChatroomDTO(chatroom, false, true, userID));
                         else
                             dtos.Add(new ChatroomDTO(chatroom));
                     }
                 }else{
                     foreach(var chatroom in chatrooms.Where(c => c.TicketID != null)){
                         if(IncludeAll && chatroom.IsClosed == false)
-                            dtos.Add(new ChatroomDTO(chatroom, true, true, userID));
+                            dtos.Add(new ChatroomDTO(chatroom, false, true, userID));
                         else
                             dtos.Add(new ChatroomDTO(chatroom));
                     }
@@ -964,11 +964,11 @@ namespace GoldenTicket.Utilities
         #endregion
         #region -   Unread
         #endregion
-        public async static Task<int> Unread(int userID, int chatroomID)
+        public static int Unread(int userID, int chatroomID)
         {
             using (var context = new ApplicationDbContext())
             {
-                return await ContextUtil.Unread(userID, chatroomID, context);
+                return ContextUtil.Unread(userID, chatroomID, context);
             }
         }
         #endregion

@@ -643,7 +643,7 @@ namespace GoldenTicket.Hubs
             {
                 foreach (var connectionId in connectionIds)
                 {
-                    await Clients.Client(connectionId).SendAsync("NotificationListRemoved", new { notification = newNotifDTO} );
+                    await Clients.Client(connectionId).SendAsync("NotificationListRemoved", new { notification = NotificationID} );
                 }
             }
         }

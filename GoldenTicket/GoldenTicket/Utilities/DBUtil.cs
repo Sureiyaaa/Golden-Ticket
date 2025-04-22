@@ -1127,26 +1127,26 @@ namespace GoldenTicket.Utilities
         }
         #endregion
         #region -   GetNotification
-        public static async Task<Notification?> GetNotification(int notificaitonID)
+        public static async Task<Notification?> GetNotification(int notificationID)
         {
             using (var context = new ApplicationDbContext())
             {
-                var notification = await ContextUtil.Notification(notificaitonID, context);
+                var notification = await ContextUtil.Notification(notificationID, context);
                 if(notification != null)
                 {
                     return notification;
                 } else {
-                    Console.WriteLine($"[DBUtil] Notification with {notificaitonID} ID not found.");
+                    Console.WriteLine($"[DBUtil] Notification with {notificationID} ID not found.");
                     return null;
                 }
 
             }
         }
-        public static async Task<Dictionary<int, Notification>> GetNotification(List<int> notificaitonIDs)
+        public static async Task<Dictionary<int, Notification>> GetNotification(List<int> notificationIDs)
         {
             using (var context = new ApplicationDbContext())
             {
-                var notifs = await ContextUtil.Notification(notificaitonIDs, context);
+                var notifs = await ContextUtil.Notification(notificationIDs, context);
                 var notifications = new Dictionary<int, Notification>();
                 foreach (var notification in notifs)
                 {
@@ -1203,6 +1203,8 @@ namespace GoldenTicket.Utilities
                 return notification;
             }
         }
+        #endregion
+        #region -   NotifyGroup
         #endregion
         public async static Task<Dictionary<int, Notification>> NotifyGroup(List<int> userList, int notifType, string title, string description, int? referenceID)
         {

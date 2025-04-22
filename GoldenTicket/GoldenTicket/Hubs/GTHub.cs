@@ -64,7 +64,7 @@ namespace GoldenTicket.Hubs
                 tags = DBUtil.GetTags(), 
                 faq = DBUtil.GetFAQs(), 
                 users = DBUtil.GetUsersByRole(), 
-                chatrooms = await DBUtil.GetChatrooms(userID, isEmployee), 
+                chatrooms = await DBUtil.GetChatrooms(userID, isEmployee, true), 
                 tickets = DBUtil.GetTickets(userID, isEmployee),
                 status = DBUtil.GetStatuses(),
                 priorities = DBUtil.GetPriorities(),
@@ -228,7 +228,8 @@ namespace GoldenTicket.Hubs
         public async Task CloseChatroom(int ChatroomID)
         {
                 var chatroom = await DBUtil.CloseChatroom(ChatroomID);
-                await Clients.Caller.SendAsync("ChatroomUpdate", new { chatroom = new ChatroomDTO(chatroom) });
+                var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(chatroom.ChatroomID)!);
+                await Clients.Caller.SendAsync("ChatroomUpdate", new { chatroom = chatroomDTO });
         }
 
         #region -   JoinChatroom
@@ -617,6 +618,19 @@ namespace GoldenTicket.Hubs
                 }
             }
         }
+        public async void ReadNotification(List<int> NotificationID, int UserID)
+        {
+            await DBUtil.ReadNotification(NotificationID);
+            var newNotifDTO = DBUtil.GetNotifications(UserID);
+            if (_connections.TryGetValue(UserID, out var connectionIds))
+            {
+                foreach (var connectionId in connectionIds)
+                {
+                    await Clients.Client(connectionId).SendAsync("NotificationListReceived", new { notification = newNotifDTO} );
+                }
+            }
+        }
+        
         #endregion
     }
 }

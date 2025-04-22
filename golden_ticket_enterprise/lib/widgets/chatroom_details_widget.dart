@@ -130,8 +130,18 @@ class ChatroomDetailsDrawer extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: TextButton(
                 onPressed: () {
-                  dataManager.signalRService.updateTicket(chatroom.ticket!.ticketID, chatroom.ticket!.ticketTitle, 'Closed', chatroom.ticket!.priority, chatroom.ticket!.mainTag?.tagName, chatroom.ticket!.subTag?.subTagName, chatroom.ticket!.assigned?.userID);
-
+                  if(chatroom.ticket != null) {
+                    dataManager.signalRService.updateTicket(
+                        chatroom.ticket!.ticketID,
+                        chatroom.ticket!.ticketTitle,
+                        'Closed',
+                        chatroom.ticket!.priority,
+                        chatroom.ticket!.mainTag?.tagName,
+                        chatroom.ticket!.subTag?.subTagName,
+                        chatroom.ticket!.assigned?.userID);
+                  }else{
+                    dataManager.signalRService.closeChatroom(chatroom.chatroomID);
+                  }
                 },
                 child: const Text(
                   'Close Chatroom',

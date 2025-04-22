@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:golden_ticket_enterprise/entities/chatroom.dart';
 import 'package:golden_ticket_enterprise/entities/group_member.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
+import 'package:golden_ticket_enterprise/models/signalr_service.dart';
 import 'package:golden_ticket_enterprise/models/time_utils.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:provider/provider.dart';
@@ -40,7 +41,7 @@ class _ChatroomListPageState extends State<ChatroomListPage> {
     return Consumer<DataManager>(
       builder: (context, dataManager, child) {
         dataManager.signalRService.onReceiveSupport = (chatroom) {
-          context.push('/hub/chatroom/${chatroom.chatroomID}');
+          openChatroom(context, widget.session!, dataManager, chatroom.chatroomID);
         };
 
         List<Chatroom> filteredChatrooms = dataManager.chatrooms.where((chatroom) {
@@ -219,9 +220,7 @@ class _ChatroomListPageState extends State<ChatroomListPage> {
                             splashColor: kPrimary.withOpacity(0.15),
                             highlightColor: Colors.transparent,
                             onTap: () {
-                              context.push('/hub/chatroom/${chatroom.chatroomID}');
-                              dataManager.signalRService.openChatroom(
-                                  widget.session!.user.userID, chatroom.chatroomID);
+                              openChatroom(context, widget.session!, dataManager, chatroom.chatroomID);
                             },
                             child: Row(
                               children: [
@@ -242,11 +241,41 @@ class _ChatroomListPageState extends State<ChatroomListPage> {
                                   child: ListTile(
                                     contentPadding:
                                     EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                    leading: CircleAvatar(
-                                      backgroundColor:
-                                      isUnread ? Colors.red : Colors.grey,
-                                      child: Icon(Icons.chat_bubble_outline,
-                                          color: Colors.white),
+                                    leading: Stack(
+                                      clipBehavior: Clip.none,
+                                      children: [
+                                        CircleAvatar(
+                                          backgroundColor: isUnread ? Colors.red : Colors.grey,
+                                          child: Icon(Icons.chat_bubble_outline, color: Colors.white),
+                                        ),
+                                        if (chatroom.unread > 0)
+                                          Positioned(
+                                            right: -8,
+                                            top: -8,
+                                            child: Container(
+                                              padding: EdgeInsets.all(4),
+                                              decoration: BoxDecoration(
+                                                color: Colors.red,
+                                                shape: BoxShape.circle,
+                                              ),
+                                              constraints: BoxConstraints(
+                                                minWidth: 20,
+                                                minHeight: 20,
+                                              ),
+                                              child: Center(
+                                                child: Text(
+                                                  '+${chatroom.unread}',
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                      ],
                                     ),
                                     title: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,

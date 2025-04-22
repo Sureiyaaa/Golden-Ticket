@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
-import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:golden_ticket_enterprise/widgets/priority_tab_widget.dart';
 import 'package:golden_ticket_enterprise/widgets/tags_reports_widget.dart';
 import 'package:provider/provider.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
-import 'package:intl/intl.dart';
-import 'package:fl_chart/fl_chart.dart';
 
 class ReportsPage extends StatefulWidget {
   final HiveSession? session;
@@ -30,7 +27,7 @@ class _ReportsPageState extends State<ReportsPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _fromDate =
         DateTime(DateTime.now().year, 1, 1); // Default to Jan 1 this year
   }
@@ -51,6 +48,8 @@ class _ReportsPageState extends State<ReportsPage>
                 Tab(text: 'Priority Reports'),
                 Tab(text: 'Tag Reports'),
                 Tab(text: 'Feedback Reports'),
+                Tab(text: 'Chatbot Performance'),
+                Tab(text: 'FAQ Suggestions'),
               ],
             ),
           ),
@@ -101,6 +100,8 @@ class _ReportsPageState extends State<ReportsPage>
                 tickets: dataManager.tickets,
               ),
               _buildPlaceholderTab('Feedback Reports'),
+              _buildPlaceholderTab('Chatbot Performance'),
+              _buildPlaceholderTab('FAQ Suggestions')
             ],
           ),
         );

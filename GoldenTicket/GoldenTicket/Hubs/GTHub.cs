@@ -459,7 +459,7 @@ namespace GoldenTicket.Hubs
             await Clients.Caller.SendAsync("TicketUpdate", new {ticket = ticketDTO});
             await Clients.Caller.SendAsync("ChatroomUpdate", new {chatroom = chatroomDTO});
             if (AssignedID != null && AssignedID != 0)
-                NotifyUser(AssignedID!.Value, 1, "New Ticket Assigned", $"You have been assigned to a new ticket! Ticket ID: {ticketDTO.TicketID}", ticketDTO.TicketID);
+                NotifyUser(AssignedID!.Value, 1, "New Ticket Assigned to you", $"You have been assigned to a new ticket! Ticket ID: {ticketDTO.TicketID}", ticketDTO.TicketID);
             else 
                 NotifyGroup(adminUserID, 1, "New Open Ticket", $"A new ticket has been created! Ticket ID: {ticketDTO.TicketID}", ticketDTO.TicketID);
         }
@@ -534,13 +534,19 @@ namespace GoldenTicket.Hubs
             switch(Status)
             {
                 case "Open":
-                    NotifyGroup(userIDList, 1, $"Ticket {TicketID} Re-Opened!", $"Your ticket has been Re-Opened by {EditorName}", TicketID);
+                    NotifyGroup(userIDList, 1, $"Ticket {TicketID} Re-Opened!", $"Your ticket has been Re-Opened by {EditorName}.", TicketID);
                     break;
                 case "Closed":
-                    NotifyGroup(userIDList, 1, $"Ticket {TicketID} Closed!", $"Your ticket has been Close by {EditorName}", TicketID);
+                    NotifyGroup(userIDList, 1, $"Ticket {TicketID} Closed!", $"Your ticket has been Close by {EditorName}.", TicketID);
                     break;
                 case "In-Progress":
-                    NotifyGroup(userIDList, 1, $"Ticket {TicketID} In Progress", $"Your ticket has been assigned to {chatroomDTO.Ticket!.Assigned!.FirstName}", TicketID);
+                    NotifyGroup(userIDList, 1, $"Ticket {TicketID} In Progress", $"Your ticket has been assigned to {chatroomDTO.Ticket!.Assigned!.FirstName}.", TicketID);
+                    break;
+                case "Unresolved":
+                    NotifyGroup(userIDList, 1, $"Ticket {TicketID} Unresolved", $"Your ticket has been mark as Unresolved.", TicketID);
+                    break;
+                case "Postponed":
+                    NotifyGroup(userIDList, 1, $"Ticket {TicketID} In Progress", $"Your ticket has been Postponed.", TicketID);
                     break;
                 default:
                     NotifyGroup(userIDList, 1, $"Ticket updated!", $"Your ticket has been updated by {EditorName}", TicketID);
@@ -605,6 +611,10 @@ namespace GoldenTicket.Hubs
                 }
             }
             await Clients.Caller.SendAsync("RatingReceived", new { rating = ratingDTO });
+            if(ratingDTO.Chatroom.Ticket != null)
+            {
+                NotifyUser(ratingDTO.Chatroom.Ticket.Assigned!.UserID, 2, $"{ratingDTO.Chatroom.Author!.FirstName} has rated you {ratingDTO.Score}/5", $"{ratingDTO.Chatroom.Author!.FirstName} has rated your performance at Ticket ID: {ratingDTO.Chatroom.Ticket.TicketID}", ratingDTO.Chatroom.Ticket.TicketID);
+            }
         }
         #endregion 
         #region Notification

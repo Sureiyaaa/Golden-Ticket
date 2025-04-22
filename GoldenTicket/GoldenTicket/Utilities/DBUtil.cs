@@ -1164,8 +1164,8 @@ namespace GoldenTicket.Utilities
                 var notifications  = await ContextUtil.Notification(notificationIDs, context);
                 foreach(var notification in notifications)
                 {
-                    if(notification != null)
-                        notification!.IsRead = true;
+                    notification!.IsRead = true;
+                    context.Notifications.Update(notification);
                 }
                 await context.SaveChangesAsync();
                 return notifications;

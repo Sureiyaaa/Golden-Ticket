@@ -490,6 +490,12 @@ namespace GoldenTicket.Hubs
                 await DBUtil.ReopenChatroom(chatroomID);
                 chatroomDTO = new ChatroomDTO(DBUtil.GetChatroomByTicketID(TicketID, false)!);
             }
+            // Chatroom Reopen
+            if(Status == "In Progress")
+            {
+                await DBUtil.ReopenChatroom(chatroomID);
+                chatroomDTO = new ChatroomDTO(DBUtil.GetChatroomByTicketID(TicketID, false)!);
+            }
 
             var adminUser = DBUtil.GetAdminUsers();
             foreach (var user in adminUser)
@@ -613,7 +619,7 @@ namespace GoldenTicket.Hubs
             await Clients.Caller.SendAsync("RatingReceived", new { rating = ratingDTO });
             if(ratingDTO.Chatroom.Ticket != null)
             {
-                NotifyUser(ratingDTO.Chatroom.Ticket.Assigned!.UserID, 2, $"{ratingDTO.Chatroom.Author!.FirstName} has rated you {ratingDTO.Score}/5", $"{ratingDTO.Chatroom.Author!.FirstName} has rated your performance at Ticket ID: {ratingDTO.Chatroom.Ticket.TicketID}", ratingDTO.Chatroom.Ticket.TicketID);
+                NotifyUser(ratingDTO.Chatroom.Ticket.Assigned!.UserID, 3, $"{ratingDTO.Chatroom.Author!.FirstName} has rated you {ratingDTO.Score}/5", $"{ratingDTO.Chatroom.Author!.FirstName} has rated your performance at Ticket ID: {ratingDTO.Chatroom.Ticket.TicketID}", ratingDTO.Chatroom.ChatroomID);
             }
         }
         #endregion 

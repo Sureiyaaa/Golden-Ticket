@@ -658,7 +658,7 @@ namespace GoldenTicket.Utilities
                     {
                         TicketID = newticket.TicketID,
                         ActionID = 12,
-                        ActionMessage = $"Ticket Priority changed from {newticket!.Priority!.PriorityName} to {priorityName} by {editorName}",
+                        ActionMessage = $"Ticket Priority changed from **{newticket!.Priority!.PriorityName}** to **{priorityName}** by **{editorName}**",
                     });
                 }
                 
@@ -666,8 +666,8 @@ namespace GoldenTicket.Utilities
                 if(mainTagID != newticket!.MainTagID && mainTagID != 0)
                 {
                     histories.Add(new TicketHistory {TicketID = newticket.TicketID, ActionID = 10, ActionMessage = (newticket!.MainTagID != null) ?
-                        $"Ticket Maintag changed from {newticket!.MainTag!.TagName} to {MainTag} by {editorName}" :
-                        $"Ticket Maintag changed to {MainTag} by {editorName}"}
+                        $"Ticket Maintag changed from **{newticket!.MainTag!.TagName}** to **{MainTag}** by **{editorName}**" :
+                        $"Ticket Maintag changed to **{MainTag}** by **{editorName}**"}
                     );
                         
                 }
@@ -677,14 +677,14 @@ namespace GoldenTicket.Utilities
                 if(subTagID != newticket!.SubTagID && subTagID != 0)
                 {
                     histories.Add(new TicketHistory{ TicketID = newticket.TicketID, ActionID = 11, ActionMessage = (newticket!.SubTagID != null) ? 
-                        $"Ticket Subtag changed from {newticket!.SubTag?.TagName} to {SubTag} by {editorName}" : 
-                        $"Ticket Subtag changed to {SubTag} by {editorName}"});
+                        $"Ticket Subtag changed from **{newticket!.SubTag?.TagName}** to **{SubTag}** by **{editorName}**" : 
+                        $"Ticket Subtag changed to **{SubTag}** by **{editorName}**"});
                 }
                 
                 // TicketHistory Assign Creation
                 if(assignedID != newticket!.AssignedID)
                 {
-                    var user = await context.Users.FindAsync(assignedID); // better than Where(...).FirstOrDefault()
+                    var user = await context.Users.FindAsync(assignedID);
 
                     if(newticket!.AssignedID == null)
                     {
@@ -692,14 +692,14 @@ namespace GoldenTicket.Utilities
                         {
                             TicketID = newticket.TicketID,
                             ActionID = 2,
-                            ActionMessage = $"Ticket Assigned to {user!.FirstName} by {editorName}",
+                            ActionMessage = $"Ticket Assigned to **{user!.FirstName}** by **{editorName}**",
                         });
                     } else {
                         histories.Add(new TicketHistory 
                         {
                             TicketID = newticket.TicketID,
                             ActionID = 3,
-                            ActionMessage = $"Ticket Re-Assigned From {user!.FirstName} by {editorName}",
+                            ActionMessage = $"Ticket Re-Assigned From **{DBUtil.FindUser(newticket.AssignedID.Value).FirstName}** to **{user!.FirstName}** by **{editorName}**",
                         });
                     }
                 }

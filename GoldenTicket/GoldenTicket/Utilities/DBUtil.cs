@@ -1161,11 +1161,11 @@ namespace GoldenTicket.Utilities
         {
             using (var context = new ApplicationDbContext())
             {
-                var notifications  = await ContextUtil.Notification(notificationIDs, context);
+                var notifications  = context.Notifications.Where(n => notificationIDs.Contains(n.NotificationID)).ToList();
                 foreach(var notification in notifications)
                 {
                     notification!.IsRead = true;
-                    context.Notifications.Update(notification);
+                    //context.Notifications.Update(notification);
                 }
                 await context.SaveChangesAsync();
                 return notifications;

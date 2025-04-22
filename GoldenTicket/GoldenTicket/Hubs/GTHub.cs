@@ -181,7 +181,7 @@ namespace GoldenTicket.Hubs
         public async Task RequestChat(int AuthorID) 
         {
             var chatrooms = await DBUtil.GetChatrooms(AuthorID, true);
-            int openChatroomsCount = chatrooms.Count(c => c.Ticket == null);
+            int openChatroomsCount = chatrooms.Count(c => c.Ticket == null && c.IsClosed == false);
             if (openChatroomsCount >= 3)
             {
                 await Clients.Caller.SendAsync("MaximumChatroom");

@@ -39,15 +39,21 @@ namespace GoldenTicket.Entities
         public List<MessageDTO>? Messages { get; set; } = [];
         public List<GroupMemberDTO> GroupMembers  { get; set; } = [];
         public LastMessageDTO? LastMessage { get; set; } = null;
+        public int Unread { get; set; } = 0;
         public DateTime? CreatedAt  { get; set; }
 
-        public ChatroomDTO(Chatroom chatroom, bool IncludeMessages = false)
+        public ChatroomDTO(Chatroom chatroom, bool IncludeMessages = false, bool IncludeUnread = false, int userID = 0)
         {
             this.ChatroomID = chatroom.ChatroomID;
             this.ChatroomName = chatroom.ChatroomName;
             this.Author = chatroom.Author != null ? new UserDTO(chatroom.Author) : null;
             this.IsClosed = chatroom.IsClosed;
             this.Ticket = chatroom.Ticket != null ? new TicketDTO(chatroom.Ticket) : null;
+
+            if (IncludeMessages && IncludeUnread && userID != 0)
+            {
+                this.Unread = chatroom.Messages.Count(m => m.SenderID != userID && m.CreatedAt > chatroom.Members.FirstOrDefault(m => m.MemberID == userID)?.LastSeenAt);
+            }
 
             // Sort messages from latest to earliest
             

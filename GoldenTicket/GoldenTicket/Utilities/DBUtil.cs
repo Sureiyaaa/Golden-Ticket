@@ -663,7 +663,7 @@ namespace GoldenTicket.Utilities
                 }
                 
                 // TicketHistory MainTag Creation
-                if(mainTagID != newticket!.MainTagID)
+                if(mainTagID != newticket!.MainTagID && mainTagID != 0)
                 {
                     histories.Add(new TicketHistory {TicketID = newticket.TicketID, ActionID = 10, ActionMessage = (newticket!.MainTagID != null) ?
                         $"Ticket Maintag changed from {newticket!.MainTag!.TagName} to {MainTag} by {editorName}" :
@@ -674,7 +674,7 @@ namespace GoldenTicket.Utilities
                 
 
                 // TicketHistory SubTag Creation
-                if(subTagID != newticket!.SubTagID)
+                if(subTagID != newticket!.SubTagID && subTagID != 0)
                 {
                     histories.Add(new TicketHistory{ TicketID = newticket.TicketID, ActionID = 11, ActionMessage = (newticket!.SubTagID != null) ? 
                         $"Ticket Subtag changed from {newticket!.SubTag?.TagName} to {SubTag} by {editorName}" : 

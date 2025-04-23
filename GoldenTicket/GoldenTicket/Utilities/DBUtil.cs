@@ -880,11 +880,15 @@ namespace GoldenTicket.Utilities
             {
                 List<ChatroomDTO> dtos = new List<ChatroomDTO>();
                 List<Chatroom> chatrooms = await ContextUtil.Chatrooms(context, includeMessages);
-                foreach(var chatroom in chatrooms.Where(c => c.TicketID != null)) {
+                foreach(var chatroom in chatrooms) {
                     dtos.Add(new ChatroomDTO(chatroom));
                 }
                 stopwatch.Stop();
                 if(debug) Console.WriteLine($"GetChatrooms() sent successfully: {stopwatch.ElapsedMilliseconds} ms");
+                // foreach(var chatroom in dtos)
+                // {
+                //     Console.WriteLine($"[DBUtil] Chatroom ID: {chatroom.ChatroomID} has been sent!");
+                // }
                 return dtos;
             }
         }

@@ -40,3 +40,16 @@ namespace GoldenTicket.Extensions
         }
     }
 }
+
+public static class HangfireExtensions
+{
+    public static IApplicationBuilder UseHangfire(this IApplicationBuilder app)
+    {
+        ArgumentNullException.ThrowIfNull(app, nameof(app));
+        var gc = app.ApplicationServices.GetService<IGlobalConfiguration>();
+        ArgumentNullException.ThrowIfNull(gc, nameof(gc));
+        ArgumentNullException.ThrowIfNull(JobStorage.Current, nameof(JobStorage.Current));
+
+        return app;
+    }
+}

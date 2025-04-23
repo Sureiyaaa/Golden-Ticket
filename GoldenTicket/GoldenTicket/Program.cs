@@ -4,6 +4,7 @@ using GoldenTicket.Models;
 using GoldenTicket.Services;
 using GoldenTicket.Utilities;
 using Hangfire;
+using Microsoft.Extensions.FileProviders;
 using OpenAIApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,7 +24,7 @@ builder.Services.Configure<AppConfig>(builder.Configuration.GetSection("AppConfi
 builder.Services.AddApplicationServices(builder.Configuration);
 
 var app = builder.Build();
-app.UseCors("GoldenTracker");
+app.UseCors("GoldenTicket");
 
 var serviceProvider = app.Services;
 var configService = serviceProvider.GetRequiredService<ConfigService>();
@@ -34,16 +35,12 @@ var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
 AIUtil.Initialize(configService, openAIService, promptService, loggerFactory.CreateLogger<AIUtil>());
 
 // Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
-}
 
-app.UseHangfireDashboard();
+
+//app.UseHangfireDashboard();
 app.UseAuthorization();
 
+HangfireExtensions.UseHangfire(app);
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -51,6 +48,29 @@ using (var scope = app.Services.CreateScope())
 
     // ✅ Initialize Recurring Jobs Here
     hangfireService.InitializeRecurringJobs();
+}
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "app"))
+});
+
+app.Use(async (context, next) =>
+{
+    PathString path = context.Request.Path;
+    if (!path.StartsWithSegments("/api") && !path.StartsWithSegments("/GTHub") && !Path.HasExtension(path))
+    {
+        context.Request.Path = "/index.html";
+    }
+
+    await next();
+});
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Home/Error");
+    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+    app.UseHsts();
 }
 // app.UseHttpsRedirection();
 //app.UseStaticFiles();

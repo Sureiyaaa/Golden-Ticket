@@ -166,6 +166,7 @@ class SignalRService with ChangeNotifier {
       });
   }
   void addRating(int chatroomID, int score, String? feedback)async{
+    print('yes');
     await _hubConnection!.invoke('AddOrUpdateRating', args: [chatroomID, score, feedback]).catchError((err) {
       logger.e("There was an error caught while saving rating", error: err.toString().isEmpty ? "None provided" : err.toString());
     });
@@ -565,13 +566,19 @@ void handleNotificationRedirect(BuildContext context, DataManager dataManager, U
       break;
     case "Ticket":
       Ticket? ticket = dataManager.tickets.where((t) => t.ticketID == notification.referenceID).firstOrNull;
-      showDialog(
-        context: context,
-        builder: (context) => TicketDetailsPopup(
-          ticket: ticket!,
-          onChatPressed: () => handleChat(context, session, dataManager, ticket),
-        ),
-      );
+      if(ticket != null) {
+        showDialog(
+          context: context,
+          builder: (context) =>
+              TicketDetailsPopup(
+                ticket: ticket,
+                onChatPressed: () =>
+                    handleChat(context, session, dataManager, ticket),
+              ),
+        );
+      }else{
+        TopNotification.show(context: context, message: "Ticket not found", backgroundColor: Colors.redAccent);
+      }
       break;
   }
   dataManager.signalRService.markAsRead([notification.notificationID], session.user.userID);

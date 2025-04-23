@@ -9,11 +9,13 @@ namespace GoldenTicket.Extensions
     {
         private readonly IRecurringJobManager _recurringJobManager;
         private readonly IServiceScopeFactory _serviceScopeFactory;
+        private readonly GTHub _hub;
 
-        public HangFireService(IRecurringJobManager recurringJobManager, IServiceScopeFactory serviceScopeFactory)
+        public HangFireService(IRecurringJobManager recurringJobManager, IServiceScopeFactory serviceScopeFactory, GTHub hub)
         {
             _recurringJobManager = recurringJobManager;
             _serviceScopeFactory = serviceScopeFactory;
+            _hub = hub;
         }
         public void InitializeRecurringJobs()
         {
@@ -23,28 +25,31 @@ namespace GoldenTicket.Extensions
                 Cron.Daily // Runs once per day
             );
         }
-
-       
         public async Task ExecuteChatResolveAsync()
         {
             DateTime threeDaysAgo = DateTime.UtcNow.AddDays(-3);
-            using(var context = new ApplicationDbContext()){
-                var filter = await DBUtil.GetChatrooms();
+            using (var context = new ApplicationDbContext())
+            {
+                var filter = await DBUtil.GetChatrooms(true);
                 var chatrooms = filter
-                    .Where(c => c.Messages!.Any()) // Only chatrooms that have messages
-                    .Select(c => new
-                    {
-                        Chatroom = c,
-                        LatestMessage = c.Messages!.OrderByDescending(m => m.CreatedAt).FirstOrDefault()
-                    })
-                    .Where(c => c.LatestMessage != null && c.LatestMessage.CreatedAt <= threeDaysAgo && c.Chatroom.Ticket == null)
-                    .Select(c => c.Chatroom)
+                    .Where(c => c.LastMessage != null && c.IsClosed == false && c.LastMessage.CreatedAt <= threeDaysAgo && c.Ticket == null)
                     .ToList();
-                
-                using (var hub = new GTHub()){
-                    await hub.ResolveTickets(chatrooms);
-                }
+
+                _hub.ResolveTickets(chatrooms);
             }
         }
+    }
+}
+
+public static class HangfireExtensions
+{
+    public static IApplicationBuilder UseHangfire(this IApplicationBuilder app)
+    {
+        ArgumentNullException.ThrowIfNull(app, nameof(app));
+        var gc = app.ApplicationServices.GetService<IGlobalConfiguration>();
+        ArgumentNullException.ThrowIfNull(gc, nameof(gc));
+        ArgumentNullException.ThrowIfNull(JobStorage.Current, nameof(JobStorage.Current));
+
+        return app;
     }
 }

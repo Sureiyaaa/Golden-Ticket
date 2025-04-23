@@ -8,6 +8,8 @@ import 'package:golden_ticket_enterprise/entities/notification.dart'
     as notifClass;
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
+import 'package:golden_ticket_enterprise/models/notification_overlay.dart';
+import 'package:golden_ticket_enterprise/models/signalr_service.dart';
 import 'package:golden_ticket_enterprise/screens/connectionstate.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:golden_ticket_enterprise/screens/notification_page.dart';
@@ -43,6 +45,7 @@ class _HubPageState extends State<HubPage> {
     dm = Provider.of<DataManager>(context, listen: false);
 
     dm.signalRService.addOnReceiveSupportListener(_handleReceiveSupport);
+    dm.signalRService.addOnNotificationListener(_handleNotification);
   }
 
   @override
@@ -58,12 +61,12 @@ class _HubPageState extends State<HubPage> {
   @override
   void dispose() {
     log("HubPage disposed: $this");
+    dm.signalRService.removeOnNotificationListener(_handleNotification);
+    dm.signalRService.removeOnReceiveSupportListener(_handleReceiveSupport);
     super.dispose();
   }
 
   void _onDrawerItemTapped(int index) {
-    print("Selected Index: $_selectedIndex");
-    print("Navigating to tab: $index");
     setState(() {
       _selectedIndex = index;
     });
@@ -71,19 +74,34 @@ class _HubPageState extends State<HubPage> {
         .goBranch(index, initialLocation: index == widget.child.currentIndex);
   }
 
-  void _handleReceiveSupport(Chatroom chatroom){
-    context.push('/hub/chatroom/${chatroom.chatroomID}');
+  void _handleReceiveSupport(Chatroom chatroom) {
+    openChatroom(context, widget.session!, dm, chatroom.chatroomID);
   }
+
+  void _handleNotification(notifClass.Notification notification) {
+    print(dm.chatroomID);
+    print(notification.referenceID);
+    if (notification.notificationType == 'Chatroom' &&
+        (dm.isInChatroom && dm.chatroomID == notification.referenceID)) return;
+    NotificationOverlay.show(context, message: notification.title, onTap: () {
+      if (notification.referenceID != null) {
+        handleNotificationRedirect(context, dm, widget.session!, notification);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.session == null) {
       return SizedBox.shrink(); // Prevents UI from rendering if redirecting
     }
+
     return Consumer<DataManager>(builder: (context, dataManager, child) {
       if (!dataManager.signalRService.isConnected) {
         return DisconnectedOverlay();
       }
-      int unreadCount = dataManager.notifications.where((notif) => !notif.isRead).length;
+      int unreadCount =
+          dataManager.notifications.where((notif) => !notif.isRead).length;
 
       void _logout() async {
         var box = Hive.box<HiveSession>('sessionBox');
@@ -121,42 +139,55 @@ class _HubPageState extends State<HubPage> {
                 tooltip: "Notifications",
                 itemBuilder: (context) {
                   List<PopupMenuEntry> items = [];
-
-                  items.add(
-                    PopupMenuItem(
-                      enabled: false,
-                      padding: EdgeInsets.zero,
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minHeight: 200, // Minimum height
-                          maxHeight: 400, // Maximum height to prevent overflow
-                        ),
-                        child: dataManager.notifications.isEmpty
-                            ? Center(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16.0),
-                                  child: Text('No notifications'),
+                  items.add(PopupMenuItem(
+                    enabled: false,
+                    padding: EdgeInsets.zero,
+                    child: StatefulBuilder(
+                      builder: (context, setState) {
+                        return ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minHeight: 200,
+                            maxHeight: 400,
+                          ),
+                          child: dataManager.notifications.take(10).isEmpty
+                              ? Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Text('No notifications'),
+                                  ),
+                                )
+                              : SingleChildScrollView(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: dataManager.notifications
+                                        .take(10)
+                                        .map((notif) {
+                                      return Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 5, vertical: 10),
+                                        child: InkWell(
+                                          onTap: () {
+                                            if (notif.referenceID != null) {
+                                              Navigator.pop(
+                                                  context); // Close menu first
+                                              handleNotificationRedirect(
+                                                  context,
+                                                  dataManager,
+                                                  widget.session!,
+                                                  notif);
+                                            }
+                                          },
+                                          child: NotificationTile(
+                                              notification: notif),
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
                                 ),
-                              )
-                            : SingleChildScrollView(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: dataManager.notifications.map((notif) {
-                                    return Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 5, vertical: 10),
-                                      child: InkWell(
-                                        onTap: () {},
-                                        child: NotificationTile(
-                                            notification: notif),
-                                      ),
-                                    );
-                                  }).toList(),
-                                ),
-                              ),
-                      ),
+                        );
+                      },
                     ),
-                  );
+                  ));
 
                   items.add(const PopupMenuDivider());
 
@@ -172,7 +203,8 @@ class _HubPageState extends State<HubPage> {
                               context,
                               MaterialPageRoute(
                                 builder: (_) => NotificationsPage(
-                                    notifications: dataManager.notifications),
+                                  session: widget.session!,
+                                ),
                               ),
                             );
                           },
@@ -198,7 +230,8 @@ class _HubPageState extends State<HubPage> {
               children: <Widget>[
                 UserAccountsDrawerHeader(
                   accountName: Text(widget.session!.user.username),
-                  accountEmail: Text("Dummy Email"),
+                  accountEmail: Text(
+                      "${widget.session!.user.firstName} ${widget.session!.user.lastName}"),
                   decoration: BoxDecoration(color: kPrimary),
                   currentAccountPicture: CircleAvatar(
                     child: Icon(Icons.person, size: 40),
@@ -206,9 +239,7 @@ class _HubPageState extends State<HubPage> {
                 ),
                 _buildDrawerItem(Icons.dashboard, "Dashboard", 0),
                 _buildDrawerItem(Icons.message_outlined, "Chatrooms", 1),
-                if (widget.session?.user.role == "Admin" ||
-                    widget.session?.user.role == "Staff")
-                  _buildDrawerItem(Icons.list, "Tickets", 2),
+                _buildDrawerItem(Icons.list, "Tickets", 2),
                 _buildDrawerItem(Icons.question_mark, "FAQ", 3),
                 if (widget.session?.user.role != "Employee")
                   _buildDrawerItem(Icons.show_chart, "Reports", 4),

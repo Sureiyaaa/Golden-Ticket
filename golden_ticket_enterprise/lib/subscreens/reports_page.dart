@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
+import 'package:golden_ticket_enterprise/widgets/chatbot_tab_widget.dart';
+import 'package:golden_ticket_enterprise/widgets/faq_suggestion_tab_widget.dart';
+import 'package:golden_ticket_enterprise/widgets/feedback_tab_widget.dart';
 import 'package:golden_ticket_enterprise/widgets/priority_tab_widget.dart';
 import 'package:golden_ticket_enterprise/widgets/tags_reports_widget.dart';
 import 'package:provider/provider.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
-import 'package:intl/intl.dart';
-import 'package:fl_chart/fl_chart.dart';
 
 class ReportsPage extends StatefulWidget {
   final HiveSession? session;
@@ -30,18 +31,23 @@ class _ReportsPageState extends State<ReportsPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _fromDate =
         DateTime(DateTime.now().year, 1, 1); // Default to Jan 1 this year
   }
 
   @override
   Widget build(BuildContext context) {
+    List<LineColor> lineColor = [];
     return Consumer<DataManager>(
       builder: (context, dataManager, child) {
         if (dataManager.tickets.isEmpty) {
           return const Center(child: CircularProgressIndicator());
         }
+        lineColor = [];
+        lineColor.add(new LineColor(name: 'Not assigned', color: generateRandomColor()));
+        for(var line in dataManager.mainTags)
+          lineColor.add(new LineColor(name: line.tagName, color: generateRandomColor()));
 
         return Scaffold(
           appBar: AppBar(
@@ -50,7 +56,9 @@ class _ReportsPageState extends State<ReportsPage>
               tabs: const [
                 Tab(text: 'Priority Reports'),
                 Tab(text: 'Tag Reports'),
-                Tab(text: 'Feedback Reports'),
+                Tab(text: 'User Reports'),
+                Tab(text: 'Chatbot Performance'),
+                Tab(text: 'FAQ Suggestions'),
               ],
             ),
           ),
@@ -99,21 +107,15 @@ class _ReportsPageState extends State<ReportsPage>
                 visibleRange: _visibleRange,
                 onScrollChanged: (val) => setState(() => _scrollPosition = val),
                 tickets: dataManager.tickets,
+                lineColor: lineColor,
               ),
-              _buildPlaceholderTab('Feedback Reports'),
+              FeedbackReportTab(session: widget.session!),
+              ChatbotPerformanceTab(session: widget.session!),
+              FaqSuggestionTab(session: widget.session!)
             ],
           ),
         );
       },
-    );
-  }
-
-  Widget _buildPlaceholderTab(String title) {
-    return Center(
-      child: Text(
-        '$title Coming Soon',
-        style: const TextStyle(fontSize: 16),
-      ),
     );
   }
 

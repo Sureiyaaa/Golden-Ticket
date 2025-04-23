@@ -4,8 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:golden_ticket_enterprise/entities/chatroom.dart';
 import 'package:golden_ticket_enterprise/entities/group_member.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
+import 'package:golden_ticket_enterprise/models/signalr_service.dart';
+import 'package:golden_ticket_enterprise/models/string_utils.dart';
 import 'package:golden_ticket_enterprise/models/time_utils.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
+import 'package:golden_ticket_enterprise/widgets/notification_widget.dart';
 import 'package:provider/provider.dart';
 
 import '../models/hive_session.dart';
@@ -39,8 +42,18 @@ class _ChatroomListPageState extends State<ChatroomListPage> {
   Widget build(BuildContext context) {
     return Consumer<DataManager>(
       builder: (context, dataManager, child) {
+        dataManager.signalRService.onMaximumChatroom = () {
+          TopNotification.show(
+            context: context,
+            message: "Maximum Chatroom has been reached",
+            backgroundColor: Colors.redAccent,
+            duration: Duration(seconds: 2),
+            textColor: Colors.white,
+            onTap: () => TopNotification.dismiss(),
+          );
+        };
         dataManager.signalRService.onReceiveSupport = (chatroom) {
-          context.push('/hub/chatroom/${chatroom.chatroomID}');
+          openChatroom(context, widget.session!, dataManager, chatroom.chatroomID);
         };
 
         List<Chatroom> filteredChatrooms = dataManager.chatrooms.where((chatroom) {
@@ -53,12 +66,13 @@ class _ChatroomListPageState extends State<ChatroomListPage> {
 
           bool matchesQuery = chatTitle.toLowerCase().contains(searchQuery.toLowerCase()) ||
               chatroomAuthor.toLowerCase().contains(searchQuery.toLowerCase());
+          bool hideForStaff = widget.session!.user.role != 'Employee' && chatroom.ticket == null;
 
           bool isClosed = chatroom.isClosed;
           bool isMyChatroom = chatroom.groupMembers!
               .any((member) => member.member?.userID == widget.session!.user.userID);
 
-          return matchesQuery &&
+          return !hideForStaff && matchesQuery &&
               (includeClosedChatrooms || !isClosed) &&
               (!includeMyChatrooms || isMyChatroom);
         }).toList();
@@ -139,7 +153,7 @@ class _ChatroomListPageState extends State<ChatroomListPage> {
                       });
                     },
                   ),
-                  CheckboxListTile(
+                  if(widget.session!.user.role != 'Employee') CheckboxListTile(
                     title: Text("My Chatrooms"),
                     value: includeMyChatrooms,
                     onChanged: (bool? value) {
@@ -175,7 +189,7 @@ class _ChatroomListPageState extends State<ChatroomListPage> {
                         : "Unknown Author";
                     bool hasLastMessage = chatroom.lastMessage != null;
                     String lastMessage = hasLastMessage
-                        ? "${chatroom.lastMessage!.sender!.firstName}: ${chatroom.lastMessage!.messageContent}"
+                        ? "${chatroom.lastMessage!.sender!.firstName}: ${StringUtils.limitWithEllipsis(chatroom.lastMessage!.messageContent.toString(), 100)}"
                         : "No messages yet";
                     String messageTime = hasLastMessage
                         ? TimeUtil.formatTimestamp(chatroom.lastMessage!.createdAt!)
@@ -219,9 +233,7 @@ class _ChatroomListPageState extends State<ChatroomListPage> {
                             splashColor: kPrimary.withOpacity(0.15),
                             highlightColor: Colors.transparent,
                             onTap: () {
-                              context.push('/hub/chatroom/${chatroom.chatroomID}');
-                              dataManager.signalRService.openChatroom(
-                                  widget.session!.user.userID, chatroom.chatroomID);
+                              openChatroom(context, widget.session!, dataManager, chatroom.chatroomID);
                             },
                             child: Row(
                               children: [
@@ -242,11 +254,41 @@ class _ChatroomListPageState extends State<ChatroomListPage> {
                                   child: ListTile(
                                     contentPadding:
                                     EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                    leading: CircleAvatar(
-                                      backgroundColor:
-                                      isUnread ? Colors.red : Colors.grey,
-                                      child: Icon(Icons.chat_bubble_outline,
-                                          color: Colors.white),
+                                    leading: Stack(
+                                      clipBehavior: Clip.none,
+                                      children: [
+                                        CircleAvatar(
+                                          backgroundColor: isUnread ? Colors.red : Colors.grey,
+                                          child: Icon(Icons.chat_bubble_outline, color: Colors.white),
+                                        ),
+                                        if (chatroom.unread > 0)
+                                          Positioned(
+                                            right: -8,
+                                            top: -8,
+                                            child: Container(
+                                              padding: EdgeInsets.all(4),
+                                              decoration: BoxDecoration(
+                                                color: Colors.red,
+                                                shape: BoxShape.circle,
+                                              ),
+                                              constraints: BoxConstraints(
+                                                minWidth: 20,
+                                                minHeight: 20,
+                                              ),
+                                              child: Center(
+                                                child: Text(
+                                                  '+${chatroom.unread}',
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                      ],
                                     ),
                                     title: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,

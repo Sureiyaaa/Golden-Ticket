@@ -4,9 +4,10 @@ class Notification {
   String title;
   String message;
   String notificationType;
+  int? referenceID;
   bool isRead;
   final DateTime createdAt;
-  Notification({ required this.notificationID, required this.title, required this.message, required this.notificationType, required this.isRead, required this.createdAt});
+  Notification({ required this.notificationID, required this.title, required this.message, required this.referenceID, required this.notificationType, required this.isRead, required this.createdAt});
 
   factory Notification.fromJson(Map<String, dynamic> json) {
     return Notification(
@@ -15,6 +16,7 @@ class Notification {
         message: json['description'],
         notificationType: json['notificationType'],
         isRead: json['isRead'],
+        referenceID: json['referenceID'],
         createdAt: DateTime.parse(json['createdAt'])
     );
   }

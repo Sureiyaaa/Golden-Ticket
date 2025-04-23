@@ -46,21 +46,26 @@ class _ChatroomPageState extends State<ChatroomPage> {
       }
     });
 
+
     messageFocusNode.requestFocus();
     dm = Provider.of<DataManager>(context, listen: false);
 
     dm.signalRService.addOnReceiveMessageListener(_handleChatroomMessage);
+    dm.enterChatroom(widget.chatroomID);
   }
   @override
   void didChangeDependencies() {
+
     super.didChangeDependencies();
   }
   @override
   void dispose(){
     dm.signalRService.removeOnReceiveMessageListener(_handleChatroomMessage);
-
+    dm.exitChatroom(widget.chatroomID);
     super.dispose();
   }
+
+
   void _handleChatroomMessage(Message message, Chatroom chatroom) {
 
     var userSession = Hive.box<HiveSession>('sessionBox').get('user');
@@ -179,7 +184,7 @@ class _ChatroomPageState extends State<ChatroomPage> {
               ),
             ],
           ),
-          endDrawer: ChatroomDetailsDrawer(chatroom: dataManager.findChatroomByID(widget.chatroomID)!),
+          endDrawer: ChatroomDetailsDrawer(chatroom: dataManager.findChatroomByID(widget.chatroomID)!, dataManager: dataManager),
           body: Column(
             children: [
               Expanded(
@@ -374,7 +379,7 @@ class _ChatroomPageState extends State<ChatroomPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          ElevatedButton(
+          if(chatroom.ticket != null)ElevatedButton(
             onPressed: () {
               if (userSession != null && chatroom.ticket?.status == 'Closed') {
                 dataManager.signalRService.updateTicket(chatroom.ticket!.ticketID, chatroom.ticket!.ticketTitle, 'Open', chatroom.ticket!.priority, chatroom.ticket!.mainTag?.tagName, chatroom.ticket!.subTag?.subTagName, chatroom.ticket!.assigned?.userID);

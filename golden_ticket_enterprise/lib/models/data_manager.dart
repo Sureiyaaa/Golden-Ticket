@@ -22,6 +22,8 @@ class DataManager extends ChangeNotifier {
   List<User> users = [];
   List<String> priorities = [];
   List<Rating> ratings = [];
+  bool isInChatroom = false;
+  int? chatroomID = null;
   DataManager({required this.signalRService}) {
     _initializeSignalR();
   }
@@ -57,12 +59,17 @@ class DataManager extends ChangeNotifier {
     signalRService.onChatroomsUpdate = (updatedChatrooms){
       updateChatrooms(updatedChatrooms);
     };
+
+    signalRService.onNotificationDeleted = (deletedNotifications){
+      removeNotifications(deletedNotifications);
+    };
     signalRService.onChatroomUpdate = (updatedChatroom){
       updateChatroom(updatedChatroom);
     };
 
-    signalRService.addOnReceiveMessageListener((message, chatroom) {
-      updateLastMessage(chatroom);
+    signalRService.addOnReceiveMessageListener(updateLastMessage);
+    signalRService.addOnNotificationListener((notification) {
+      updateNotification(notification);
     });
     signalRService.onSeenUpdate = (userID, chatroomID){
       updateMemberSeen(userID, chatroomID);
@@ -97,11 +104,31 @@ class DataManager extends ChangeNotifier {
       updateRating(updatedRating);
     };
   }
-  void updateNotifications(List<notif.Notification> updatedNotificaitons){
-    notifications = updatedNotificaitons;
+  void updateNotifications(List<notif.Notification> updatedNotifications){
+
+    notifications = updatedNotifications;
+
+    notifications.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     notifyListeners();
   }
-  void deleteNotification(int notificationID){
+  void updateNotification(notif.Notification updatedNotification){
+    int index = notifications.indexWhere((c) => c.notificationID == updatedNotification.notificationID);
+    if (index != -1) {
+      notifications[index] = updatedNotification; // Update ticket
+    } else {
+      notifications.add(updatedNotification);
+    }
+
+    notifications.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    notifyListeners();
+  }
+
+  void deleteNotifications(List<int> notificationID){
+    for(var notifID in notificationID){
+      int index = notifications.indexWhere((c) => c.notificationID == notifID);
+      notifications.removeAt(index);
+    }
+
     notifyListeners();
   }
   void updateMainTags(List<MainTag> updatedTags) {
@@ -183,11 +210,14 @@ class DataManager extends ChangeNotifier {
     chatrooms.sort((a, b) => b.lastMessage?.createdAt?.compareTo(a.lastMessage?.createdAt ?? DateTime(0)) ?? 0);
     notifyListeners();
   }
-  void updateLastMessage(Chatroom chatroom){
+  void updateLastMessage(Message message, Chatroom chatroom){
     int index = chatrooms.indexWhere((c) => c.chatroomID == chatroom.chatroomID);
 
     if (index != -1) {
       chatrooms[index].lastMessage = chatroom.lastMessage;
+      if(chatroomID != chatroom.chatroomID){
+        chatrooms[index].unread++;
+      }
     }
     chatrooms.sort((a, b) {
       DateTime? aTime = a.lastMessage?.createdAt;
@@ -211,10 +241,15 @@ class DataManager extends ChangeNotifier {
       chatrooms[index].messages!.add(message);
       chatrooms[index].messages!.sort((a, b) => a.createdAt.compareTo(b.createdAt));
     }
-    updateLastMessage(chatroom);
+    updateLastMessage(message, chatroom);
     notifyListeners();
   }
 
+  void removeNotifications(removedNotifications){
+    notifications.removeWhere((notification) =>
+        removedNotifications.contains(notification.notificationID));
+    notifyListeners();
+  }
   void updateMemberSeen(int userID, int chatroomID){
     int chatroomIndex = chatrooms.indexWhere((c) => c.chatroomID == chatroomID);
 
@@ -258,7 +293,17 @@ class DataManager extends ChangeNotifier {
     }
     notifyListeners();
   }
+  void enterChatroom(int id) {
+    chatroomID = id;
+    isInChatroom = true;
+  }
 
+  void exitChatroom(int id) {
+    if (chatroomID == id) {
+      chatroomID = null;
+      isInChatroom = false;
+    }
+  }
   @override
   void dispose() {
     closeConnection(); // Ensure cleanup
@@ -271,6 +316,9 @@ class DataManager extends ChangeNotifier {
     return users.where((user) => user.role == "Staff").toList();
   }
 
+  List<Ticket> getTicketRelated(String mainTag, String subTag){
+    return tickets.where((t) => t.mainTag?.tagName == mainTag && t.subTag?.subTagName == subTag).toList();
+  }
   List<User> getStaff(){
     return users.where((user) => user.role != "Employee").toList();
   }
@@ -312,6 +360,7 @@ class DataManager extends ChangeNotifier {
     chatrooms = [];
     users = [];
     faqs = [];
+    signalRService.removeOnReceiveMessageListener(updateLastMessage);
     await signalRService.stopConnection();
   }
 }

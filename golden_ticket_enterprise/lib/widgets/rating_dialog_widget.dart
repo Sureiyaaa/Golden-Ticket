@@ -14,13 +14,21 @@ class RatingDialogWidget extends StatefulWidget {
 class _RatingDialogWidgetState extends State<RatingDialogWidget> {
   late int _rating;
   final TextEditingController _feedbackController = TextEditingController();
+  final ValueNotifier<int> _charCount = ValueNotifier<int>(0);
+  static const int _maxChars = 150;
 
   @override
-  void initState(){
+  void initState() {
     super.initState();
     _rating = widget.rating?.score ?? 0;
     _feedbackController.text = widget.rating?.feedback ?? '';
+    _charCount.value = _feedbackController.text.length;
+
+    _feedbackController.addListener(() {
+      _charCount.value = _feedbackController.text.length;
+    });
   }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -68,12 +76,13 @@ class _RatingDialogWidgetState extends State<RatingDialogWidget> {
               controller: _feedbackController,
               maxLines: 4,
               minLines: 3,
+              maxLength: _maxChars,
               decoration: const InputDecoration(
                 hintText: 'Share your thoughts...',
                 border: OutlineInputBorder(),
               ),
-
             ),
+
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -85,7 +94,15 @@ class _RatingDialogWidgetState extends State<RatingDialogWidget> {
                 const SizedBox(width: 8),
                 ElevatedButton(
                   onPressed: () {
-                    if(_rating == 0) return TopNotification.show(context: context, message: '',duration: Duration(seconds: 2), backgroundColor: Colors.redAccent);
+                    if (_rating == 0) {
+                      TopNotification.show(
+                        context: context,
+                        message: 'Please provide a rating.',
+                        duration: const Duration(seconds: 2),
+                        backgroundColor: Colors.redAccent,
+                      );
+                      return;
+                    }
                     widget.onSubmit(_rating, _feedbackController.text);
                     Navigator.of(context).pop();
                   },
@@ -102,6 +119,7 @@ class _RatingDialogWidgetState extends State<RatingDialogWidget> {
   @override
   void dispose() {
     _feedbackController.dispose();
+    _charCount.dispose();
     super.dispose();
   }
 }

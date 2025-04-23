@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
 import 'package:golden_ticket_enterprise/entities/ticket.dart';
+import 'package:golden_ticket_enterprise/models/signalr_service.dart';
 import 'package:golden_ticket_enterprise/models/time_utils.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
+import 'package:golden_ticket_enterprise/widgets/notification_widget.dart';
 import 'package:golden_ticket_enterprise/widgets/ticket_detail_widget.dart';
 import 'package:provider/provider.dart';
 
@@ -127,7 +130,10 @@ class _DashboardPageState extends State<DashboardPage> {
                                   onTap: () {
                                     showDialog(
                                       context: context,
-                                      builder: (context) => TicketDetailsPopup(ticket: ticket),
+                                      builder: (context) => TicketDetailsPopup(
+                                          ticket: ticket,
+                                        onChatPressed: () => handleChat(dataManager, ticket),
+                                      ),
                                     );
                                   },
                                   leading: Icon(Icons.confirmation_number, color: Colors.blue),
@@ -169,5 +175,22 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
     );
 
+  }
+  void handleChat(DataManager dataManager, Ticket ticket){
+    try {
+      openChatroom(context, widget.session!, dataManager, dataManager.findChatroomByTicketID(
+          ticket.ticketID)!.chatroomID);
+    }catch(err){
+      TopNotification.show(
+          context: context,
+          message: "Error chatroom could not be found!",
+          backgroundColor: Colors.redAccent,
+          duration: Duration(seconds: 2),
+          textColor: Colors.white,
+          onTap: () {
+            TopNotification.dismiss();
+          }
+      );
+    }
   }
 }

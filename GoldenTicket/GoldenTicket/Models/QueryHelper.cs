@@ -167,5 +167,27 @@ namespace GoldenTicket.Models
                 .AsSplitQuery();
             return baseQuery;
         }
+        public static IQueryable<Message> BuildBaseMessageQuery(this IQueryable<Message> query)
+        {
+            var baseQuery = query
+                .AsNoTracking()
+                .Include(m => m.Sender)
+                    .ThenInclude(s => s!.Role)
+                .Include(m => m.Sender)
+                    .ThenInclude(s => s!.AssignedTags)
+                        .ThenInclude(t => t!.MainTag)
+                .AsSplitQuery();
+            return baseQuery;
+        }
+        public static IQueryable<Notification> BuildBaseNotificationQuery(this IQueryable<Notification> query)
+        {
+            var baseQuery = query
+                .AsNoTracking()
+                .Include(n => n.User)
+                    .ThenInclude(u => u!.Role)
+                .Include(n => n.NotificationType)
+                .AsSplitQuery();
+            return baseQuery;
+        }
     }
 }

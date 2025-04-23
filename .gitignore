@@ -9,6 +9,7 @@ secret.dart
 
 # Database migrations
 Migrations/
+app/
 
 # Flutter/Dart
 .dart_tool/

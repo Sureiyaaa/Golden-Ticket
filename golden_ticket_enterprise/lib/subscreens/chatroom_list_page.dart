@@ -5,8 +5,10 @@ import 'package:golden_ticket_enterprise/entities/chatroom.dart';
 import 'package:golden_ticket_enterprise/entities/group_member.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
 import 'package:golden_ticket_enterprise/models/signalr_service.dart';
+import 'package:golden_ticket_enterprise/models/string_utils.dart';
 import 'package:golden_ticket_enterprise/models/time_utils.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
+import 'package:golden_ticket_enterprise/widgets/notification_widget.dart';
 import 'package:provider/provider.dart';
 
 import '../models/hive_session.dart';
@@ -40,6 +42,16 @@ class _ChatroomListPageState extends State<ChatroomListPage> {
   Widget build(BuildContext context) {
     return Consumer<DataManager>(
       builder: (context, dataManager, child) {
+        dataManager.signalRService.onMaximumChatroom = () {
+          TopNotification.show(
+            context: context,
+            message: "Maximum Chatroom has been reached",
+            backgroundColor: Colors.redAccent,
+            duration: Duration(seconds: 2),
+            textColor: Colors.white,
+            onTap: () => TopNotification.dismiss(),
+          );
+        };
         dataManager.signalRService.onReceiveSupport = (chatroom) {
           openChatroom(context, widget.session!, dataManager, chatroom.chatroomID);
         };
@@ -54,12 +66,13 @@ class _ChatroomListPageState extends State<ChatroomListPage> {
 
           bool matchesQuery = chatTitle.toLowerCase().contains(searchQuery.toLowerCase()) ||
               chatroomAuthor.toLowerCase().contains(searchQuery.toLowerCase());
+          bool hideForStaff = widget.session!.user.role != 'Employee' && chatroom.ticket == null;
 
           bool isClosed = chatroom.isClosed;
           bool isMyChatroom = chatroom.groupMembers!
               .any((member) => member.member?.userID == widget.session!.user.userID);
 
-          return matchesQuery &&
+          return !hideForStaff && matchesQuery &&
               (includeClosedChatrooms || !isClosed) &&
               (!includeMyChatrooms || isMyChatroom);
         }).toList();
@@ -176,7 +189,7 @@ class _ChatroomListPageState extends State<ChatroomListPage> {
                         : "Unknown Author";
                     bool hasLastMessage = chatroom.lastMessage != null;
                     String lastMessage = hasLastMessage
-                        ? "${chatroom.lastMessage!.sender!.firstName}: ${chatroom.lastMessage!.messageContent}"
+                        ? "${chatroom.lastMessage!.sender!.firstName}: ${StringUtils.limitWithEllipsis(chatroom.lastMessage!.messageContent.toString(), 100)}"
                         : "No messages yet";
                     String messageTime = hasLastMessage
                         ? TimeUtil.formatTimestamp(chatroom.lastMessage!.createdAt!)

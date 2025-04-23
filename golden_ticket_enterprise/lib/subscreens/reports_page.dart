@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
+import 'package:golden_ticket_enterprise/widgets/chatbot_tab_widget.dart';
+import 'package:golden_ticket_enterprise/widgets/feedback_tab_widget.dart';
 import 'package:golden_ticket_enterprise/widgets/priority_tab_widget.dart';
 import 'package:golden_ticket_enterprise/widgets/tags_reports_widget.dart';
 import 'package:provider/provider.dart';
@@ -99,8 +101,8 @@ class _ReportsPageState extends State<ReportsPage>
                 onScrollChanged: (val) => setState(() => _scrollPosition = val),
                 tickets: dataManager.tickets,
               ),
-              _buildPlaceholderTab('Feedback Reports'),
-              _buildPlaceholderTab('Chatbot Performance'),
+              FeedbackReportTab(session: widget.session!),
+              ChatbotPerformanceTab(session: widget.session!),
               _buildPlaceholderTab('FAQ Suggestions')
             ],
           ),

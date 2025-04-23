@@ -3,6 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
+import 'package:provider/provider.dart';
 
 class PriorityTab extends StatefulWidget {
   final DateTime fromDate;
@@ -112,8 +113,8 @@ class _PriorityTabState extends State<PriorityTab> {
 
     DateTime current = DateTime(widget.fromDate.year, widget.fromDate.month);
     final end = DateTime(widget.toDate.year, widget.toDate.month);
-    final dateFormatter =
-    DateFormat(widget.fromDate.year != widget.toDate.year ? 'MMM yyyy' : 'MMM');
+    final dateFormatter = DateFormat(
+        widget.fromDate.year != widget.toDate.year ? 'MMM yyyy' : 'MMM');
 
     while (!current.isAfter(end)) {
       final monthName = dateFormatter.format(current);
@@ -157,143 +158,163 @@ class _PriorityTabState extends State<PriorityTab> {
 
     double minY = 0;
     double maxY = 0;
-    if (filteredTickets.isNotEmpty){
-      minY = monthlyReports.values.expand((e) => e.values).reduce((a, b) => a < b ? a : b) - 1;
-      maxY = monthlyReports.values.expand((e) => e.values).reduce((a, b) => a > b ? a : b) + 3;
+    if (filteredTickets.isNotEmpty) {
+      minY = monthlyReports.values
+              .expand((e) => e.values)
+              .reduce((a, b) => a < b ? a : b) -
+          1;
+      maxY = monthlyReports.values
+              .expand((e) => e.values)
+              .reduce((a, b) => a > b ? a : b) +
+          3;
     }
     List<LineColor> lineColor = [];
-    for(var prioritySpots in prioritySpots.keys)
-      lineColor.add(new LineColor(name: prioritySpots, color: getPriorityColor(prioritySpots)));
+    for (var prioritySpots in prioritySpots.keys)
+      lineColor.add(new LineColor(
+          name: prioritySpots, color: getPriorityColor(prioritySpots)));
 
-
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              bool isMobile = constraints.maxWidth < 600;
-              final content = [
-                Flexible(
-                  flex: 1,
-                  child: Padding(
-                    padding: const EdgeInsets.all(6.0),
-                    child: _buildDateButton(
-                      label: "From",
-                      date: widget.fromDate,
-                      onPick: widget.onFromDateChanged,
-                    ),
-                  ),
-                ),
-                Flexible(
-                  flex: 1,
-                  child: Padding(
-                    padding: const EdgeInsets.all(6.0),
-                    child: _buildDateButton(
-                      label: "To",
-                      date: widget.toDate,
-                      onPick: widget.onToDateChanged,
-                    ),
-                  ),
-                ),
-              ];
-
-              return isMobile
-                  ? IntrinsicHeight( // Ensures proper sizing vertically
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: content,
-                ),
-              )
-                  : Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: content,
-              );
-            },
-          ),
-          if (filteredTickets.isEmpty)
-            Center(
-                child: Text('No data available for the selected date range.')
-            )
-          else
-          const SizedBox(height: 20),
-          Expanded(
-            child: Column(
-              children: [
-                Expanded(
-                  child: LineChart(
-                    LineChartData(
-                      minY: minY,
-                      maxY: maxY,
-                      titlesData: FlTitlesData(
-                        bottomTitles: AxisTitles(
-                          sideTitles: SideTitles(
-                            showTitles: true,
-                            interval: 1,
-                            getTitlesWidget: (value, _) {
-                              final index = value.toInt();
-                              if (index >= widget.scrollPosition &&
-                                  index < widget.scrollPosition + widget.visibleRange) {
-                                return Padding(
-                                  padding: const EdgeInsets.only(top: 4),
-                                  child: Text(
-                                    sortedMonths[index],
-                                    style: const TextStyle(fontSize: 10),
-                                  ),
-                                );
-                              }
-                              return const SizedBox.shrink();
-                            },
-                          ),
-                        ),
-                        leftTitles: AxisTitles(
-                          sideTitles: SideTitles(showTitles: true, reservedSize: 32),
-                        ),
-                        rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+    return Consumer<DataManager>(builder: (context, dataManager, child) {
+      return Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            LayoutBuilder(
+              builder: (context, constraints) {
+                bool isMobile = constraints.maxWidth < 600;
+                final content = [
+                  Flexible(
+                    flex: 1,
+                    child: Padding(
+                      padding: const EdgeInsets.all(6.0),
+                      child: _buildDateButton(
+                        label: "From",
+                        date: widget.fromDate,
+                        onPick: widget.onFromDateChanged,
                       ),
-                      lineBarsData: [
-                        _buildLine(_filterSpots(prioritySpots['Low']!), getPriorityColor('Low')),
-                        _buildLine(_filterSpots(prioritySpots['Medium']!), getPriorityColor('Medium')),
-                        _buildLine(_filterSpots(prioritySpots['High']!), getPriorityColor('High')),
-                      ],
-                      lineTouchData: LineTouchData(
-                        touchTooltipData: LineTouchTooltipData(
-                          fitInsideHorizontally: true,
-                          fitInsideVertically: true,
-                          getTooltipItems: (List<LineBarSpot> touchedSpots){
-                            return touchedSpots.map((spot) {
-                              LineColor lineData = lineColor.firstWhere((line) => line.color == spot.bar.color);
-                              return LineTooltipItem('${lineData.name}: ${spot.y.toInt()}', TextStyle(color: lineData.color));
-                            }).toList();
-                          }
-                        )
+                    ),
+                  ),
+                  Flexible(
+                    flex: 1,
+                    child: Padding(
+                      padding: const EdgeInsets.all(6.0),
+                      child: _buildDateButton(
+                        label: "To",
+                        date: widget.toDate,
+                        onPick: widget.onToDateChanged,
                       ),
-                      borderData: FlBorderData(show: true),
-                      gridData: FlGridData(show: true),
                     ),
                   ),
-                ),
-                if (sortedMonths.length > widget.visibleRange)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Slider(
-                      value: widget.scrollPosition,
-                      min: 0,
-                      max: (sortedMonths.length - widget.visibleRange).toDouble(),
-                      divisions: (sortedMonths.length - widget.visibleRange).toInt(),
-                      label: 'Scroll',
-                      thumbColor: kPrimary,
-                      activeColor: kPrimary,
-                      inactiveColor: kPrimaryContainer,
-                      onChanged: widget.onScrollChanged,
-                    ),
-                  ),
-              ],
+                ];
+
+                return isMobile
+                    ? IntrinsicHeight(
+                        // Ensures proper sizing vertically
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: content,
+                        ),
+                      )
+                    : Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: content,
+                      );
+              },
             ),
-          ),
-        ],
-      ),
-    );
+            if (filteredTickets.isEmpty)
+              Center(
+                  child: Text('No data available for the selected date range.'))
+            else
+              const SizedBox(height: 20),
+            Expanded(
+              child: Column(
+                children: [
+                  Expanded(
+                    child: LineChart(
+                      LineChartData(
+                        minY: minY,
+                        maxY: maxY,
+                        titlesData: FlTitlesData(
+                          bottomTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              interval: 1,
+                              getTitlesWidget: (value, _) {
+                                final index = value.toInt();
+                                if (index >= widget.scrollPosition &&
+                                    index <
+                                        widget.scrollPosition +
+                                            widget.visibleRange) {
+                                  return Padding(
+                                    padding: const EdgeInsets.only(top: 4),
+                                    child: Text(
+                                      sortedMonths[index],
+                                      style: const TextStyle(fontSize: 10),
+                                    ),
+                                  );
+                                }
+                                return const SizedBox.shrink();
+                              },
+                            ),
+                          ),
+                          leftTitles: AxisTitles(
+                            sideTitles:
+                                SideTitles(showTitles: true, reservedSize: 32),
+                          ),
+                          rightTitles: AxisTitles(
+                              sideTitles: SideTitles(showTitles: false)),
+                          topTitles: AxisTitles(
+                              sideTitles: SideTitles(showTitles: false)),
+                        ),
+                        lineBarsData: [
+                          _buildLine(_filterSpots(prioritySpots['Low']!),
+                              getPriorityColor('Low')),
+                          _buildLine(_filterSpots(prioritySpots['Medium']!),
+                              getPriorityColor('Medium')),
+                          _buildLine(_filterSpots(prioritySpots['High']!),
+                              getPriorityColor('High')),
+                        ],
+                        lineTouchData: LineTouchData(
+                            touchTooltipData: LineTouchTooltipData(
+                                fitInsideHorizontally: true,
+                                fitInsideVertically: true,
+                                getTooltipItems:
+                                    (List<LineBarSpot> touchedSpots) {
+                                  return touchedSpots.map((spot) {
+                                    LineColor lineData = lineColor.firstWhere(
+                                        (line) => line.color == spot.bar.color);
+                                    return LineTooltipItem(
+                                        '${lineData.name}: ${spot.y.toInt()}',
+                                        TextStyle(color: lineData.color));
+                                  }).toList();
+                                })),
+                        borderData: FlBorderData(show: true),
+                        gridData: FlGridData(show: true),
+                      ),
+                    ),
+                  ),
+                  if (sortedMonths.length > widget.visibleRange)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: Slider(
+                        value: widget.scrollPosition,
+                        min: 0,
+                        max: (sortedMonths.length - widget.visibleRange)
+                            .toDouble(),
+                        divisions:
+                            (sortedMonths.length - widget.visibleRange).toInt(),
+                        label: 'Scroll',
+                        thumbColor: kPrimary,
+                        activeColor: kPrimary,
+                        inactiveColor: kPrimaryContainer,
+                        onChanged: widget.onScrollChanged,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    });
   }
 }

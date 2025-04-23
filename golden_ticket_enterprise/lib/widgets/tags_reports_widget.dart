@@ -17,12 +17,14 @@ class TagsTab extends StatefulWidget {
   final double visibleRange;
   final Function(double) onScrollChanged;
   final List tickets;
+  final List<LineColor> lineColor;
 
   const TagsTab({
     super.key,
     required this.fromDate,
     required this.toDate,
     required this.dataManager,
+    required this.lineColor,
     required this.onFromDateChanged,
     required this.onToDateChanged,
     required this.onRefresh,
@@ -39,14 +41,10 @@ class TagsTab extends StatefulWidget {
 class _TagsTabState extends State<TagsTab> {
   String? selectedMainTag = "All";
   List<String> listedTags = [];
-  List<LineColor> lineColor = [];
 
   @override
   void initState(){
     super.initState();
-    lineColor.add(new LineColor(name: 'Not assigned', color: generateRandomColor()));
-    for(var line in widget.dataManager.mainTags)
-      lineColor.add(new LineColor(name: line.tagName, color: generateRandomColor()));
   }
   Widget _buildDateButton({
     required String label,
@@ -274,7 +272,7 @@ class _TagsTabState extends State<TagsTab> {
                               fitInsideVertically: true,
                               getTooltipItems: (List<LineBarSpot> touchedSpots){
                                 return touchedSpots.map((spot) {
-                                  LineColor lineData = lineColor.firstWhere((line) => line.color == spot.bar.color);
+                                  LineColor lineData = widget.lineColor.firstWhere((line) => line.color == spot.bar.color);
                                   return LineTooltipItem('${lineData.name}: ${spot.y.toInt()}', TextStyle(color: lineData.color));
                                 }).toList();
                               }
@@ -311,7 +309,7 @@ class _TagsTabState extends State<TagsTab> {
                       ),
                       lineBarsData: [
                         for(var spot in tagSpots.keys)
-                          _buildLine(_filterSpots(tagSpots[spot]!), lineColor.firstWhere((line) => line.name == spot).color),
+                          _buildLine(_filterSpots(tagSpots[spot]!), widget.lineColor.firstWhere((line) => line.name == spot).color),
                       ],
                       borderData: FlBorderData(show: true),
                       gridData: FlGridData(show: true),

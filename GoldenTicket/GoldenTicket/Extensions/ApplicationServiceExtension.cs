@@ -3,6 +3,7 @@ using GoldenTicket.Services;
 using GoldenTicket.Utilities;
 using Hangfire;
 using Hangfire.MySql;
+using Microsoft.Extensions.FileProviders;
 using OpenAIApp.Services;
 namespace GoldenTicket.Extensions;
 
@@ -47,9 +48,12 @@ public static class ApplicationServiceExtensions
         // });
 
         services.AddCors((opt) => opt.AddPolicy(
-            "GoldenTracker",
+            "GoldenTicket",
             (policy) => policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()
         ));
+
+        string flutterWebPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "app");
+        services.AddSingleton<IFileProvider>(new PhysicalFileProvider(flutterWebPath));
 
         // // Define flutter web build file provider
         // string flutterWebPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "app");

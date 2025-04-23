@@ -196,27 +196,32 @@ namespace GoldenTicket.Hubs
             await Clients.Caller.SendAsync("ReceiveSupport", new { chatroom = chatroomDTO });
         }
 
-
-        public async Task ResolveTickets(List<ChatroomDTO> Chatrooms)
+        #region -   ResolveTickets
+        #endregion
+        public async void ResolveTickets(List<ChatroomDTO> Chatrooms)
         {
-            foreach (ChatroomDTO Chatroom in Chatrooms)
+            if(Chatrooms == null || Chatrooms.Count() == 0) 
             {
-                if (Chatroom.LastMessage != null && Chatroom.Ticket == null && (DateTime.UtcNow - Chatroom.LastMessage.CreatedAt).TotalDays >= 4)
+                Console.WriteLine("[GTHub] [ResolveTickets] Chatrooms received is empty!");
+                return;
+            }
+            foreach (var Chatroom in Chatrooms)
+            {
+                if (Chatroom.ChatroomID == null)
                 {
-                    if (Chatroom.ChatroomID == null){
-                        continue;
-                    }
-                    int chatroomID = Chatroom.ChatroomID ?? 0;
-                    await CloseMessage(chatroomID);
-                    await DBUtil.CloseChatroom(chatroomID);
-                    foreach (var member in Chatroom.GroupMembers)
+                    continue;
+                }
+                int chatroomID = Chatroom.ChatroomID ?? 0;
+                await CloseMessage(chatroomID);
+                await DBUtil.CloseChatroom(chatroomID);
+                Console.WriteLine($"[GTHub] Chatroom ID: {Chatroom.ChatroomID} by {Chatroom.Author!.FirstName} has been closed!");
+                foreach (var member in Chatroom.GroupMembers)
+                {
+                    if (_connections.TryGetValue(member.User.UserID, out var connectionIds))
                     {
-                        if (_connections.TryGetValue(member.User.UserID, out var connectionIds))
+                        foreach (var connectionId in connectionIds)
                         {
-                            foreach (var connectionId in connectionIds)
-                            {
-                                await Clients.Client(connectionId).SendAsync("ChatroomUpdate", new { chatroom = Chatroom });
-                            }
+                            await Clients.Client(connectionId).SendAsync("ChatroomUpdate", new { chatroom = Chatroom });
                         }
                     }
                 }
@@ -232,7 +237,10 @@ namespace GoldenTicket.Hubs
             await Clients.Caller.SendAsync("ChatroomUpdate", new { chatroom = chatroomDTO });
             int callerID = _connections.FirstOrDefault(kvp => kvp.Value.Contains(Context.ConnectionId)).Key;
             string userName = DBUtil.FindUser(callerID).FirstName!;
-            NotifyUser(chatroom.Ticket!.AssignedID!.Value, 2, $"{userName} has closed the chatroom!", $"{userName} has closed the chatroom and is now ready for rating", ChatroomID);
+            if(chatroom.Ticket != null)
+                NotifyUser(chatroom.Ticket!.AssignedID!.Value, 2, $"{userName} has closed the chatroom!", $"{userName} has closed the chatroom and is now ready for rating", ChatroomID);
+            else
+                NotifyUser(chatroom.Author!.UserID, 2, "Chatroom Closed", "The chatroom has been successfully closed. Thank you for using our service! If you have further questions or need assistance, feel free to reach out again.", ChatroomID);
         }
 
         #region -   JoinChatroom
@@ -291,6 +299,11 @@ namespace GoldenTicket.Hubs
         #endregion
         public async Task SendMessage(int SenderID, int ChatroomID, string Message) 
         {
+            if(_connections == null || _connections.Count() == 0) 
+            {
+                Console.WriteLine("[GTHub] [SendMessage] _connections is empty!");
+                return;
+            }
             var connectedUsers = _connections.Where(kvp => kvp.Value.Contains(Context.ConnectionId)).ToList();
             if (connectedUsers.Count == 0)
             {
@@ -619,7 +632,7 @@ namespace GoldenTicket.Hubs
             await Clients.Caller.SendAsync("RatingReceived", new { rating = ratingDTO });
             if(ratingDTO.Chatroom.Ticket != null)
             {
-                NotifyUser(ratingDTO.Chatroom.Ticket.Assigned!.UserID, 3, $"{ratingDTO.Chatroom.Author!.FirstName} has rated you {ratingDTO.Score}/5", $"{ratingDTO.Chatroom.Author!.FirstName} has rated your performance at Ticket ID: {ratingDTO.Chatroom.Ticket.TicketID}", ratingDTO.Chatroom.ChatroomID);
+                NotifyUser(ratingDTO.Chatroom.Ticket.Assigned!.UserID, 2, $"{ratingDTO.Chatroom.Author!.FirstName} has rated you {ratingDTO.Score}/5", $"{ratingDTO.Chatroom.Author!.FirstName} has rated your performance at Ticket ID: {ratingDTO.Chatroom.Ticket.TicketID}", ratingDTO.Chatroom.ChatroomID);
             }
         }
         #endregion 

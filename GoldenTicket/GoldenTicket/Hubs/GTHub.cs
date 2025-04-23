@@ -237,10 +237,10 @@ namespace GoldenTicket.Hubs
             await Clients.Caller.SendAsync("ChatroomUpdate", new { chatroom = chatroomDTO });
             int callerID = _connections.FirstOrDefault(kvp => kvp.Value.Contains(Context.ConnectionId)).Key;
             string userName = DBUtil.FindUser(callerID).FirstName!;
-            if(chatroom.Ticket != null)
-                NotifyUser(chatroom.Ticket!.AssignedID!.Value, 2, $"{userName} has closed the chatroom!", $"{userName} has closed the chatroom and is now ready for rating", ChatroomID);
+            if(chatroomDTO.Ticket != null)
+                NotifyUser(chatroomDTO.Ticket!.Assigned!.UserID, 2, $"{userName} has closed the chatroom!", $"{userName} has closed the chatroom and is now ready for rating", ChatroomID);
             else
-                NotifyUser(chatroom.Author!.UserID, 2, "Chatroom Closed", "The chatroom has been successfully closed. Thank you for using our service! If you have further questions or need assistance, feel free to reach out again.", ChatroomID);
+                NotifyUser(chatroomDTO.Author!.UserID, 2, "Chatroom Closed", "The chatroom has been successfully closed. Thank you for using our service! If you have further questions or need assistance, feel free to reach out again.", ChatroomID);
         }
 
         #region -   JoinChatroom

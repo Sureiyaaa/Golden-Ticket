@@ -64,8 +64,31 @@ public class AIResponse
         string message = Randomize ? firstMessages[index] : firstMessages[FirstResponse];
         return message;
     }
+    public static string FilteredMessage(bool Randomize = false)
+    {
+        List<string> filteredMessages = new List<string> {
+            "Oww couldn't process that.. 😅. Please try again.",
+            "Oops can't process that message.. Mind trying again?😅",
+            "Ah sorry, can't handle that one..😅 Could you try rephrasing it?", 
+            "Hmm that's a bit tricky for me.. 😅 Could you try again?",
+            "That message is a bit unclear to me.",
+            "I can't help you with that. 😅",
+            "Sorry, I'm not sure what you mean. 😅",
+            "I'm not programmed to handle that. 😅",
+            "I'm not sure how to respond to that. 😅",
+            "I'm not sure how to handle that. 😅",
+
+        };
+        Random random = new Random();
+        int index = random.Next(0, filteredMessages.Count);
+        string message = Randomize ? filteredMessages[index] : filteredMessages[0];
+        return message;
+    }
 
     public static string FirstAssistantCM(){
         return $"TITLE: No Title Provided  \nPTAG: null  \nPSUBTAG: null  \nPRIORITY: Normal  \nSendToLiveAgent: false  \nResponse: {FirstMessage()}";
+    }
+    public static string AssistantCM(string message){
+        return $"TITLE: No Title Provided  \nPTAG: null  \nPSUBTAG: null  \nPRIORITY: Normal  \nSendToLiveAgent: false  \nResponse: {message}";
     }
 }

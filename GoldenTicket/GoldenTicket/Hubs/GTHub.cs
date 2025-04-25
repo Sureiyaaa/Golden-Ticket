@@ -22,23 +22,36 @@ namespace GoldenTicket.Hubs
         #endregion
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
-            foreach (var entry in _connections)
+            try
             {
-                if (entry.Value.Contains(Context.ConnectionId))
+                foreach (var entry in _connections)
                 {
-                    var updatedBag = new ConcurrentBag<string>(entry.Value.Where(id => id != Context.ConnectionId));
-                    _connections[entry.Key] = updatedBag;
-                    if (entry.Value.Count == 0)
+                    var userId = entry.Key;
+                    var connectionIds = entry.Value;
+
+                    // Create a new list with the connection removed
+                    var updatedConnectionIds = new ConcurrentBag<string>(connectionIds.Where(id => id != Context.ConnectionId));
+
+                    if (updatedConnectionIds.Count == 0)
                     {
-                        _connections.TryRemove(entry.Key, out _);
+                        _connections.TryRemove(userId, out _);
                     }
-                    break;
+                    else
+                    {
+                        _connections[userId] = updatedConnectionIds;
+                    }
+
+                    break; // Exit after removing from the correct user
                 }
+
+                Console.WriteLine($"[SignalR] User {Context.ConnectionId} disconnects");
             }
-            Console.WriteLine($"[SignalR] User {Context.ConnectionId} disconnects");
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SignalR] Error in OnDisconnectedAsync: {ex.Message}");
+            }
             await base.OnDisconnectedAsync(exception);
         }
-
 
         #region -   Broadcast
         #endregion

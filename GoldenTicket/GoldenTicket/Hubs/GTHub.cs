@@ -311,6 +311,9 @@ namespace GoldenTicket.Hubs
         #endregion
         public async Task SendMessage(int SenderID, int ChatroomID, string Message) 
         {
+            var stopwatch = Stopwatch.StartNew();
+            Console.WriteLine($"SendMessage[{DBUtil.FindUser(SenderID).FirstName}]: SendMessage started!");
+
             if(_connections == null || _connections.Count() == 0) 
             {
                 Console.WriteLine("[GTHub] [SendMessage] _connections is empty!");
@@ -323,7 +326,9 @@ namespace GoldenTicket.Hubs
                 return; // Return early if the connection is not valid
             }
             
+            Console.WriteLine($"SendMessage[{DBUtil.FindUser(SenderID).FirstName}]: Sending message to DBUtil);
             var message = await DBUtil.SendMessage(SenderID, ChatroomID, Message);
+            Console.WriteLine($"SendMessage[{DBUtil.FindUser(SenderID).FirstName}]: Message sent!!");
             // await UserSeen(SenderID, ChatroomID);
 
             var messageDTO = new MessageDTO(DBUtil.GetMessage(message.MessageID)!);
@@ -364,6 +369,8 @@ namespace GoldenTicket.Hubs
             {
                 await AISendMessage(ChatroomID, Message, SenderID);
             }
+            stopwatch.Stop();
+            Console.WriteLine($"SendMessage[{DBUtil.FindUser(SenderID).FirstName}]: ended in {stopwatch.ElapsedMilliseconds} ms");
         }
         #region -   AISendMessage
         #endregion

@@ -289,12 +289,16 @@ namespace GoldenTicket.Hubs
             var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID)!, true);
             
             await Clients.Caller.SendAsync("ReceiveMessages", new {chatroom = chatroomDTO});
-            UserSeen(UserID, ChatroomID);
+            await UserSeen(UserID, ChatroomID);
         }
         #region -   UserSeen
         #endregion
-        public async void UserSeen(int UserID, int ChatroomID) 
+        public async Task UserSeen(int UserID, int ChatroomID) 
         {
+            var stopwatch = Stopwatch.StartNew();
+            Console.WriteLine($"UserSeen[{DBUtil.FindUser(UserID).FirstName}]: UserSeen started!");
+
+            var tasks = new List<Task>();
             var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID, false)!);
             await DBUtil.UpdateLastSeen(UserID, ChatroomID);
             foreach(var member in chatroomDTO.GroupMembers)
@@ -302,10 +306,12 @@ namespace GoldenTicket.Hubs
                 if (_connections.TryGetValue(member.User.UserID, out var connectionIds)){
                     foreach (var connectionId in connectionIds)
                     {
-                        await Clients.Client(connectionId).SendAsync("UserSeen", new {userID = UserID, chatroomID = ChatroomID});
+                        tasks.Add(Clients.Client(connectionId).SendAsync("UserSeen", new {userID = UserID, chatroomID = ChatroomID}));
                     }
                 }
             }
+            Console.WriteLine($"UserSeen[{DBUtil.FindUser(UserID).FirstName}]: ended in {stopwatch.ElapsedMilliseconds} ms");
+            await Task.WhenAll(tasks);
         }
         #region -   SendMessage
         #endregion
@@ -354,7 +360,6 @@ namespace GoldenTicket.Hubs
                     foreach (var connectionId in connectionIds)
                     {
                         tasks.Add(Clients.Client(connectionId).SendAsync("ReceiveMessage", new {chatroom = chatroomDTO, message = messageDTO}));
-                        Console.WriteLine("Yes");
                     }
                 }
             }
@@ -432,7 +437,7 @@ namespace GoldenTicket.Hubs
                 }
             }
             
-            UserSeen(ChatbotID, chatroomID);
+            await UserSeen(ChatbotID, chatroomID);
         }
         #endregion
         #region Tags

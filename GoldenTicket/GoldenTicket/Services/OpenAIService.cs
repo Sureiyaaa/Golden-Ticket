@@ -22,7 +22,7 @@ public class OpenAIService
     private readonly ILogger<OpenAIService> _logger;
     private readonly ApiConfig _apiConfig;
     private readonly Dictionary<string, int> clientTokenUsage = new();
-
+    public static bool debug = true;
     public static int TokenCountUsed { get; private set; } = 0;
     public static int TotalCharactersUsed { get; private set; } = 0;
 
@@ -79,7 +79,7 @@ public class OpenAIService
 
         var requestOptions = new ChatCompletionOptions()
         {
-            Temperature = 0.7f,
+            Temperature = 0.4f,
             MaxOutputTokenCount = 2048,
         };
 
@@ -90,10 +90,9 @@ public class OpenAIService
             var response = await _client.CompleteChatAsync(!isDirect ? messages : directMsg, requestOptions, cts.Token);
 
             // DEBUG
-            foreach (var message in messages)
+            if(debug) foreach (var message in messages)
             {
-                Console.WriteLine($"Message Type: {message.GetType()}");
-                Console.WriteLine($"Content Type: {message.Content.FirstOrDefault()!.Text}");
+                Console.WriteLine($"Message Type: {message.GetType()}\nContent Type: {message.Content.FirstOrDefault()!.Text}");
             }
 
             if (response == null || response.Value == null || response.Value.Content.Count == 0)
@@ -107,28 +106,38 @@ public class OpenAIService
             messages.Add(new AssistantChatMessage(content));
 
             // DEBUG
-            Console.WriteLine($"Message Type: {messages.LastOrDefault()!.GetType()}");
-            Console.WriteLine($"Content Type: {messages.LastOrDefault()!.Content.LastOrDefault()!.Text}");
+            if(debug)
+            {
+                Console.WriteLine($"Message Type: {messages.LastOrDefault()!.GetType()}");
+                Console.WriteLine($"Content Type: {messages.LastOrDefault()!.Content.LastOrDefault()!.Text}");
+            }
 
             GetTotalTokenUsed(chatroomID);
             _loopAmount[chatroomID] = 0;
             return content;
         }
+        catch (ClientResultException ex) when (ex.Message.Contains("content_filter"))
+        {
+            _logger.LogWarning("[OpenAIService][catch 1] Prompt was blocked by content filter: {Message}", ex.Message);
+            string content = AIResponse.AssistantCM(AIResponse.FilteredMessage());
+            messages.Add(new AssistantChatMessage(content));
+            return content;
+        }
         catch (OperationCanceledException ex)
         {
-            _logger.LogWarning($"[OpenAIService] {ex.Message}");
+            _logger.LogWarning($"[OpenAIService][catch 2] {ex.Message}");
             _logger.LogWarning("[OpenAIService] Request timeout detected. Possible rate limit reached. Trying to change API key...");
             return await HandleRateLimit(chatroomID, userInput, Prompt, isDirect);
         }
         catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
         {
-            _logger.LogWarning($"[OpenAIService] {httpEx.Message}");
+            _logger.LogWarning($"[OpenAIService][catch 3] {httpEx.Message}");
             _logger.LogWarning("[OpenAIService] Rate Limit Exceeded: Too many requests. Trying to change API key...");
             return await HandleRateLimit(chatroomID, userInput, Prompt, isDirect);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, $"[OpenAIService] {ex.Message}");
+            _logger.LogWarning(ex, $"[OpenAIService][default] {ex.Message}");
             _logger.LogError(ex, "[OpenAIService] Error processing OpenAI request. Trying to change API key...");
             return await HandleRateLimit(chatroomID, userInput, Prompt, isDirect);
         }
@@ -153,7 +162,7 @@ public class OpenAIService
         else
         {
             _logger.LogError("[OpenAIService] All API keys exhausted. Delays expected.");
-            return "[OpenAIService ERROR] I'm currently experiencing delays. Please try again later.";
+            return "";
         }
     }
 

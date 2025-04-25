@@ -36,22 +36,41 @@ public static class ApplicationServiceExtensions
         services.AddSignalR().AddHubOptions<GTHub>(options =>
         {
             options.EnableDetailedErrors = true;
-            options.ClientTimeoutInterval = TimeSpan.FromSeconds(10);
+            options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
             options.KeepAliveInterval = TimeSpan.FromSeconds(5);
+            options.MaximumParallelInvocationsPerClient = 10;
         });
         services.AddControllersWithViews();
-        
+
         // Add Database Context HERE
         // services.AddDbContext<DataContext>(opt =>
         // {
         //     opt.UseSqlite(config.GetConnectionString("DefaultConnection"));
         // });
 
+    //    services.AddCors((opt) => opt.AddPolicy(
+    //         "GoldenTicket",
+    //         (policy) => policy
+    //             .WithOrigins(
+    //                 "http://localhost:8000",
+    //                 "https://localhost:8000",
+    //                 "http://172.20.20.71:8000",
+    //                 "https://172.20.20.71:8001",
+    //                 "http://172.20.20.71",          // ✅ ADD THIS
+    //                 "http://localhost"              // ✅ and this (if testing from localhost:80)
+    //             )
+    //             .AllowAnyMethod()
+    //             .AllowAnyHeader()
+    //             .AllowCredentials()
+    //     ));
+
         services.AddCors((opt) => opt.AddPolicy(
             "GoldenTicket",
-            (policy) => policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()
+            (policy) => policy
+                .AllowAnyOrigin()
+                .AllowAnyMethod()
+                .AllowAnyHeader()
         ));
-
         string flutterWebPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "app");
         services.AddSingleton<IFileProvider>(new PhysicalFileProvider(flutterWebPath));
 

@@ -14,29 +14,44 @@ namespace GoldenTicket.Hubs
     {
         #region General
 
+        public static bool debug = false;
 
-
-        private static readonly ConcurrentDictionary<int, HashSet<string>> _connections = new ConcurrentDictionary<int, HashSet<string>>();
+        private static readonly ConcurrentDictionary<int, ConcurrentBag<string>> _connections = new ConcurrentDictionary<int,ConcurrentBag <string>>();
+       
         #region -   OnDisconnectedAsync
         #endregion
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
-            foreach (var entry in _connections)
+            try
             {
-                if (entry.Value.Contains(Context.ConnectionId))
+                foreach (var entry in _connections)
                 {
-                    entry.Value.Remove(Context.ConnectionId);
-                    if (entry.Value.Count == 0)
+                    var userId = entry.Key;
+                    var connectionIds = entry.Value;
+
+                    // Create a new list with the connection removed
+                    var updatedConnectionIds = new ConcurrentBag<string>(connectionIds.Where(id => id != Context.ConnectionId));
+
+                    if (updatedConnectionIds.Count == 0)
                     {
-                        _connections.TryRemove(entry.Key, out _);
+                        _connections.TryRemove(userId, out _);
                     }
-                    break;
+                    else
+                    {
+                        _connections[userId] = updatedConnectionIds;
+                    }
+
+                    break; // Exit after removing from the correct user
                 }
+
+                Console.WriteLine($"[SignalR] User {Context.ConnectionId} disconnects");
             }
-            Console.WriteLine($"[SignalR] User {Context.ConnectionId} disconnects");
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SignalR] Error in OnDisconnectedAsync: {ex.Message}");
+            }
             await base.OnDisconnectedAsync(exception);
         }
-
 
         #region -   Broadcast
         #endregion
@@ -49,7 +64,7 @@ namespace GoldenTicket.Hubs
         #endregion
         public async Task Online(int userID, string role)
         {
-            _connections.AddOrUpdate(userID, new HashSet<string> { Context.ConnectionId },
+            _connections.AddOrUpdate(userID, new ConcurrentBag<string> { Context.ConnectionId },
                 (key, existingSet) => 
                 { 
                     existingSet.Add(Context.ConnectionId);
@@ -87,7 +102,7 @@ namespace GoldenTicket.Hubs
                 if (onlineStaff.Any())
                 {
                     var availableStaff = onlineStaff
-                    .OrderBy(user => DBUtil.GetTickets(user.UserID, false).Count)
+                    .OrderBy(user => DBUtil.GetTickets(user.UserID, false).Where(t => t.Assigned?.UserID == user.UserID).ToList().Count)
                     .FirstOrDefault();
 
                     if (availableStaff != null)
@@ -207,10 +222,6 @@ namespace GoldenTicket.Hubs
             }
             foreach (var Chatroom in Chatrooms)
             {
-                if (Chatroom.ChatroomID == null)
-                {
-                    continue;
-                }
                 int chatroomID = Chatroom.ChatroomID ?? 0;
                 await CloseMessage(chatroomID);
                 await DBUtil.CloseChatroom(chatroomID);
@@ -269,36 +280,55 @@ namespace GoldenTicket.Hubs
                 }
             }
             NotifyGroup(userIDList, 2, $"{userName} has joined the chatroom!", $"A staff has joined the chatroom", ChatroomID);
+            await SendMessage(AIUtil.GetChatbotID(), ChatroomID, $"**{userName}** has joined the chatroom!");
         }
         #region -   OpenChatroom
         #endregion
         public async Task OpenChatroom(int UserID, int ChatroomID) 
         {
-            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID)!, true);
+            try
+            {
+                var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID)!, true);
             
-            await Clients.Caller.SendAsync("ReceiveMessages", new {chatroom = chatroomDTO});
-            await UserSeen(UserID, ChatroomID);
+                await Clients.Caller.SendAsync("ReceiveMessages", new {chatroom = chatroomDTO});
+                await UserSeen(UserID, ChatroomID);
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine("--- WOOORK GOD DAMN YOUU ---");
+                Console.WriteLine(e);
+            }
         }
         #region -   UserSeen
         #endregion
         public async Task UserSeen(int UserID, int ChatroomID) 
         {
+            var stopwatch = Stopwatch.StartNew();
+            Console.WriteLine($"UserSeen[{DBUtil.FindUser(UserID).FirstName}]: UserSeen started!");
+
+            var tasks = new List<Task>();
             var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID, false)!);
-            await DBUtil.UpdateLastSeen(UserID, ChatroomID);
+            tasks.Add(DBUtil.UpdateLastSeen(UserID, ChatroomID));
             foreach(var member in chatroomDTO.GroupMembers)
             {
                 if (_connections.TryGetValue(member.User.UserID, out var connectionIds)){
                     foreach (var connectionId in connectionIds)
                     {
-                        await Clients.Client(connectionId).SendAsync("UserSeen", new {userID = UserID, chatroomID = ChatroomID});
+                        tasks.Add(Clients.Client(connectionId).SendAsync("UserSeen", new {userID = UserID, chatroomID = ChatroomID}));
                     }
                 }
             }
+            Console.WriteLine($"UserSeen[{DBUtil.FindUser(UserID).FirstName}]: ended in {stopwatch.ElapsedMilliseconds} ms");
+            await Task.WhenAll(tasks);
         }
         #region -   SendMessage
         #endregion
         public async Task SendMessage(int SenderID, int ChatroomID, string Message) 
         {
+            var tasks = new List<Task>();
+            var stopwatch = Stopwatch.StartNew();
+            Console.WriteLine($"SendMessage[{DBUtil.FindUser(SenderID).FirstName}]: SendMessage started!");
+
             if(_connections == null || _connections.Count() == 0) 
             {
                 Console.WriteLine("[GTHub] [SendMessage] _connections is empty!");
@@ -311,7 +341,9 @@ namespace GoldenTicket.Hubs
                 return; // Return early if the connection is not valid
             }
             
+            Console.WriteLine($"SendMessage[{DBUtil.FindUser(SenderID).FirstName}]: Sending message to DBUtil");
             var message = await DBUtil.SendMessage(SenderID, ChatroomID, Message);
+            Console.WriteLine($"SendMessage[{DBUtil.FindUser(SenderID).FirstName}]: Message sent!!");
             // await UserSeen(SenderID, ChatroomID);
 
             var messageDTO = new MessageDTO(DBUtil.GetMessage(message.MessageID)!);
@@ -335,8 +367,7 @@ namespace GoldenTicket.Hubs
                 if (_connections.TryGetValue(memberID, out var connectionIds)){
                     foreach (var connectionId in connectionIds)
                     {
-                        await Clients.Client(connectionId).SendAsync("ReceiveMessage", new {chatroom = chatroomDTO, message = messageDTO});
-                        Console.WriteLine("Yes");
+                        tasks.Add(Clients.Client(connectionId).SendAsync("ReceiveMessage", new {chatroom = chatroomDTO, message = messageDTO}));
                     }
                 }
             }
@@ -348,10 +379,13 @@ namespace GoldenTicket.Hubs
             //     NotifyGroup(MembersToInvoke, 2, $"{messageDTO.Sender!.FirstName} sent a Message", messageDTO.MessageContent!, ChatroomID);
             // }
 
-            if(chatroomDTO.Ticket == null && SenderID != 100000001)
+            if(chatroomDTO.Ticket == null && SenderID != AIUtil.GetChatbotID())
             {
                 await AISendMessage(ChatroomID, Message, SenderID);
             }
+            stopwatch.Stop();
+            Console.WriteLine($"SendMessage[{DBUtil.FindUser(SenderID).FirstName}]: ended in {stopwatch.ElapsedMilliseconds} ms");
+            await Task.WhenAll(tasks);
         }
         #region -   AISendMessage
         #endregion
@@ -361,7 +395,7 @@ namespace GoldenTicket.Hubs
             var response = await AIUtil.GetJsonResponseAsync(chatroomID.ToString(), userMessage, userID);
             if (response == null)
             {
-                response = AIResponse.Unavailable();
+                response = await AIUtil.GetJsonResponseAsync(chatroomID.ToString(), "Try again. Use your response format. " + userMessage, userID) ?? AIResponse.Unavailable();
             }
           
             var message = await DBUtil.SendMessage(ChatbotID, chatroomID, response!.Message);
@@ -539,7 +573,7 @@ namespace GoldenTicket.Hubs
                 }
             }
             stopwatch.Stop();
-            Console.WriteLine($"Ticket Repsonsetime: {stopwatch.ElapsedMilliseconds} ms");
+            if(debug) Console.WriteLine($"Ticket Repsonsetime: {stopwatch.ElapsedMilliseconds} ms");
 
             List<int> userIDList = new List<int>();
             string EditorName = DBUtil.FindUser(EditorID).FirstName!;

@@ -286,10 +286,18 @@ namespace GoldenTicket.Hubs
         #endregion
         public async Task OpenChatroom(int UserID, int ChatroomID) 
         {
-            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID)!, true);
+            try
+            {
+                var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID)!, true);
             
-            await Clients.Caller.SendAsync("ReceiveMessages", new {chatroom = chatroomDTO});
-            await UserSeen(UserID, ChatroomID);
+                await Clients.Caller.SendAsync("ReceiveMessages", new {chatroom = chatroomDTO});
+                await UserSeen(UserID, ChatroomID);
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine("--- WOOORK GOD DAMN YOUU ---");
+                Console.WriteLine(e);
+            }
         }
         #region -   UserSeen
         #endregion

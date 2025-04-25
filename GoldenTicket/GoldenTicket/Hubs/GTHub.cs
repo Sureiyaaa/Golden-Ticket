@@ -300,7 +300,7 @@ namespace GoldenTicket.Hubs
 
             var tasks = new List<Task>();
             var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID, false)!);
-            await DBUtil.UpdateLastSeen(UserID, ChatroomID);
+            tasks.Add(DBUtil.UpdateLastSeen(UserID, ChatroomID));
             foreach(var member in chatroomDTO.GroupMembers)
             {
                 if (_connections.TryGetValue(member.User.UserID, out var connectionIds)){

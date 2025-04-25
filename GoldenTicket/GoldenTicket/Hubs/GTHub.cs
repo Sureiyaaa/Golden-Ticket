@@ -16,7 +16,7 @@ namespace GoldenTicket.Hubs
 
         public static bool debug = false;
 
-        private static readonly ConcurrentDictionary<int, HashSet<string>> _connections = new ConcurrentDictionary<int, HashSet<string>>();
+        private static readonly ConcurrentDictionary<int, ConcurrentBag<string>> _connections = new ConcurrentDictionary<int,ConcurrentBag <string>>();
        
         #region -   OnDisconnectedAsync
         #endregion
@@ -26,7 +26,8 @@ namespace GoldenTicket.Hubs
             {
                 if (entry.Value.Contains(Context.ConnectionId))
                 {
-                    entry.Value.Remove(Context.ConnectionId);
+                    var updatedBag = new ConcurrentBag<string>(entry.Value.Where(id => id != Context.ConnectionId));
+                    _connections[entry.Key] = updatedBag;
                     if (entry.Value.Count == 0)
                     {
                         _connections.TryRemove(entry.Key, out _);
@@ -50,7 +51,7 @@ namespace GoldenTicket.Hubs
         #endregion
         public async Task Online(int userID, string role)
         {
-            _connections.AddOrUpdate(userID, new HashSet<string> { Context.ConnectionId },
+            _connections.AddOrUpdate(userID, new ConcurrentBag<string> { Context.ConnectionId },
                 (key, existingSet) => 
                 { 
                     existingSet.Add(Context.ConnectionId);
@@ -209,7 +210,7 @@ namespace GoldenTicket.Hubs
             foreach (var Chatroom in Chatrooms)
             {
                 int chatroomID = Chatroom.ChatroomID ?? 0;
-                CloseMessage(chatroomID);
+                await CloseMessage(chatroomID);
                 await DBUtil.CloseChatroom(chatroomID);
                 Console.WriteLine($"[GTHub] Chatroom ID: {Chatroom.ChatroomID} by {Chatroom.Author!.FirstName} has been closed!");
                 foreach (var member in Chatroom.GroupMembers)
@@ -266,7 +267,7 @@ namespace GoldenTicket.Hubs
                 }
             }
             NotifyGroup(userIDList, 2, $"{userName} has joined the chatroom!", $"A staff has joined the chatroom", ChatroomID);
-            SendMessage(AIUtil.GetChatbotID(), ChatroomID, $"**{userName}** has joined the chatroom!");
+            await SendMessage(AIUtil.GetChatbotID(), ChatroomID, $"**{userName}** has joined the chatroom!");
         }
         #region -   OpenChatroom
         #endregion
@@ -295,7 +296,7 @@ namespace GoldenTicket.Hubs
         }
         #region -   SendMessage
         #endregion
-        public async void SendMessage(int SenderID, int ChatroomID, string Message) 
+        public async Task SendMessage(int SenderID, int ChatroomID, string Message) 
         {
             if(_connections == null || _connections.Count() == 0) 
             {
@@ -389,15 +390,15 @@ namespace GoldenTicket.Hubs
                             {
                                 await AddTicket(response.Title, userID, response.MainTag!, response.SubTags, response.Priority, chatroomID, StaffID);
                                 var StaffUser = DBUtil.FindUser(StaffID);
-                                SendMessage(ChatbotID, chatroomID, $"Your ticket has been created! Your issue has been assigned to **{StaffUser.FirstName} {StaffUser.LastName}**.");
+                                await SendMessage(ChatbotID, chatroomID, $"Your ticket has been created! Your issue has been assigned to **{StaffUser.FirstName} {StaffUser.LastName}**.");
                                 
                             } else {
                                 await AddTicket(response.Title, userID, response.MainTag!, response.SubTags, response.Priority, chatroomID);
-                                SendMessage(ChatbotID, chatroomID, $"Your ticket has been created! There are currently no online agent for your specific problem, please be patient and wait for a **Live Agent** to accept.");
+                                await SendMessage(ChatbotID, chatroomID, $"Your ticket has been created! There are currently no online agent for your specific problem, please be patient and wait for a **Live Agent** to accept.");
                             }
                         } else {
                             await AddTicket(response.Title, userID, response.MainTag!, response.SubTags, response.Priority, chatroomID);
-                            SendMessage(ChatbotID, chatroomID, $"Your ticket has been created! Its status has been set to **\"Open\"** and is now waiting for a **Live Agent** to accept your ticket.");
+                            await SendMessage(ChatbotID, chatroomID, $"Your ticket has been created! Its status has been set to **\"Open\"** and is now waiting for a **Live Agent** to accept your ticket.");
                         }
                         
                         foreach (var connectionId in connectionIds)
@@ -493,7 +494,7 @@ namespace GoldenTicket.Hubs
             {
                 await DBUtil.CloseChatroom(chatroomID);
                 chatroomDTO = new ChatroomDTO(DBUtil.GetChatroomByTicketID(TicketID, false)!);
-                CloseMessage(chatroomID);
+                await CloseMessage(chatroomID);
             }
             // Chatroom Reopen
             if(Status == "Open")
@@ -580,9 +581,9 @@ namespace GoldenTicket.Hubs
         }
         #region -   CloseMessage
         #endregion
-        public void CloseMessage(int ChatroomID) {
+        public async Task CloseMessage(int ChatroomID) {
             string message = "Your ticket has been resolved! Thank you for your patience! It would really help us if you rate your experience, your feedback would really be appreciated!";
-            SendMessage(AIUtil.GetChatbotID(), ChatroomID, message);
+            await SendMessage(AIUtil.GetChatbotID(), ChatroomID, message);
         }
         #endregion 
         #region Rating

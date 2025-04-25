@@ -311,6 +311,7 @@ namespace GoldenTicket.Hubs
         #endregion
         public async Task SendMessage(int SenderID, int ChatroomID, string Message) 
         {
+            var tasks = new List<Task>();
             var stopwatch = Stopwatch.StartNew();
             Console.WriteLine($"SendMessage[{DBUtil.FindUser(SenderID).FirstName}]: SendMessage started!");
 
@@ -326,7 +327,7 @@ namespace GoldenTicket.Hubs
                 return; // Return early if the connection is not valid
             }
             
-            Console.WriteLine($"SendMessage[{DBUtil.FindUser(SenderID).FirstName}]: Sending message to DBUtil);
+            Console.WriteLine($"SendMessage[{DBUtil.FindUser(SenderID).FirstName}]: Sending message to DBUtil");
             var message = await DBUtil.SendMessage(SenderID, ChatroomID, Message);
             Console.WriteLine($"SendMessage[{DBUtil.FindUser(SenderID).FirstName}]: Message sent!!");
             // await UserSeen(SenderID, ChatroomID);
@@ -352,7 +353,7 @@ namespace GoldenTicket.Hubs
                 if (_connections.TryGetValue(memberID, out var connectionIds)){
                     foreach (var connectionId in connectionIds)
                     {
-                        await Clients.Client(connectionId).SendAsync("ReceiveMessage", new {chatroom = chatroomDTO, message = messageDTO});
+                        tasks.Add(Clients.Client(connectionId).SendAsync("ReceiveMessage", new {chatroom = chatroomDTO, message = messageDTO}));
                         Console.WriteLine("Yes");
                     }
                 }
@@ -371,6 +372,7 @@ namespace GoldenTicket.Hubs
             }
             stopwatch.Stop();
             Console.WriteLine($"SendMessage[{DBUtil.FindUser(SenderID).FirstName}]: ended in {stopwatch.ElapsedMilliseconds} ms");
+            await Task.WhenAll(tasks);
         }
         #region -   AISendMessage
         #endregion

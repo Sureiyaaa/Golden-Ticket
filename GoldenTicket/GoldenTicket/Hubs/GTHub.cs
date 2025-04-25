@@ -209,7 +209,7 @@ namespace GoldenTicket.Hubs
             foreach (var Chatroom in Chatrooms)
             {
                 int chatroomID = Chatroom.ChatroomID ?? 0;
-                await CloseMessage(chatroomID);
+                CloseMessage(chatroomID);
                 await DBUtil.CloseChatroom(chatroomID);
                 Console.WriteLine($"[GTHub] Chatroom ID: {Chatroom.ChatroomID} by {Chatroom.Author!.FirstName} has been closed!");
                 foreach (var member in Chatroom.GroupMembers)
@@ -266,7 +266,7 @@ namespace GoldenTicket.Hubs
                 }
             }
             NotifyGroup(userIDList, 2, $"{userName} has joined the chatroom!", $"A staff has joined the chatroom", ChatroomID);
-            await SendMessage(AIUtil.GetChatbotID(), ChatroomID, $"**{userName}** has joined the chatroom!");
+            SendMessage(AIUtil.GetChatbotID(), ChatroomID, $"**{userName}** has joined the chatroom!");
         }
         #region -   OpenChatroom
         #endregion
@@ -295,7 +295,7 @@ namespace GoldenTicket.Hubs
         }
         #region -   SendMessage
         #endregion
-        public async Task SendMessage(int SenderID, int ChatroomID, string Message) 
+        public async void SendMessage(int SenderID, int ChatroomID, string Message) 
         {
             if(_connections == null || _connections.Count() == 0) 
             {
@@ -389,15 +389,15 @@ namespace GoldenTicket.Hubs
                             {
                                 await AddTicket(response.Title, userID, response.MainTag!, response.SubTags, response.Priority, chatroomID, StaffID);
                                 var StaffUser = DBUtil.FindUser(StaffID);
-                                await SendMessage(ChatbotID, chatroomID, $"Your ticket has been created! Your issue has been assigned to **{StaffUser.FirstName} {StaffUser.LastName}**.");
+                                SendMessage(ChatbotID, chatroomID, $"Your ticket has been created! Your issue has been assigned to **{StaffUser.FirstName} {StaffUser.LastName}**.");
                                 
                             } else {
                                 await AddTicket(response.Title, userID, response.MainTag!, response.SubTags, response.Priority, chatroomID);
-                                await SendMessage(ChatbotID, chatroomID, $"Your ticket has been created! There are currently no online agent for your specific problem, please be patient and wait for a **Live Agent** to accept.");
+                                SendMessage(ChatbotID, chatroomID, $"Your ticket has been created! There are currently no online agent for your specific problem, please be patient and wait for a **Live Agent** to accept.");
                             }
                         } else {
                             await AddTicket(response.Title, userID, response.MainTag!, response.SubTags, response.Priority, chatroomID);
-                            await SendMessage(ChatbotID, chatroomID, $"Your ticket has been created! Its status has been set to **\"Open\"** and is now waiting for a **Live Agent** to accept your ticket.");
+                            SendMessage(ChatbotID, chatroomID, $"Your ticket has been created! Its status has been set to **\"Open\"** and is now waiting for a **Live Agent** to accept your ticket.");
                         }
                         
                         foreach (var connectionId in connectionIds)
@@ -493,7 +493,7 @@ namespace GoldenTicket.Hubs
             {
                 await DBUtil.CloseChatroom(chatroomID);
                 chatroomDTO = new ChatroomDTO(DBUtil.GetChatroomByTicketID(TicketID, false)!);
-                await CloseMessage(chatroomID);
+                CloseMessage(chatroomID);
             }
             // Chatroom Reopen
             if(Status == "Open")
@@ -580,9 +580,9 @@ namespace GoldenTicket.Hubs
         }
         #region -   CloseMessage
         #endregion
-        public async Task CloseMessage(int ChatroomID) {
+        public void CloseMessage(int ChatroomID) {
             string message = "Your ticket has been resolved! Thank you for your patience! It would really help us if you rate your experience, your feedback would really be appreciated!";
-            await SendMessage(AIUtil.GetChatbotID(), ChatroomID, message);
+            SendMessage(AIUtil.GetChatbotID(), ChatroomID, message);
         }
         #endregion 
         #region Rating

@@ -9,7 +9,7 @@ namespace GoldenTicket.Utilities
 {
     public class DBUtil()
     {
-        static bool debug = false;
+        static bool debug = true;
         public static int ChatbotID = AIUtil.GetChatbotID();
         #region FAQ
 
@@ -921,6 +921,8 @@ namespace GoldenTicket.Utilities
         #region -   UpdateLastSeen
         public static async Task UpdateLastSeen(int UserID, int ChatroomID)
         {
+            Stopwatch stopwatch = Stopwatch.StartNew();
+            if(debug) Console.WriteLine($"      [UpdateLastSeen({FindUser(UserID).FirstName})] Started!");
             using(var context = new ApplicationDbContext())
             {
                 var member = context.GroupMembers.Where(u=> u.MemberID == UserID && u.ChatroomID == ChatroomID).FirstOrDefault();
@@ -929,6 +931,7 @@ namespace GoldenTicket.Utilities
                     await context.SaveChangesAsync();
                 }
             }
+            if(debug) Console.WriteLine($"      [UpdateLastSeen({FindUser(UserID).FirstName})]  Updated Seen Successfull: {stopwatch.ElapsedMilliseconds} ms");
         }
         #endregion
         #region -   SendMessage
@@ -937,6 +940,8 @@ namespace GoldenTicket.Utilities
             using(var context = new ApplicationDbContext())
             {
                 var stopwatch = Stopwatch.StartNew();
+                if(debug) Console.WriteLine($"      [SendMessage({FindUser(SenderID).FirstName})] Started!");
+
                 var message = new Message
                 {
                     SenderID = SenderID,
@@ -952,7 +957,7 @@ namespace GoldenTicket.Utilities
                 context.Messages.Add(message);
                 await context.SaveChangesAsync();
                 stopwatch.Stop();
-                if(debug) Console.WriteLine($"Adding Message Successfull: {stopwatch.ElapsedMilliseconds} ms");
+                if(debug) Console.WriteLine($"      [SendMessage({FindUser(SenderID).FirstName})] Adding Message Successfull: {stopwatch.ElapsedMilliseconds} ms");
                 return message;
             }
         }

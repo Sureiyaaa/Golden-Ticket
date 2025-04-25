@@ -38,6 +38,7 @@ public static class ApplicationServiceExtensions
             options.EnableDetailedErrors = true;
             options.ClientTimeoutInterval = TimeSpan.FromSeconds(10);
             options.KeepAliveInterval = TimeSpan.FromSeconds(5);
+            options.MaximumParallelInvocationsPerClient = 10;
         });
         services.AddControllersWithViews();
         

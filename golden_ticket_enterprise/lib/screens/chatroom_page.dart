@@ -49,8 +49,11 @@ class _ChatroomPageState extends State<ChatroomPage> {
 
     messageFocusNode.requestFocus();
     dm = Provider.of<DataManager>(context, listen: false);
-
-    dm.signalRService.addOnReceiveMessageListener(_handleChatroomMessage);
+    print("[addOnReceiveMessageListener] about to start...");
+    dm.signalRService.addOnReceiveMessageListener((msg, chat) {
+      print("[addOnReceiveMessageListener] Receive listener started!");
+      _handleChatroomMessage(msg, chat);
+    });
     dm.enterChatroom(widget.chatroomID);
   }
   @override
@@ -72,15 +75,11 @@ class _ChatroomPageState extends State<ChatroomPage> {
 
     if (chatroom.chatroomID == widget.chatroomID) {
       if (!chatroom.messages!.any((msg) => msg.messageID == message.messageID)) {
-        if (message.sender.userID != userSession!.user.userID) {
-          dm.signalRService.sendSeen(userSession.user.userID, widget.chatroomID);
-        } else {
-          dm.updateMemberSeen(userSession.user.userID, widget.chatroomID);
-        }
         dm.addMessage(message, chatroom);
         setState(() {
           _messageLimit += 1;
         });
+        dm.signalRService.sendSeen(userSession!.user.userID, widget.chatroomID);
       }
     }
   }

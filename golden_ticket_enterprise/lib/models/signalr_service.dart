@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -206,9 +207,12 @@ class SignalRService with ChangeNotifier {
   }
 
   void sendMessage(int userID, int chatroomID, String messageContent) async {
+    print("[sendMessage] called by $userID!");
+    print("HubConnection state: ${_hubConnection!.state}");
     await _hubConnection!.invoke('SendMessage', args: [userID, chatroomID, messageContent]).catchError((err) {
       logger.e("There was an error caught while sending a message", error: err.toString());
     });
+    print("[sendMessage] received! $userID");
   }
   void closeChatroom(int chatroomID) async {
     await _hubConnection!.invoke('CloseChatroom', args: [chatroomID]).catchError((err) {
@@ -216,9 +220,36 @@ class SignalRService with ChangeNotifier {
     });
   }
   void sendSeen(int userID, int chatroomID) async {
-      await _hubConnection!.invoke('UserSeen', args: [userID, chatroomID]).catchError((err) {
-        logger.e("There was an error caught while sending user seen", error: err.toString());
-      });
+    print("[sendSeen] called by $userID!");
+    print("HubConnection state: ${_hubConnection!.state}");
+    if (_hubConnection?.state != HubConnectionState.connected) {
+      logger.w("⚠️ Skipped sending seen — SignalR not connected");
+      return;
+    }
+
+    const int maxRetries = 5;
+    const Duration timeout = Duration(seconds: 2); // Customize this timeout as needed
+    int attempt = 0;
+
+    while (attempt < maxRetries) {
+      attempt++;
+      try {
+        await _hubConnection!
+            .invoke('UserSeen', args: [userID, chatroomID])
+            .timeout(timeout);
+
+        logger.i("👁️ Sent seen for chatroom $chatroomID (attempt $attempt)");
+        print("[sendSeen] received! $userID");
+        return; // Success, exit
+      } on TimeoutException catch (_) {
+        logger.w("⏱️ Timeout while sending seen (attempt $attempt)");
+      } catch (err) {
+        logger.e("❌ Error while sending seen (attempt $attempt)", error: err.toString());
+        return; // On any other error, stop retrying
+      }
+    }
+
+    logger.e("❌ Failed to send seen for chatroom $chatroomID after $maxRetries attempts");
   }
   /// Sets up SignalR event handlers
   void _setupEventHandlers() async {

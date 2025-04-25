@@ -14,7 +14,7 @@ namespace GoldenTicket.Hubs
     {
         #region General
 
-        public static bool debug = false;
+        public static bool debug = true;
 
         private static readonly ConcurrentDictionary<int, ConcurrentBag<string>> _connections = new ConcurrentDictionary<int,ConcurrentBag <string>>();
        
@@ -301,26 +301,44 @@ namespace GoldenTicket.Hubs
         }
         #region -   UserSeen
         #endregion
-        public async Task UserSeen(int UserID, int ChatroomID) 
+        public async Task UserSeen(int UserID, int ChatroomID)
         {
             var stopwatch = Stopwatch.StartNew();
-            Console.WriteLine($"UserSeen[{DBUtil.FindUser(UserID).FirstName}]: UserSeen started!");
-
-            var tasks = new List<Task>();
-            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID, false)!);
-            tasks.Add(DBUtil.UpdateLastSeen(UserID, ChatroomID));
-            foreach(var member in chatroomDTO.GroupMembers)
+            try
             {
-                if (_connections.TryGetValue(member.User.UserID, out var connectionIds)){
-                    foreach (var connectionId in connectionIds)
+                Console.WriteLine($"UserSeen[{DBUtil.FindUser(UserID).FirstName}]: UserSeen started!");
+
+                var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID, false)!);
+                await DBUtil.UpdateLastSeen(UserID, ChatroomID);
+
+                var sendTasks = new List<Task>();
+                foreach (var member in chatroomDTO.GroupMembers)
+                {
+                    if (_connections.TryGetValue(member.User.UserID, out var connectionIds))
                     {
-                        tasks.Add(Clients.Client(connectionId).SendAsync("UserSeen", new {userID = UserID, chatroomID = ChatroomID}));
+                        foreach (var connectionId in connectionIds)
+                        {
+                            var sendTask = Clients.Client(connectionId).SendAsync("UserSeen", new {
+                                userID = UserID, chatroomID = ChatroomID
+                            });
+
+                            sendTasks.Add(Task.WhenAny(sendTask, Task.Delay(TimeSpan.FromSeconds(5))));
+                        }
                     }
                 }
+
+                await Task.WhenAll(sendTasks);
             }
-            Console.WriteLine($"UserSeen[{DBUtil.FindUser(UserID).FirstName}]: ended in {stopwatch.ElapsedMilliseconds} ms");
-            await Task.WhenAll(tasks);
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Exception in UserSeen: {ex}");
+            }
+            finally
+            {
+                Console.WriteLine($"UserSeen[{UserID}] ended in {stopwatch.ElapsedMilliseconds} ms");
+            }
         }
+
         #region -   SendMessage
         #endregion
         public async Task SendMessage(int SenderID, int ChatroomID, string Message) 
@@ -342,50 +360,65 @@ namespace GoldenTicket.Hubs
             }
             
             Console.WriteLine($"SendMessage[{DBUtil.FindUser(SenderID).FirstName}]: Sending message to DBUtil");
-            var message = await DBUtil.SendMessage(SenderID, ChatroomID, Message);
+            var message = DBUtil.SendMessage(SenderID, ChatroomID, Message);
+            var timeoutTask = Task.Delay(TimeSpan.FromSeconds(5));
+
+            var completedTask = await Task.WhenAny(message, timeoutTask);
+            if (completedTask == message)
+            {
+                // Completed successfully
+                var messageResult = await message;
+                var messageDTO = new MessageDTO(DBUtil.GetMessage(messageResult.MessageID)!);
+                var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID, false)!);
+                var MembersToInvoke = new List<int>();
+                
+                foreach(var member in chatroomDTO.GroupMembers){
+                    MembersToInvoke.Add(member.User.UserID);
+                }
+
+                if(chatroomDTO.Ticket != null)
+                {
+                    var adminUser = DBUtil.GetAdminUsers();
+                    foreach(var user in adminUser){
+                        if(!MembersToInvoke.Contains(user.UserID)){
+                            MembersToInvoke.Add(user.UserID);
+                        }
+                    }
+                }
+                foreach(int memberID in MembersToInvoke){
+                    if (_connections.TryGetValue(memberID, out var connectionIds)){
+                        foreach (var connectionId in connectionIds)
+                        {
+                            tasks.Add(Clients.Client(connectionId).SendAsync("ReceiveMessage", new {chatroom = chatroomDTO, message = messageDTO}));
+                        }
+                    }
+                }
+
+                // Notification System here brotah
+                // if(chatroomDTO.Ticket != null && SenderID != AIUtil.GetChatbotID())
+                // {
+                //     MembersToInvoke.Remove(SenderID);
+                //     NotifyGroup(MembersToInvoke, 2, $"{messageDTO.Sender!.FirstName} sent a Message", messageDTO.MessageContent!, ChatroomID);
+                // }
+
+                if(chatroomDTO.Ticket == null && SenderID != AIUtil.GetChatbotID())
+                {
+                    await AISendMessage(ChatroomID, Message, SenderID);
+                }
+                stopwatch.Stop();
+                Console.WriteLine($"SendMessage[{DBUtil.FindUser(SenderID).FirstName}]: ended in {stopwatch.ElapsedMilliseconds} ms");
+                await Task.WhenAll(tasks);
+            }
+            else
+            {
+                // Timeout occurred
+                Console.WriteLine($"DBUtil.SendMessage[{DBUtil.FindUser(SenderID).FirstName}] await timed out.");
+                return;
+            }
             Console.WriteLine($"SendMessage[{DBUtil.FindUser(SenderID).FirstName}]: Message sent!!");
             // await UserSeen(SenderID, ChatroomID);
 
-            var messageDTO = new MessageDTO(DBUtil.GetMessage(message.MessageID)!);
-            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID, false)!);
-            var MembersToInvoke = new List<int>();
             
-            foreach(var member in chatroomDTO.GroupMembers){
-                MembersToInvoke.Add(member.User.UserID);
-            }
-
-            if(chatroomDTO.Ticket != null)
-            {
-                var adminUser = DBUtil.GetAdminUsers();
-                foreach(var user in adminUser){
-                    if(!MembersToInvoke.Contains(user.UserID)){
-                        MembersToInvoke.Add(user.UserID);
-                    }
-                }
-            }
-            foreach(int memberID in MembersToInvoke){
-                if (_connections.TryGetValue(memberID, out var connectionIds)){
-                    foreach (var connectionId in connectionIds)
-                    {
-                        tasks.Add(Clients.Client(connectionId).SendAsync("ReceiveMessage", new {chatroom = chatroomDTO, message = messageDTO}));
-                    }
-                }
-            }
-
-            // Notification System here brotah
-            // if(chatroomDTO.Ticket != null && SenderID != AIUtil.GetChatbotID())
-            // {
-            //     MembersToInvoke.Remove(SenderID);
-            //     NotifyGroup(MembersToInvoke, 2, $"{messageDTO.Sender!.FirstName} sent a Message", messageDTO.MessageContent!, ChatroomID);
-            // }
-
-            if(chatroomDTO.Ticket == null && SenderID != AIUtil.GetChatbotID())
-            {
-                await AISendMessage(ChatroomID, Message, SenderID);
-            }
-            stopwatch.Stop();
-            Console.WriteLine($"SendMessage[{DBUtil.FindUser(SenderID).FirstName}]: ended in {stopwatch.ElapsedMilliseconds} ms");
-            await Task.WhenAll(tasks);
         }
         #region -   AISendMessage
         #endregion

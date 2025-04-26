@@ -5,27 +5,11 @@
         "Actions": ["Created", "Assigned", "Re-Assigned", "In Progress", "Postponed", "Closed", "Unresolved", "Re-opened", "Title", "MainTag", "SubTag", "Priority"],
         "Notification": ["Ticket", "Chatroom", "Rating", "Tag", "General"],
         "Roles": ["Admin", "Staff", "Employee"],
-        "MainTags": ["MaxHub", "Printer", "NOAH"],
+        "MainTags": ["Some Parent Tag"],
         "SubTags": [
             {
-                "Name": "Code not showing",
+                "Name": "Some MainTag",
                 "Parent": 1
-            },
-            {
-                "Name": "Lagging",
-                "Parent": 1
-            },
-            {
-                "Name": "Not listed in computer",
-                "Parent": 2
-            },
-            {
-                "Name": "Not connected",
-                "Parent": 2
-            },
-            {
-                "Name": "Transaction",
-                "Parent": 3
             }
         ]
     }

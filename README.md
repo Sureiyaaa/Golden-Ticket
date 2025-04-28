@@ -23,12 +23,14 @@ Dive deeper into your project details:
 
 ⚠️ Requirements
 ===========
-> .NET - 8.0
-> MySQL Database - 8.0.41
-> Android Studio Koala Feature Drop | 2024.1.2 Patch 1
-> Flutter 3.27.4
-> Dart SDK 3.6.2 (stable)
-
+✔️ .NET - 8.0
+✔️ MySQL Database - 8.0.41
+✔️ Android Studio Koala Feature Drop | 2024.1.2 Patch 1
+✔️ Flutter 3.27.4
+✔️ Dart SDK 3.6.2 (stable)
+✔️ IIS
+ - WebSocket Extension
+✔️ .NET Hosting Bundle
 🚀 Installation
 ===========
 Follow these steps to set up the project locally:

@@ -1266,5 +1266,36 @@ namespace GoldenTicket.Utilities
                 return APIKeyDTOs;
             }
         }
+        public async static Task<APIKeys?> GetAPIKey(int APIKeyID)
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                var apiKey = await ContextUtil.APIKey(APIKeyID, context);
+                if(apiKey != null)
+                {
+                    return apiKey;
+                } else {
+                    Console.WriteLine($"[DBUtil] APIKey with {APIKeyID} ID not found.");
+                    return null;
+                }
+
+            }
+        }
+
+        public async static Task<APIKeys> AddAPIKey(string APIKey, string Notes)
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                var apiKey = new APIKeys
+                {
+                    ApiKey = APIKey,
+                    Notes = Notes
+                };
+                context.ApiKeys.Add(apiKey);
+                await context.SaveChangesAsync();
+
+                return apiKey;
+            }
+        }
     }
 }

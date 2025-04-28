@@ -748,7 +748,30 @@ namespace GoldenTicket.Hubs
         #endregion
 
 
-        #region -   GetAPIKeys
+        #region -   AddAPIKeys
         #endregion
+        public async void AddAPIKey(string APIKey, string Notes)
+        {
+            var newApiKey = await DBUtil.AddAPIKey(APIKey, Notes);
+            var apiKey = await DBUtil.GetAPIKey(newApiKey.APIKeyID);
+            if (apiKey == null)
+            {
+                Console.WriteLine($"[GTHub] Notification with ID {newApiKey.APIKeyID} not found.");
+                return;
+            }
+            var newApiKeyDTO = new APIKeyDTO(apiKey);
+
+            var adminUsers = DBUtil.GetAdminUsers().Where(user => user.Role == "Admin");
+            foreach(var admin in adminUsers)
+            {
+                if (_connections.TryGetValue(admin.UserID, out var connectionIds))
+                {
+                    foreach (var connectionId in connectionIds)
+                    {
+                        await Clients.Client(connectionId).SendAsync("ApiKeyUpdate", new { apikey = newApiKeyDTO} );
+                    }
+                }
+            }
+        }
     }
 }

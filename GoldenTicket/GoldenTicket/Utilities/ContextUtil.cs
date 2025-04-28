@@ -99,6 +99,13 @@ namespace GoldenTicket.Utilities
                 .ToListAsync();
             return APIKeys;
 
+        }public async static Task<APIKeys?> APIKey (int APIKeyID, ApplicationDbContext context)
+        {
+            var APIKeys = await context.ApiKeys
+                .Where(a => a.APIKeyID == APIKeyID)
+                .AsNoTracking()
+                .FirstOrDefaultAsync();
+            return APIKeys;
         }
     }
 }

@@ -286,7 +286,7 @@ namespace GoldenTicket.Utilities
         }
         #endregion
         #region -   UpdateUser
-        public async static Task<User?> UpdateUser(int _userID, string? _username, string? _firstname, string? _middlename, string? _lastname, string? _role, List<string?> _assignedTags) {
+        public async static Task<User?> UpdateUser(int _userID, string? _username, string? _firstname, string? _middlename, string? _lastname, string? _role, List<string?> _assignedTags, bool? _disableAcc) {
             using(var context = new ApplicationDbContext()){
                 var user = context.Users
                     .Include(u => u.Role)
@@ -304,6 +304,8 @@ namespace GoldenTicket.Utilities
                     user.MiddleName = _middlename ?? user.MiddleName;
                     user.LastName = _lastname ?? user.LastName;
                     user.RoleID = roleID!.RoleID;
+                    user.IsDisabled = _disableAcc ?? user.IsDisabled;
+
                     if(_assignedTags != null) 
                     {
                         // Emptys User's assignedTags so that database dont go crazy

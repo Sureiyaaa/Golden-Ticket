@@ -121,9 +121,9 @@ namespace GoldenTicket.Hubs
 
         #region -   UpdateUser
         #endregion
-        public async Task UpdateUser(int _userID, string? _username, string? _firstname, string? _middlename, string? _lastname, string? _role, List<string?> _assignedTags, string? Password)
+        public async Task UpdateUser(int _userID, string? _username, string? _firstname, string? _middlename, string? _lastname, string? _role, List<string?> _assignedTags, string? Password, bool? _disableAcc)
         {
-            var updatedUser = await DBUtil.UpdateUser(_userID, _username, _firstname, _middlename, _lastname, _role, _assignedTags);
+            var updatedUser = await DBUtil.UpdateUser(_userID, _username, _firstname, _middlename, _lastname, _role, _assignedTags, _disableAcc);
             if(updatedUser != null)
             {
                 if (Password != null && Password != ""){
@@ -742,6 +742,12 @@ namespace GoldenTicket.Hubs
                 }
             }
         }
+        #endregion
+        #region API
+        #endregion
+
+
+        #region -   GetAPIKeys
         #endregion
     }
 }

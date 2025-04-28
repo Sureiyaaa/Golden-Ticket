@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:golden_ticket_enterprise/config.dart';
+import 'package:golden_ticket_enterprise/models/hive_session.dart';
 import 'package:provider/provider.dart';
 import 'package:golden_ticket_enterprise/entities/user.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
 
 class EditUserWidget extends StatefulWidget {
   final User user;
+  final HiveSession session;
 
-  const EditUserWidget({super.key, required this.user});
+  const EditUserWidget({super.key, required this.user, required this.session});
 
   @override
   _EditUserWidgetState createState() => _EditUserWidgetState();
@@ -23,6 +25,8 @@ class _EditUserWidgetState extends State<EditUserWidget> {
   String? _selectedRole;
   Map<String, bool> _tagSelectionMap = {};
   bool _isSaving = false;
+  bool _isDisabled = false;
+  bool _isTagsDropdownOpen = false;
 
   List<String> get selectedTags => _selectedRole != 'Employee'
       ? _tagSelectionMap.entries.where((e) => e.value).map((e) => e.key).toList()
@@ -36,6 +40,7 @@ class _EditUserWidgetState extends State<EditUserWidget> {
     _middleNameController.text = widget.user.middleName ?? '';
     _lastNameController.text = widget.user.lastName;
     _selectedRole = widget.user.role;
+    _isDisabled = widget.user.isDisabled;
   }
 
   Future<void> _initializeTags(DataManager dataManager) async {
@@ -72,6 +77,7 @@ class _EditUserWidgetState extends State<EditUserWidget> {
       _lastNameController.text,
       _selectedRole!,
       selectedTags,
+      _isDisabled, // Make sure your signalRService method accepts this!
     );
 
     if (mounted) Navigator.pop(context);
@@ -92,6 +98,11 @@ class _EditUserWidgetState extends State<EditUserWidget> {
           });
         }
 
+        String _selectedTagsSummary() {
+          int selectedCount = _tagSelectionMap.values.where((v) => v).length;
+          if (selectedCount == 0) return 'Assigned Tags';
+          return 'Assigned Tags: $selectedCount selected';
+        }
         return AlertDialog(
           title: const Text("Edit User"),
           content: SizedBox(
@@ -139,20 +150,73 @@ class _EditUserWidgetState extends State<EditUserWidget> {
                       );
                     }).toList(),
                   ),
+                  const SizedBox(height: 10),
                   if (_selectedRole != 'Employee')
                     Column(
-                      children: dataManager.mainTags.map((tag) {
-                        return CheckboxListTile(
-                          title: Text(tag.tagName),
-                          value: _tagSelectionMap[tag.tagName] ?? false,
-                          onChanged: (bool? value) {
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 10),
+                        GestureDetector(
+                          onTap: () {
                             setState(() {
-                              _tagSelectionMap[tag.tagName] = value ?? false;
+                              _isTagsDropdownOpen = !_isTagsDropdownOpen;
                             });
                           },
-                        );
-                      }).toList(),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey),
+                              borderRadius: BorderRadius.circular(8),
+                              color: Colors.white,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  _selectedTagsSummary(),
+                                  style: TextStyle(fontSize: 16),
+                                ),
+                                Icon(
+                                  _isTagsDropdownOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        if (_isTagsDropdownOpen)
+                          Container(
+                            margin: const EdgeInsets.only(top: 4),
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey),
+                              borderRadius: BorderRadius.circular(8),
+                              color: Colors.grey.shade50,
+                            ),
+                            child: Column(
+                              children: dataManager.mainTags.map((tag) {
+                                return CheckboxListTile(
+                                  title: Text(tag.tagName),
+                                  value: _tagSelectionMap[tag.tagName] ?? false,
+                                  onChanged: (bool? value) {
+                                    setState(() {
+                                      _tagSelectionMap[tag.tagName] = value ?? false;
+                                    });
+                                  },
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                      ],
                     ),
+                  if(widget.user.userID != widget.session.user.userID && widget.user.userID != 100000000)CheckboxListTile(
+                    title: const Text("Disabled User"),
+                    value: _isDisabled,
+                    onChanged: (bool? value) {
+                      setState(() {
+                        _isDisabled = value ?? false;
+                      });
+                    },
+                  ),
                 ],
               ),
             ),
@@ -174,4 +238,5 @@ class _EditUserWidgetState extends State<EditUserWidget> {
       },
     );
   }
+
 }

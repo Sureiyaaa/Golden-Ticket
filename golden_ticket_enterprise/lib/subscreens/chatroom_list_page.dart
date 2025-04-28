@@ -90,7 +90,11 @@ class _ChatroomListPageState extends State<ChatroomListPage> {
             heroTag: "chat_request",
             tooltip: widget.session!.user.role == "Employee" ? "Request Chat" : "Add FAQ",
             onPressed: () {
-              dataManager.signalRService.requestChat(widget.session!.user.userID);
+              if(!dataManager.disableRequest) {
+                dataManager.disableRequestButton();
+                dataManager.signalRService.requestChat(
+                    widget.session!.user.userID);
+              }
             },
             child: Icon(Icons.chat),
             backgroundColor: kPrimary,

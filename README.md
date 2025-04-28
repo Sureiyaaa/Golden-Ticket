@@ -1,8 +1,8 @@
-###Overview###
+#Overview
 
 Golden Ticket Enterprise is an advanced, full-stack ticketing system built with Flutter and .NET technologies. This powerful platform is designed to streamline employee support and enhance staff collaboration, providing an intuitive and efficient way to manage employee issues using AI models.
 
-###📚 Description
+📚 Description
 ===========
 Dive deeper into your project details:
 

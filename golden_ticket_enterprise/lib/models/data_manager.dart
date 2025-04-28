@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:golden_ticket_enterprise/entities/apikey.dart';
 import 'package:golden_ticket_enterprise/entities/chatroom.dart';
 import 'package:golden_ticket_enterprise/entities/faq.dart';
 import 'package:golden_ticket_enterprise/entities/notification.dart' as notif;
@@ -22,6 +23,7 @@ class DataManager extends ChangeNotifier {
   List<User> users = [];
   List<String> priorities = [];
   List<Rating> ratings = [];
+  List<ApiKey> apiKeys = [];
   bool isInChatroom = false;
   int? chatroomID = null;
   DataManager({required this.signalRService}) {
@@ -171,6 +173,7 @@ class DataManager extends ChangeNotifier {
     } else {
       users.add(updatedUser);
     }
+    if(updatedUser.isDisabled) closeConnection();
     notifyListeners();
   }
 

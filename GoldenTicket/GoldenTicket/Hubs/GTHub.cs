@@ -84,7 +84,8 @@ namespace GoldenTicket.Hubs
                 status = DBUtil.GetStatuses(),
                 priorities = DBUtil.GetPriorities(),
                 ratings = await DBUtil.GetRatings(),
-                notifications = await DBUtil.GetNotifications(userID)
+                notifications = await DBUtil.GetNotifications(userID),
+                apikeys = role == "Admin" ? [] : await DBUtil.GetAPIKeys()
             });
         }
         #region -   GetAvailableStaff

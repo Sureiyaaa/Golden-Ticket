@@ -2,6 +2,7 @@ using System.Diagnostics;
 using GoldenTicket.Database;
 using GoldenTicket.Entities;
 using GoldenTicket.Models;
+using Hangfire.States;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -1237,5 +1238,33 @@ namespace GoldenTicket.Utilities
             }
         }
         #endregion
+        #region API
+        #endregion
+
+
+        #region -   GetAPIKeys
+        #endregion
+        public async static Task<List<APIKeyDTO>> GetAPIKeys() 
+        {
+            if(debug) Console.WriteLine($"[DBUtil] GetAPIKeys() ran!");
+            var stopwatch = Stopwatch.StartNew();
+            using(var context = new ApplicationDbContext())
+            {
+                var APIKeyDTOs = new List<APIKeyDTO>();
+                
+                var APIKeys = await ContextUtil.APIKeys(context);
+                if(debug) Console.WriteLine($"[DBUtil] GetAPIKeys() data read at: {stopwatch.ElapsedMilliseconds} ms");
+                if(APIKeys != null)
+                {
+                    foreach(var apiKey in APIKeys)
+                    {
+                        APIKeyDTOs.Add(new APIKeyDTO(apiKey));
+                    }
+                }
+                else Console.WriteLine($"[DBUtil] APIKeys table empty, no data found.");
+                if(debug) Console.WriteLine($"[DBUtil] GetAPIKeys sent successfully: {stopwatch.ElapsedMilliseconds} ms");
+                return APIKeyDTOs;
+            }
+        }
     }
 }

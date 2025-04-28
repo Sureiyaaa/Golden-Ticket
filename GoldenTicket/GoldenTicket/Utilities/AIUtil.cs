@@ -63,11 +63,13 @@ namespace GoldenTicket.Utilities
                 var connection = context.Database.GetDbConnection();
                 await connection.OpenAsync();
 
+                string databaseName = connection.Database;
+
                 using var command = connection.CreateCommand();
-                command.CommandText = @"
+                command.CommandText = $@"
                     SELECT COUNT(*) 
                     FROM information_schema.statistics 
-                    WHERE table_schema = 'goldentopper' 
+                    WHERE table_schema = '{databaseName}' 
                     AND table_name = 'tblFAQ' 
                     AND index_type = 'FULLTEXT'
                 ";
@@ -78,9 +80,9 @@ namespace GoldenTicket.Utilities
                 if (exists == 0)
                 {
                     await context.Database.ExecuteSqlRawAsync(@"
-                        ALTER TABLE goldentopper.tblFAQ 
+                        ALTER TABLE `{0}`.`tblFAQ`
                         ADD FULLTEXT (Title, Description, Solution);
-                    ");
+                    ", databaseName);
                     Console.WriteLine("[FullText] Created FULLTEXT index on tblFAQ!");
                 }
                 else
@@ -89,6 +91,7 @@ namespace GoldenTicket.Utilities
                 }
             }
         }
+
 
 
 

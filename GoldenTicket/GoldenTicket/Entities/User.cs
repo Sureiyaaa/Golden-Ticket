@@ -23,7 +23,7 @@ namespace GoldenTicket.Entities
         public Roles? Role { get; set; } = null;
         public string Email { get; set; } = "None Provided";
         public string PhoneNumber { get; set; } = "None Provided";
-        public bool isDisabled { get; set; } = false;
+        public bool IsDisabled { get; set; } = false;
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         public DateTime? lastOnlineAt { get;set; }
 
@@ -38,6 +38,7 @@ namespace GoldenTicket.Entities
         public string? MiddleName { get; set; }
         public string? LastName { get; set; }
         public string? Role {get;set;}
+        public bool IsDisabled {get;set;}
         public List<string>? AssignedTags { get; set; } = new List<string>();
         public DateTime? LastOnlineAt { get; set; }
         public DateTime CreatedAt {get;set;}
@@ -50,6 +51,7 @@ namespace GoldenTicket.Entities
             this.Role = user.Role!.RoleName;
             this.LastOnlineAt = user.lastOnlineAt;
             this.CreatedAt = user.CreatedAt;
+            this.IsDisabled = user.IsDisabled;
             this.AssignedTags = [];
             foreach(var assignedTag in user.AssignedTags){
                 this.AssignedTags.Add(assignedTag.MainTag!.TagName!);

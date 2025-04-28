@@ -150,6 +150,8 @@ public class OpenAIService
 
     private async Task<string> HandleRateLimit(string chatroomID, string userInput, string Prompt, bool isDirect)
     {
+        //var expireDate = new DateTime();
+        
         if (_loopAmount[chatroomID] < ApiConfig.OpenAIKeys!.Count)
         {
             _loopAmount[chatroomID]++;
@@ -160,6 +162,7 @@ public class OpenAIService
                 _apiKeyIndex[chatroomID] = 0;
             }
             _logger.LogWarning("[OpenAIService] Switching API key from API_{OldIndex} to API_{NewIndex}", oldIndex, _apiKeyIndex[chatroomID]);
+            
             _apiCredential = new ApiKeyCredential("Bearer " + _apiConfig.GetOpenAIKey(_apiKeyIndex[chatroomID]));
             _client = new ChatClient("gpt-4o", _apiCredential, _options);
             return await GetAIResponse(chatroomID, userInput, Prompt, isDirect);

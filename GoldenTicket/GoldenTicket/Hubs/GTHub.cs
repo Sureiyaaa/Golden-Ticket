@@ -806,6 +806,44 @@ namespace GoldenTicket.Hubs
         }
         #region -   DeleteApiKey
         #endregion
-        
+        public async void DeleteApiKey(int APIKeyID)
+        {
+            await DBUtil.DeleteAPIKey(APIKeyID);
+            var adminUsers = DBUtil.GetAdminUsers().Where(user => user.Role == "Admin");
+            foreach(var admin in adminUsers)
+            {
+                if (_connections.TryGetValue(admin.UserID, out var connectionIds))
+                {
+                    foreach (var connectionId in connectionIds)
+                    {
+                        await Clients.Client(connectionId).SendAsync("APIKeyRemoved", new { apikey = APIKeyID } );
+                    }
+                }
+            }
+        }
+
+        #region -   APIKeyLimitReach
+        #endregion
+        public async void APIKeyLimitReach(int APIKeyID)
+        {
+            var updatedApiKey = await DBUtil.APIKeyLimitReach(APIKeyID);
+            if (updatedApiKey != null)
+            {
+                var apiKey = await DBUtil.GetAPIKey(APIKeyID);
+                var apiKeyDTO = new APIKeyDTO(apiKey!);
+
+                var adminUsers = DBUtil.GetAdminUsers().Where(user => user.Role == "Admin");
+                foreach(var admin in adminUsers)
+                {
+                    if (_connections.TryGetValue(admin.UserID, out var connectionIds))
+                    {
+                        foreach (var connectionId in connectionIds)
+                        {
+                            await Clients.Client(connectionId).SendAsync("ApiKeyUpdate", new { apikey = apiKeyDTO} );
+                        }
+                    }
+                }
+            }
+        }
     }
 }

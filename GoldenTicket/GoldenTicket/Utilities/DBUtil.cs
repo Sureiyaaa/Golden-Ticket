@@ -1336,5 +1336,24 @@ namespace GoldenTicket.Utilities
                     Console.WriteLine($"[DBUtil] [DeleteAPIKey] APIKey with {APIKeyID} ID not found ");
             }
         }
+        #region -   APIKeyLimitReach
+        #endregion
+        public async static Task<APIKeys?> APIKeyLimitReach(int APIKeyID)
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                var apiKey = await context.ApiKeys.Where(a => a.APIKeyID == APIKeyID).FirstOrDefaultAsync();
+                if(apiKey != null)
+                {
+                    apiKey.LastRateLimit = DateTime.Now;
+                    await context.SaveChangesAsync();
+                    return apiKey;
+                }
+                else {
+                    Console.WriteLine($"[DBUtil] [APIKeyLimitReach] APIKey with {APIKeyID} ID not found ");
+                    return null;
+                }
+            }
+        }
     }
 }

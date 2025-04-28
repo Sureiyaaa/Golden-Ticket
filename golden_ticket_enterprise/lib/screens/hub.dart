@@ -79,8 +79,7 @@ class _HubPageState extends State<HubPage> {
   }
 
   void _handleNotification(notifClass.Notification notification) {
-    print(dm.chatroomID);
-    print(notification.referenceID);
+
     if (notification.notificationType == 'Chatroom' &&
         (dm.isInChatroom && dm.chatroomID == notification.referenceID)) return;
     NotificationOverlay.show(context, message: notification.title, onTap: () {

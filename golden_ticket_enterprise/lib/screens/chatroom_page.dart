@@ -62,6 +62,7 @@ class _ChatroomPageState extends State<ChatroomPage> {
   void dispose(){
     dm.signalRService.removeOnReceiveMessageListener(_handleChatroomMessage);
     dm.exitChatroom(widget.chatroomID);
+    messageFocusNode.dispose();
     super.dispose();
   }
 

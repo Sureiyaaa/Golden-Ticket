@@ -166,7 +166,6 @@ class SignalRService with ChangeNotifier {
       });
   }
   void addRating(int chatroomID, int score, String? feedback)async{
-    print('yes');
     await _hubConnection!.invoke('AddOrUpdateRating', args: [chatroomID, score, feedback]).catchError((err) {
       logger.e("There was an error caught while saving rating", error: err.toString().isEmpty ? "None provided" : err.toString());
     });

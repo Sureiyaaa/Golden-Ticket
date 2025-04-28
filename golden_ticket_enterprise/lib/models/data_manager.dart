@@ -31,7 +31,6 @@ class DataManager extends ChangeNotifier {
   void _initializeSignalR() {
     if (!signalRService.isConnected) {
       signalRService.onConnected = () {
-        print("SignalR Connected! Attaching Events...");
         attachSignalREvents();
       };
 

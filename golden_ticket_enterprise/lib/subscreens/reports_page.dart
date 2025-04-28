@@ -41,9 +41,6 @@ class _ReportsPageState extends State<ReportsPage>
     List<LineColor> lineColor = [];
     return Consumer<DataManager>(
       builder: (context, dataManager, child) {
-        if (dataManager.tickets.isEmpty) {
-          return const Center(child: CircularProgressIndicator());
-        }
         lineColor = [];
         lineColor.add(new LineColor(name: 'Not assigned', color: generateRandomColor()));
         for(var line in dataManager.mainTags)

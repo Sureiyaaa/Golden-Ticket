@@ -23,6 +23,11 @@ Dive deeper into your project details:
 
 ⚠️ Requirements
 ===========
+> .NET - 8.0
+> MySQL Database - 8.0.41
+> Android Studio Koala Feature Drop | 2024.1.2 Patch 1
+> Flutter 3.27.4
+> Dart SDK 3.6.2 (stable)
 
 🚀 Installation
 ===========

@@ -8,7 +8,7 @@ Dive deeper into your project details:
 
 🛠 Tech Stack: Flutter, .NET 8, SignalR, Hive, MySQL Server
 
-#⚡ Key Features:
+⚡ Key Features:
 
 Real-time chat and notifications
 
@@ -22,10 +22,10 @@ GPT4o Large Language Model (LLM)
 
 AI FAQ support
 
-#⚠️ Requirements
+⚠️ Requirements
 
 
-#🚀 Installation
+🚀 Installation
 Follow these steps to set up the project locally:
 
 **1. Clone the repository**
@@ -62,11 +62,11 @@ Restore NuGet packages.
 
 Run database migrations.
 
-#❗After Migrations Open My SQL WorkBench Execute this query
+❗After Migrations Open My SQL WorkBench Execute this query
 - replace the databasename with your databasename
 ```ALTER TABLE databaseName.tblFAQ ADD FULLTEXT(Title, Description, Solution);```
 
-#❗Don't Run your backend server just yet! Flutter application must be setup before launching
+❗Don't Run your backend server just yet! Flutter application must be setup before launching
 
 **4. Setup Flutter App**
 Navigate to the Flutter project directory.
@@ -115,7 +115,7 @@ localhost
 - Publishing Settings as follows (Don't forget to add your connection string):
 ![image](https://github.com/user-attachments/assets/6edad5ca-7837-4514-b00c-f5750f17093f)
 
-#📝 Notes
+📝 Notes
 - ✅ Make sure you have the correct Flutter and .NET SDK versions installed.
 
 - 🛡️ Configure your secret files properly for .NET and Flutter
@@ -128,7 +128,7 @@ localhost
 
 - 💽 If you are deploying on IIS make sure you have the Websocket extension installed otherwise SignalR won't work
 
-#📬 Contact
+📬 Contact
 Feel free to reach out to us if you have questions!
 - 📧 josephvictorrozul@gmail.com (Flutter, .NET related questions)
 - 📧 jhericomedina213@gmail.com (.NET, AI Model related questions)

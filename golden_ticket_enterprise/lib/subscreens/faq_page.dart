@@ -84,7 +84,8 @@ class _FAQPageState extends State<FAQPage> {
             heroTag: "add_faq",
             tooltip: widget.session!.user.role == "Employee" ? "Request Chat" : "Add FAQ",
             onPressed: () {
-              if (widget.session!.user.role == "Employee") {
+              if (widget.session!.user.role == "Employee" && !dataManager.disableRequest) {
+                dataManager.disableRequestButton();
                 dataManager.signalRService.requestChat(widget.session!.user.userID);
               } else {
                 showDialog(
@@ -95,6 +96,7 @@ class _FAQPageState extends State<FAQPage> {
                 );
               }
             },
+
             child: Icon(widget.session!.user.role == "Employee" ? Icons.chat : Icons.add),
             backgroundColor: widget.session!.user.role == "Employee" ? Colors.blueAccent : kPrimary,
           ),

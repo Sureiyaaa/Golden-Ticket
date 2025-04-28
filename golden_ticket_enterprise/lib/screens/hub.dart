@@ -6,6 +6,7 @@ import 'package:golden_ticket_enterprise/entities/chatroom.dart';
 import 'package:golden_ticket_enterprise/entities/main_tag.dart';
 import 'package:golden_ticket_enterprise/entities/notification.dart'
     as notifClass;
+import 'package:golden_ticket_enterprise/entities/user.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
 import 'package:golden_ticket_enterprise/models/notification_overlay.dart';
@@ -14,6 +15,7 @@ import 'package:golden_ticket_enterprise/screens/connectionstate.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:golden_ticket_enterprise/screens/notification_page.dart';
 import 'package:golden_ticket_enterprise/widgets/notification_tile_widget.dart';
+import 'package:golden_ticket_enterprise/widgets/notification_widget.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 
@@ -46,6 +48,7 @@ class _HubPageState extends State<HubPage> {
 
     dm.signalRService.addOnReceiveSupportListener(_handleReceiveSupport);
     dm.signalRService.addOnNotificationListener(_handleNotification);
+    dm.signalRService.addOnUserUpdateListener(_handleUserUpdate);
   }
 
   @override
@@ -62,6 +65,7 @@ class _HubPageState extends State<HubPage> {
   void dispose() {
     log("HubPage disposed: $this");
     dm.signalRService.removeOnNotificationListener(_handleNotification);
+    dm.signalRService.removeOnUserListener(_handleUserUpdate);
     dm.signalRService.removeOnReceiveSupportListener(_handleReceiveSupport);
     super.dispose();
   }
@@ -79,7 +83,6 @@ class _HubPageState extends State<HubPage> {
   }
 
   void _handleNotification(notifClass.Notification notification) {
-
     if (notification.notificationType == 'Chatroom' &&
         (dm.isInChatroom && dm.chatroomID == notification.referenceID)) return;
     NotificationOverlay.show(context, message: notification.title, onTap: () {
@@ -87,6 +90,21 @@ class _HubPageState extends State<HubPage> {
         handleNotificationRedirect(context, dm, widget.session!, notification);
       }
     });
+  }
+
+  void _handleUserUpdate(User user) async{
+    if(user.userID == widget.session!.user.userID && user.isDisabled){
+      var box = Hive.box<HiveSession>('sessionBox');
+      context.go('/login');
+      await box.delete('user'); // Clear session
+      await dm.closeConnection();
+      TopNotification.show(
+        context: context,
+        message: "Your Account has been Disabled!",
+        backgroundColor: Colors.redAccent,
+        duration: Duration(seconds: 2)
+      );
+    }
   }
 
   @override

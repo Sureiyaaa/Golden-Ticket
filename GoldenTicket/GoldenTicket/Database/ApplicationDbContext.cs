@@ -31,7 +31,7 @@ namespace GoldenTicket.Database {
         public DbSet<Rating> Rating { get; set; }
         public DbSet<Priority> Priorities { get; set;}
         public DbSet<AssignedTag> AssignedTags { get; set; }
-        
+        public DbSet<APIKeys> ApiKeys { get; set; }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             ConnectionString = config["ConnectionString"] ?? throw new Exception("Connection String is Invalid");

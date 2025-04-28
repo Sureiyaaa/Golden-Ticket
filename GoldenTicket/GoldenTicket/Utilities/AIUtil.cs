@@ -15,12 +15,13 @@ namespace GoldenTicket.Utilities
         private static PromptService? _promptService;
         private static ILogger<AIUtil>? _logger;
 
-        public static void Initialize(ConfigService config, OpenAIService openAIService, PromptService promptService, ILogger<AIUtil> logger)
+        public static async Task Initialize(ConfigService config, OpenAIService openAIService, PromptService promptService, ILogger<AIUtil> logger)
         {
             _openAIService = openAIService ?? throw new ArgumentNullException(nameof(openAIService));
             _promptService = promptService ?? throw new ArgumentNullException(nameof(promptService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _config = config ?? throw new ArgumentNullException(nameof(config));
+            await InitializeFTIndex();
         }
 
         public static int GetChatbotID() {
@@ -54,6 +55,42 @@ namespace GoldenTicket.Utilities
                 return faqs;
             }
         }
+
+        public static async Task InitializeFTIndex()
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                var connection = context.Database.GetDbConnection();
+                await connection.OpenAsync();
+
+                using var command = connection.CreateCommand();
+                command.CommandText = @"
+                    SELECT COUNT(*) 
+                    FROM information_schema.statistics 
+                    WHERE table_schema = 'goldentopper' 
+                    AND table_name = 'tblFAQ' 
+                    AND index_type = 'FULLTEXT'
+                ";
+
+                var result = await command.ExecuteScalarAsync();
+                int exists = Convert.ToInt32(result);
+
+                if (exists == 0)
+                {
+                    await context.Database.ExecuteSqlRawAsync(@"
+                        ALTER TABLE goldentopper.tblFAQ 
+                        ADD FULLTEXT (Title, Description, Solution);
+                    ");
+                    Console.WriteLine("[FullText] Created FULLTEXT index on tblFAQ!");
+                }
+                else
+                {
+                    Console.WriteLine("[FullText] FULLTEXT index already exists on tblFAQ, skipping...");
+                }
+            }
+        }
+
+
 
         public static async Task<string> GetAIResponseAsync(string _id, string _message, string _promptType = "GoldenTicket", string _additional = "")
         {

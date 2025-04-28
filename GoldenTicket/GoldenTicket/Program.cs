@@ -32,8 +32,7 @@ var openAIService = serviceProvider.GetRequiredService<OpenAIService>();
 var promptService = serviceProvider.GetRequiredService<PromptService>();
 var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
 
-AIUtil.Initialize(configService, openAIService, promptService, loggerFactory.CreateLogger<AIUtil>());
-
+await AIUtil.Initialize(configService, openAIService, promptService, loggerFactory.CreateLogger<AIUtil>());
 // Configure the HTTP request pipeline.
 
 
@@ -82,5 +81,5 @@ app.MapHub<GTHub>("/GTHub");
 // app.MapControllerRoute(
 //     name: "default",
 //     pattern: "{controller=Home}/{action=Index}/{id?}");
-
+// await AIUtil.InitializeFTIndex(app.Services);
 app.Run();

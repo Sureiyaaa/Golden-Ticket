@@ -64,6 +64,7 @@ Run database migrations.
 
 ❗After Migrations Open My SQL WorkBench Execute this query
 >  replace the databasename with your databasename
+
 ```ALTER TABLE databaseName.tblFAQ ADD FULLTEXT(Title, Description, Solution);```
 
 ❗Don't Run your backend server just yet! Flutter application must be setup before launching

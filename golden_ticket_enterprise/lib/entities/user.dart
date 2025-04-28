@@ -6,12 +6,13 @@ class User {
   String? middleName = "";
   final String lastName;
   final String role;
+  final bool isDisabled;
   String? email = "None Provided";
   String? phoneNumber = "None Provided";
   final DateTime? lastOnlineAt;
   List<String>? assignedTags = [];
 
-  User({required this.userID, required this.username, required this.firstName, this.assignedTags, this.middleName, required this.lastName, required this.role, this.lastOnlineAt, this.email, this.phoneNumber});
+  User({required this.userID, required this.username, required this.firstName, this.assignedTags, this.middleName, required this.lastName, required this.role, required this.isDisabled, this.lastOnlineAt, this.email, this.phoneNumber});
 
   factory User.fromJson(Map<String, dynamic> json) {
     dynamic userData = json;
@@ -29,6 +30,7 @@ class User {
         lastOnlineAt: userData['lastOnlineAt'],
         email: userData['email'] ?? "None provided",
         phoneNumber: userData['phoneNumber'] ?? "None provided",
+        isDisabled: userData['isDisabled'],
         assignedTags: assigned
     );
   }

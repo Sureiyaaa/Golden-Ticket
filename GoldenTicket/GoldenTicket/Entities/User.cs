@@ -23,6 +23,7 @@ namespace GoldenTicket.Entities
         public Roles? Role { get; set; } = null;
         public string Email { get; set; } = "None Provided";
         public string PhoneNumber { get; set; } = "None Provided";
+        public bool isDisabled { get; set; } = false;
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         public DateTime? lastOnlineAt { get;set; }
 

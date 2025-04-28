@@ -12,7 +12,6 @@ namespace GoldenTicket.Entities
         public string? ApiKey {get; set;} = "";
         [Required]
         public string? Notes { get; set; } = "No note provided";
-        [Required]
         public DateTime? LastRateLimit { get; set; } = null;
     }
     public class APIKeyDTO{

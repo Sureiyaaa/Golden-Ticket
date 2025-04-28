@@ -80,7 +80,7 @@ namespace GoldenTicket.Utilities
                 if (exists == 0)
                 {
                     await context.Database.ExecuteSqlRawAsync(@"
-                        ALTER TABLE `{goldentopper}`.`tblFAQ`
+                        ALTER TABLE `goldentopper`.`tblFAQ`
                         ADD FULLTEXT (Title, Description, Solution);
                     ");
                     Console.WriteLine("[FullText] Created FULLTEXT index on tblFAQ!");

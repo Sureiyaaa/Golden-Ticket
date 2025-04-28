@@ -39,6 +39,7 @@ cd your-repo
 **2. Setup secret.json for .NET Project**
 
 GoldenTicket/Config/secret.json Example
+> OpenAIKeys are the Github Access Tokens
 ```json
 {
     "OpenAIKey": 

@@ -1,13 +1,13 @@
 
-📄 Overview
+#📄 Overview
 Golden Ticket Enterprise is an advanced, full-stack ticketing system built with Flutter and .NET technologies. This powerful platform is designed to streamline employee support and enhance staff collaboration, providing an intuitive and efficient way to manage employee issues using AI models.
 
-📚 Description
+#📚 Description
 Dive deeper into your project details:
 
 🛠 Tech Stack: Flutter, .NET 8, SignalR, Hive, MySQL Server
 
-⚡ Key Features:
+#⚡ Key Features:
 
 Real-time chat and notifications
 
@@ -21,20 +21,20 @@ GPT4o Large Language Model (LLM)
 
 AI FAQ support
 
-⚠️ Requirements
+#⚠️ Requirements
 
 
-🚀 Installation
+#🚀 Installation
 Follow these steps to set up the project locally:
 
-1. Clone the repository
+**1. Clone the repository**
 bash
 Copy
 Edit
 git clone https://github.com/your-username/your-repo.git
 cd your-repo
 
-2. Setup secret.json for .NET Project
+**2. Setup secret.json for .NET Project**
 
 GoldenTicket/Config/secret.json Example
 ```json
@@ -53,21 +53,21 @@ GoldenTicket/Config/secret.json Example
 }
 ```
 
-3. Setup Backend
+**3. Setup Backend**
 Navigate to the server project.
 
 Restore NuGet packages.
 
 Run database migrations.
 
-❗After Migrations Open My SQL WorkBench Execute this query
-# replace the databasename with your databasename
+#❗After Migrations Open My SQL WorkBench Execute this query
+- replace the databasename with your databasename
 ```
 ALTER TABLE databaseName.tblFAQ ADD FULLTEXT(Title, Description, Solution);
 ```
-❗Don't Run your backend server just yet! Flutter application must be setup before launching
+#❗Don't Run your backend server just yet! Flutter application must be setup before launching
 
-4. Setup Flutter App
+**4. Setup Flutter App**
 Navigate to the Flutter project directory.
 
 **Setup your secret file**
@@ -113,21 +113,21 @@ localhost
 - Publishing Settings as follows (Don't forget to add your connection string):
 ![image](https://github.com/user-attachments/assets/6edad5ca-7837-4514-b00c-f5750f17093f)
 
-📝 Notes
-✅ Make sure you have the correct Flutter and .NET SDK versions installed.
+#📝 Notes
+- ✅ Make sure you have the correct Flutter and .NET SDK versions installed.
 
-🛡️ Configure your secret files properly for .NET and Flutter
+- 🛡️ Configure your secret files properly for .NET and Flutter
 
-⚡ Deployment Settings provided below.
+- ⚡ Deployment Settings provided below.
 
-🐛 If you encounter issues, check the common problems in the Issues section or create a new one.
+- 🐛 If you encounter issues, check the common problems in the Issues section or create a new one.
 
-🔥 Full-text search is enabled for FAQ fields (Title, Description, Solution).
+- 🔥 Full-text search is enabled for FAQ fields (Title, Description, Solution).
 
-💽 If you are deploying on IIS make sure you have the Websocket extension installed otherwise SignalR won't work
+- 💽 If you are deploying on IIS make sure you have the Websocket extension installed otherwise SignalR won't work
 
-📬 Contact
+#📬 Contact
 Feel free to reach out to us if you have questions!
-📧 josephvictorrozul@gmail.com (Flutter, .NET related questions)
-📧 jhericomedina213@gmail.com (.NET, AI Model related questions)
+- 📧 josephvictorrozul@gmail.com (Flutter, .NET related questions)
+- 📧 jhericomedina213@gmail.com (.NET, AI Model related questions)
 

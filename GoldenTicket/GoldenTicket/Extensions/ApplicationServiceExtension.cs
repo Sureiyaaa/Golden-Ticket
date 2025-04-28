@@ -52,10 +52,6 @@ public static class ApplicationServiceExtensions
     //         "GoldenTicket",
     //         (policy) => policy
     //             .WithOrigins(
-    //                 "http://localhost:8000",
-    //                 "https://localhost:8000",
-    //                 "http://172.20.20.71:8000",
-    //                 "https://172.20.20.71:8001",
     //                 "http://172.20.20.71",          // ✅ ADD THIS
     //                 "http://localhost"              // ✅ and this (if testing from localhost:80)
     //             )
@@ -73,10 +69,6 @@ public static class ApplicationServiceExtensions
         ));
         string flutterWebPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "app");
         services.AddSingleton<IFileProvider>(new PhysicalFileProvider(flutterWebPath));
-
-        // // Define flutter web build file provider
-        // string flutterWebPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "app");
-        // services.AddSingleton<IFileProvider>(new PhysicalFileProvider(flutterWebPath));
 
         return services;
     }

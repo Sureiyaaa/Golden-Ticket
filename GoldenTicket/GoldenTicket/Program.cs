@@ -24,7 +24,6 @@ builder.Services.Configure<AppConfig>(builder.Configuration.GetSection("AppConfi
 builder.Services.AddApplicationServices(builder.Configuration);
 
 var app = builder.Build();
-app.UseCors("GoldenTicket");
 
 var serviceProvider = app.Services;
 var configService = serviceProvider.GetRequiredService<ConfigService>();
@@ -32,12 +31,11 @@ var openAIService = serviceProvider.GetRequiredService<OpenAIService>();
 var promptService = serviceProvider.GetRequiredService<PromptService>();
 var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
 
-await AIUtil.Initialize(configService, openAIService, promptService, loggerFactory.CreateLogger<AIUtil>());
 // Configure the HTTP request pipeline.
-
+await AIUtil.Initialize(configService, openAIService, promptService, loggerFactory.CreateLogger<AIUtil>());
 
 //app.UseHangfireDashboard();
-app.UseAuthorization();
+
 
 HangfireExtensions.UseHangfire(app);
 using (var scope = app.Services.CreateScope())
@@ -53,6 +51,7 @@ app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "app"))
 });
+
 
 app.Use(async (context, next) =>
 {
@@ -71,15 +70,25 @@ if (!app.Environment.IsDevelopment())
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+
 // app.UseHttpsRedirection();
 //app.UseStaticFiles();
-app.MapControllers();
+// 🔧 Add this BEFORE mapping endpoints
 app.UseRouting();
 
+// ✅ NOW move CORS here, AFTER UseRouting
+app.UseCors("GoldenTicket");
+
+app.UseAuthorization();
+
+// 🔧 Now map controllers and SignalR hubs
+app.MapControllers();
 app.MapHub<GTHub>("/GTHub");
+//.RequireCors("GoldenTicket");
+
 
 // app.MapControllerRoute(
 //     name: "default",
 //     pattern: "{controller=Home}/{action=Index}/{id?}");
-// await AIUtil.InitializeFTIndex(app.Services);
+
 app.Run();

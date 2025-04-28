@@ -10,23 +10,22 @@ Dive deeper into your project details:
 🛠 Tech Stack: Flutter, .NET 8, SignalR, Hive, MySQL Server
 
 ⚡ Key Features:
+===========
+- Real-time data updates
 
-Real-time chat and notifications
+- Ticket management system
 
-Ticket management system
+- Reporting and analytics
 
-Reporting and analytics
+- GPT4o Large Language Model (LLM) 
 
-Role-based access control
-
-GPT4o Large Language Model (LLM) 
-
-AI FAQ support
+- AI FAQ support
 
 ⚠️ Requirements
-
+===========
 
 🚀 Installation
+===========
 Follow these steps to set up the project locally:
 
 **1. Clone the repository**
@@ -64,7 +63,7 @@ Restore NuGet packages.
 Run database migrations.
 
 ❗After Migrations Open My SQL WorkBench Execute this query
-- replace the databasename with your databasename
+>  replace the databasename with your databasename
 ```ALTER TABLE databaseName.tblFAQ ADD FULLTEXT(Title, Description, Solution);```
 
 ❗Don't Run your backend server just yet! Flutter application must be setup before launching
@@ -102,14 +101,17 @@ flutter build web -o C:/Path/To/Your/wwwroot/app
 
 
 📈 Running the Application
+===========
 Once all setup is done you can now you can run your .NET Project
 dotnet watch
 
 🔓 Accessing your application (locally)
+===========
 To access web application go to any browser of your choice and type the url
 localhost
 
 📦 Publishing
+===========
 ❗Before Publishing the .NET Project as Folder make sure:
 - Flutter application's secret is configured and built for the server IP
 - Publish as Folder
@@ -117,6 +119,7 @@ localhost
 ![image](https://github.com/user-attachments/assets/6edad5ca-7837-4514-b00c-f5750f17093f)
 
 📝 Notes
+===========
 - ✅ Make sure you have the correct Flutter and .NET SDK versions installed.
 
 - 🛡️ Configure your secret files properly for .NET and Flutter
@@ -130,6 +133,7 @@ localhost
 - 💽 If you are deploying on IIS make sure you have the Websocket extension installed otherwise SignalR won't work
 
 📬 Contact
-Feel free to reach out to us if you have questions!
+===========
+> Feel free to reach out to us if you have questions!
 - 📧 josephvictorrozul@gmail.com (Flutter, .NET related questions)
 - 📧 jhericomedina213@gmail.com (.NET, AI Model related questions)

@@ -17,7 +17,11 @@ namespace GoldenTicket.Hubs
         public static bool debug = false;
 
         private static readonly ConcurrentDictionary<int, ConcurrentBag<string>> _connections = new ConcurrentDictionary<int,ConcurrentBag <string>>();
-       
+
+        // public overide async Task OnReconnectAsync(Exception? exception)
+        // {
+            
+        // }
         #region -   OnDisconnectedAsync
         #endregion
         public override async Task OnDisconnectedAsync(Exception? exception)
@@ -773,5 +777,35 @@ namespace GoldenTicket.Hubs
                 }
             }
         }
+        #region -   UpdateApiKey
+        #endregion
+        public async void UpdateAPIKey(int APIKeyID, string APIKey, string Notes)
+        {
+            var updatedApiKey = await DBUtil.UpdateAPIKey(APIKeyID, APIKey, Notes);
+
+            if(updatedApiKey != null)
+            {
+                var apiKey = await DBUtil.GetAPIKey(updatedApiKey.APIKeyID);
+                var apiKeyDTO = new APIKeyDTO(apiKey!);
+                var adminUsers = DBUtil.GetAdminUsers().Where(user => user.Role == "Admin");
+                foreach(var admin in adminUsers)
+                {
+                    if (_connections.TryGetValue(admin.UserID, out var connectionIds))
+                    {
+                        foreach (var connectionId in connectionIds)
+                        {
+                            await Clients.Client(connectionId).SendAsync("ApiKeyUpdate", new { apikey = apiKeyDTO} );
+                        }
+                    }
+                }
+            }
+            else
+            {
+                Console.WriteLine($"[GTHub] cannot find APIKey with {APIKeyID} ID.");
+            }
+        }
+        #region -   DeleteApiKey
+        #endregion
+        
     }
 }

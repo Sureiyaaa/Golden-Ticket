@@ -1266,6 +1266,8 @@ namespace GoldenTicket.Utilities
                 return APIKeyDTOs;
             }
         }
+        #region -   GetAPIKey
+        #endregion
         public async static Task<APIKeys?> GetAPIKey(int APIKeyID)
         {
             using (var context = new ApplicationDbContext())
@@ -1281,7 +1283,8 @@ namespace GoldenTicket.Utilities
 
             }
         }
-
+        #region -   AddAPIKey
+        #endregion
         public async static Task<APIKeys> AddAPIKey(string APIKey, string Notes)
         {
             using (var context = new ApplicationDbContext())
@@ -1295,6 +1298,42 @@ namespace GoldenTicket.Utilities
                 await context.SaveChangesAsync();
 
                 return apiKey;
+            }
+        }
+        #region -   UpdateAPIKey
+        #endregion
+        public async static Task<APIKeys?> UpdateAPIKey(int APIKeyID, string? APIKey, string? Notes)
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                var apiKey = await context.ApiKeys.Where(a => a.APIKeyID == APIKeyID).FirstOrDefaultAsync();
+                
+                if(apiKey != null)
+                {
+                    apiKey.ApiKey = APIKey ?? apiKey.ApiKey;
+                    apiKey.Notes = Notes ?? apiKey.Notes;
+                    await context.SaveChangesAsync();
+                    return apiKey;
+                } else {
+                    Console.WriteLine($"[DBUtil] [UpdateAPIKey] APIKey with {APIKeyID} ID not found ");
+                    return null;
+                }
+            }
+        }
+        #region -   DeleteAPIKey
+        #endregion
+        public async static Task DeleteAPIKey(int APIKeyID)
+        {
+            using(var context = new ApplicationDbContext())
+            {
+                var apiKey = await context.ApiKeys.Where(a => a.APIKeyID == APIKeyID).FirstOrDefaultAsync();
+                if(apiKey != null)
+                {
+                    context.ApiKeys.Remove(apiKey);
+                    await context.SaveChangesAsync();
+                }
+                else 
+                    Console.WriteLine($"[DBUtil] [DeleteAPIKey] APIKey with {APIKeyID} ID not found ");
             }
         }
     }

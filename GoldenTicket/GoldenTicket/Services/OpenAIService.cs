@@ -13,9 +13,10 @@ namespace OpenAIApp.Services;
 
 public class OpenAIService
 {
-    private ChatClient _client;
-    private ApiKeyCredential _apiCredential;
+    private ChatClient? _client;
+    private ApiKeyCredential? _apiCredential;
     private OpenAIClientOptions _options;
+    private APIKeyDTO? _currentKey;
     private Dictionary<string, int> _apiKeyIndex = new();
     private Dictionary<string, int> _loopAmount = new();
     private readonly Dictionary<string, List<ChatMessage>> clientMessages = new(); // Per-client storage
@@ -43,14 +44,24 @@ public class OpenAIService
         };
 
         _logger.LogInformation("[OpenAIService] Using Base URL: {BaseUrl}", baseUrl);
-        _apiCredential = new ApiKeyCredential("Bearer " + _apiConfig.GetOpenAIKey(0));
-        _client = new ChatClient("gpt-4o", _apiCredential, _options);
-        
+        Initialize();
         PopulateMessages();
+    }
+
+    public async void Initialize()
+    {
+        if (_client == null || _apiCredential == null)
+        {
+            _currentKey = await _apiConfig.GetOpenAIKey();
+            _apiCredential = new ApiKeyCredential("Bearer " + _currentKey.APIKey);
+            _client = new ChatClient("gpt-4o", _apiCredential, _options);
+            Console.WriteLine($"[OpenAIService] Bearer {_currentKey.APIKey}");
+        }
     }
 
     public async Task<string> GetAIResponse(string chatroomID, string userInput, string Prompt, bool isDirect = false)
     {
+        
         if (!clientMessages.ContainsKey(chatroomID))
         {
             clientMessages[chatroomID] = new List<ChatMessage>(); // Initialize storage for this client
@@ -61,7 +72,7 @@ public class OpenAIService
         }
         if (!_apiKeyIndex.ContainsKey(chatroomID))
         {
-            _apiKeyIndex[chatroomID] = 0;
+            _apiKeyIndex[chatroomID] = _currentKey!.APIKeyID!.Value;
         }
 
         List<ChatMessage> messages = clientMessages[chatroomID];
@@ -92,7 +103,7 @@ public class OpenAIService
 
         try
         {
-            var response = await _client.CompleteChatAsync(!isDirect ? messages : directMsg, requestOptions, cts.Token);
+            var response = await _client!.CompleteChatAsync(!isDirect ? messages : directMsg, requestOptions, cts.Token);
 
             // DEBUG
             if(debug) foreach (var message in messages)
@@ -132,6 +143,7 @@ public class OpenAIService
         {
             _logger.LogWarning($"[OpenAIService][catch 2] {ex.Message}");
             _logger.LogWarning("[OpenAIService] Request timeout detected. Possible rate limit reached. Trying to change API key...");
+            await _apiConfig.GetApiID(_apiCredential!.ToString()!);
             return await HandleRateLimit(chatroomID, userInput, Prompt, isDirect);
         }
         catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
@@ -155,15 +167,14 @@ public class OpenAIService
         if (_loopAmount[chatroomID] < ApiConfig.OpenAIKeys!.Count)
         {
             _loopAmount[chatroomID]++;
-            int oldIndex = _apiKeyIndex[chatroomID];
-            _apiKeyIndex[chatroomID]++;
-            if(_apiKeyIndex[chatroomID] > ApiConfig.OpenAIKeys!.Count - 1)
-            {
-                _apiKeyIndex[chatroomID] = 0;
-            }
-            _logger.LogWarning("[OpenAIService] Switching API key from API_{OldIndex} to API_{NewIndex}", oldIndex, _apiKeyIndex[chatroomID]);
+            int oldID = _apiKeyIndex[chatroomID];
+            await DBUtil.APIKeyLimitReach(oldID);
+            _apiKeyIndex[chatroomID] = await _apiConfig.GetLeastUsedAPI(oldID);
+            _currentKey = await _apiConfig.GetOpenAIKey(_apiKeyIndex[chatroomID]);
+
+            _logger.LogWarning("[OpenAIService] Switching API key from API_{OldID} to API_{NewID}", oldID, _apiKeyIndex[chatroomID]);
             
-            _apiCredential = new ApiKeyCredential("Bearer " + _apiConfig.GetOpenAIKey(_apiKeyIndex[chatroomID]));
+            _apiCredential = new ApiKeyCredential("Bearer " + _currentKey);
             _client = new ChatClient("gpt-4o", _apiCredential, _options);
             return await GetAIResponse(chatroomID, userInput, Prompt, isDirect);
         }

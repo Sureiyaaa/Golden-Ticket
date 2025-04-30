@@ -1,25 +1,53 @@
-﻿namespace GoldenTicket.Services;
+﻿using GoldenTicket.Entities;
+using GoldenTicket.Utilities;
+namespace GoldenTicket.Services;
 
 public class ApiConfig
 {
-    public static List<string>? OpenAIKeys { get; private set; }
-    public ApiConfig(IConfiguration configuration)
-    {
-        // Load API keys from "Config/secret.json"
-        OpenAIKeys = configuration.GetSection("OpenAIKey").Get<List<string>>() ?? throw new Exception("[ERROR] Missing OpenAIKey in secret.json");
+    public static List<APIKeyDTO>? OpenAIKeys;
 
-        if (OpenAIKeys.Count == 0)
-            throw new Exception("[ERROR] OpenAIKey array is empty in secret.json");
+    public async Task<APIKeyDTO> GetOpenAIKey(int ID = 0)
+    {
+        OpenAIKeys = await DBUtil.GetAPIKeys();
+        if (ID == 0)
+            ID = await GetLeastUsedAPI();
+
+        if (OpenAIKeys == null || OpenAIKeys.Count == 0)
+            throw new InvalidOperationException($"[ApiConfig] [ERROR] OpenAIKeys is not initialized or is empty. (ID = {ID})");
+
+        return OpenAIKeys.FirstOrDefault(api => api.APIKeyID == ID)!;
     }
-
-    public string GetOpenAIKey(int index = 0)
+    public async Task<int> GetLeastUsedAPI(int lastID = 0)
     {
+        OpenAIKeys = await DBUtil.GetAPIKeys();
+        APIKeyDTO leastUsedKeyEntity;
+
+        if (OpenAIKeys == null || OpenAIKeys.Count == 0)
+            throw new InvalidOperationException("[ApiConfig] [ERROR] OpenAIKeys is not initialized or is empty.");
+        if (lastID != 0)
+            leastUsedKeyEntity = OpenAIKeys.OrderBy(key => key.LastRateLimit).FirstOrDefault(key => key.APIKeyID != lastID)!;
+        else
+            leastUsedKeyEntity = OpenAIKeys.OrderBy(key => key.LastRateLimit).FirstOrDefault()!;
+
+        if (leastUsedKeyEntity == null || !leastUsedKeyEntity.APIKeyID.HasValue)
+            throw new InvalidOperationException("[ApiConfig] [ERROR] Unable to determine the least used API key.");
+
+        int leastUsedKey = leastUsedKeyEntity.APIKeyID.Value;
+        return leastUsedKey;
+    }
+    public async Task<int> GetApiID(string _apiCredential)
+    {
+        OpenAIKeys = await DBUtil.GetAPIKeys();
+
         if (OpenAIKeys == null || OpenAIKeys.Count == 0)
             throw new InvalidOperationException("[ApiConfig] [ERROR] OpenAIKeys is not initialized or is empty.");
 
-        if (index < 0 || index >= OpenAIKeys.Count)
-            throw new IndexOutOfRangeException($"[ApiConfig] [ERROR] Invalid OpenAIKey index: {index}");
+        var apiKey = OpenAIKeys.FirstOrDefault(a => a.APIKey == _apiCredential);
 
-        return OpenAIKeys[index];
+        if (apiKey == null || !apiKey.APIKeyID.HasValue)
+            throw new InvalidOperationException("[ApiConfig] [ERROR] API key not found or APIKeyID is null.");
+
+        int apiID = apiKey.APIKeyID.Value;
+        return apiID;
     }
 }

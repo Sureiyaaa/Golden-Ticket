@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:golden_ticket_enterprise/entities/chatroom.dart';
 import 'package:golden_ticket_enterprise/entities/group_member.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
-import 'package:golden_ticket_enterprise/models/signalr_service.dart';
+import 'package:golden_ticket_enterprise/models/signalr/signalr_service.dart';
 import 'package:golden_ticket_enterprise/models/string_utils.dart';
 import 'package:golden_ticket_enterprise/models/time_utils.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
@@ -42,16 +42,7 @@ class _ChatroomListPageState extends State<ChatroomListPage> {
   Widget build(BuildContext context) {
     return Consumer<DataManager>(
       builder: (context, dataManager, child) {
-        dataManager.signalRService.onMaximumChatroom = () {
-          TopNotification.show(
-            context: context,
-            message: "Maximum Chatroom has been reached",
-            backgroundColor: Colors.redAccent,
-            duration: Duration(seconds: 2),
-            textColor: Colors.white,
-            onTap: () => TopNotification.dismiss(),
-          );
-        };
+
         dataManager.signalRService.onReceiveSupport = (chatroom) {
           openChatroom(context, widget.session!, dataManager, chatroom.chatroomID);
         };

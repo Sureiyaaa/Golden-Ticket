@@ -116,7 +116,7 @@ class _UserManagementPageState extends State<UserManagementPage> {
                 onPressed: () {
                   showDialog(
                     context: context,
-                    builder: (context) => EditUserWidget(user: user),
+                    builder: (context) => EditUserWidget(user: user, session: widget.session!,),
                   );
                 },
               ),

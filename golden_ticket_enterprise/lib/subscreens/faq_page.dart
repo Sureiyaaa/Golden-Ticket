@@ -52,17 +52,6 @@ class _FAQPageState extends State<FAQPage> {
     return Consumer<DataManager>(
       builder: (context, dataManager, child) {
 
-        dataManager.signalRService.onMaximumChatroom = () {
-          TopNotification.show(
-            context: context,
-            message: "Maximum Chatroom has been reached",
-            backgroundColor: Colors.redAccent,
-            duration: Duration(seconds: 2),
-            textColor: Colors.white,
-            onTap: () => TopNotification.dismiss(),
-          );
-        };
-
         List<FAQ> filteredFAQs = dataManager.faqs.where((faq) {
           bool matchesSearch = searchQuery.isEmpty || faq.title.toLowerCase().contains(searchQuery.toLowerCase());
           bool matchesMainTag = selectedMainTag == "All" || faq.mainTag?.tagName == selectedMainTag;

@@ -10,7 +10,7 @@ import 'package:golden_ticket_enterprise/entities/user.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
 import 'package:golden_ticket_enterprise/models/notification_overlay.dart';
-import 'package:golden_ticket_enterprise/models/signalr_service.dart';
+import 'package:golden_ticket_enterprise/models/signalr/signalr_service.dart';
 import 'package:golden_ticket_enterprise/screens/connectionstate.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:golden_ticket_enterprise/screens/notification_page.dart';
@@ -49,6 +49,17 @@ class _HubPageState extends State<HubPage> {
     dm.signalRService.addOnReceiveSupportListener(_handleReceiveSupport);
     dm.signalRService.addOnNotificationListener(_handleNotification);
     dm.signalRService.addOnUserUpdateListener(_handleUserUpdate);
+    dm.signalRService.onMaximumChatroom = () {
+      dm.enableRequestButton();
+      TopNotification.show(
+        context: context,
+        message: "Maximum Chatroom has been reached",
+        backgroundColor: Colors.redAccent,
+        duration: Duration(seconds: 2),
+        textColor: Colors.white,
+        onTap: () => TopNotification.dismiss(),
+      );
+    };
   }
 
   @override
@@ -63,7 +74,6 @@ class _HubPageState extends State<HubPage> {
 
   @override
   void dispose() {
-    log("HubPage disposed: $this");
     dm.signalRService.removeOnNotificationListener(_handleNotification);
     dm.signalRService.removeOnUserListener(_handleUserUpdate);
     dm.signalRService.removeOnReceiveSupportListener(_handleReceiveSupport);
@@ -259,7 +269,7 @@ class _HubPageState extends State<HubPage> {
                 _buildDrawerItem(Icons.list, "Tickets", 2),
                 _buildDrawerItem(Icons.question_mark, "FAQ", 3),
                 if (widget.session?.user.role != "Employee")
-                  _buildDrawerItem(Icons.show_chart, "Reports", 4),
+                  _buildDrawerItem(Icons.stacked_bar_chart, "Reports", 4),
                 if (widget.session?.user.role == "Admin")
                   _buildDrawerItem(Icons.person_outline, "User Management", 5),
                 if (widget.session?.user.role == "Admin")

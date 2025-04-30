@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:golden_ticket_enterprise/entities/rating.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
-import 'package:golden_ticket_enterprise/models/signalr_service.dart';
+import 'package:golden_ticket_enterprise/models/signalr/signalr_service.dart';
 import 'package:golden_ticket_enterprise/widgets/chatroom_tile.dart';
 import 'package:intl/intl.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';

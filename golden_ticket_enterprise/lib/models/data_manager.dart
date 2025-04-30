@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:golden_ticket_enterprise/entities/apikey.dart';
 import 'package:golden_ticket_enterprise/entities/chatroom.dart';
 import 'package:golden_ticket_enterprise/entities/faq.dart';
 import 'package:golden_ticket_enterprise/entities/notification.dart' as notif;
@@ -22,7 +23,9 @@ class DataManager extends ChangeNotifier {
   List<User> users = [];
   List<String> priorities = [];
   List<Rating> ratings = [];
+  List<ApiKey> apiKeys = [];
   bool isInChatroom = false;
+  bool disableRequest = false;
   int? chatroomID = null;
   DataManager({required this.signalRService}) {
     _initializeSignalR();
@@ -31,7 +34,6 @@ class DataManager extends ChangeNotifier {
   void _initializeSignalR() {
     if (!signalRService.isConnected) {
       signalRService.onConnected = () {
-        print("SignalR Connected! Attaching Events...");
         attachSignalREvents();
       };
 
@@ -94,14 +96,25 @@ class DataManager extends ChangeNotifier {
       updateUsers(updatedUsers);
     };
 
-    signalRService.onUserUpdate = (updatedUser){
-      updateUser(updatedUser);
-    };
+    signalRService.addOnUserUpdateListener(updateUser);
+
     signalRService.onRatingsUpdate = (updatedRatings){
       updateRatings(updatedRatings);
     };
     signalRService.onRatingUpdate = (updatedRating){
       updateRating(updatedRating);
+    };
+
+    signalRService.onAPIKeysUpdate = (updatedAPIKeys){
+      updateAPIKeys(updatedAPIKeys);
+    };
+
+    signalRService.onAPIKeyUpdate = (updatedAPIKey){
+      updateAPIKey(updatedAPIKey);
+    };
+
+    signalRService.onAPIKeyRemoved = (removedAPIKey){
+      removeAPIKey(removedAPIKey);
     };
   }
   void updateNotifications(List<notif.Notification> updatedNotifications){
@@ -133,6 +146,10 @@ class DataManager extends ChangeNotifier {
   }
   void updateMainTags(List<MainTag> updatedTags) {
     mainTags = updatedTags;
+    notifyListeners();
+  }
+  void updateAPIKeys(List<ApiKey> updatedAPIKeys) {
+    apiKeys = updatedAPIKeys;
     notifyListeners();
   }
   void updatePriorities(List<String> updatedPriorities){
@@ -172,6 +189,17 @@ class DataManager extends ChangeNotifier {
     } else {
       users.add(updatedUser);
     }
+
+    notifyListeners();
+  }
+  void updateAPIKey(ApiKey apiKey) {
+    int index = apiKeys.indexWhere((c) => c.apiKeyID == apiKey.apiKeyID);
+    if (index != -1) {
+      apiKeys[index] = apiKey; // Update ticket
+    } else {
+      apiKeys.add(apiKey);
+    }
+
     notifyListeners();
   }
 
@@ -250,6 +278,13 @@ class DataManager extends ChangeNotifier {
         removedNotifications.contains(notification.notificationID));
     notifyListeners();
   }
+
+  void removeAPIKey(removedAPIKey){
+    apiKeys.removeWhere((apiKey) =>
+        apiKey.apiKeyID == removedAPIKey);
+    notifyListeners();
+  }
+
   void updateMemberSeen(int userID, int chatroomID){
     int chatroomIndex = chatrooms.indexWhere((c) => c.chatroomID == chatroomID);
 
@@ -293,10 +328,22 @@ class DataManager extends ChangeNotifier {
     }
     notifyListeners();
   }
+
+  void disableRequestButton(){
+    disableRequest = true;
+    notifyListeners();
+  }
+
+  void enableRequestButton(){
+    disableRequest = false;
+    notifyListeners();
+  }
+
   void enterChatroom(int id) {
     chatroomID = id;
     isInChatroom = true;
   }
+
 
   void exitChatroom(int id) {
     if (chatroomID == id) {
@@ -310,21 +357,25 @@ class DataManager extends ChangeNotifier {
     super.dispose();
   }
   List<User> getAdmins(){
-    return users.where((user) => user.role == "Admin").toList();
+    return users.where((user) => user.role == "Admin" && !user.isDisabled).toList();
   }
   List<User> getAgents(){
-    return users.where((user) => user.role == "Staff").toList();
+    return users.where((user) => user.role == "Staff" && !user.isDisabled).toList();
   }
 
   List<Ticket> getTicketRelated(String mainTag, String subTag){
     return tickets.where((t) => t.mainTag?.tagName == mainTag && t.subTag?.subTagName == subTag).toList();
   }
   List<User> getStaff(){
-    return users.where((user) => user.role != "Employee").toList();
+    return users.where((user) => user.role != "Employee" && !user.isDisabled).toList();
+  }
+
+  List<User> getDisabledUsers(){
+    return users.where((user) => user.isDisabled).toList();
   }
 
   List<User> getEmployees(){
-    return users.where((user) => user.role == "Employee").toList();
+    return users.where((user) => user.role == "Employee" && !user.isDisabled).toList();
   }
   List<Ticket> getRecentTickets(){
 
@@ -360,6 +411,7 @@ class DataManager extends ChangeNotifier {
     chatrooms = [];
     users = [];
     faqs = [];
+    signalRService.removeOnUserListener(updateUser);
     signalRService.removeOnReceiveMessageListener(updateLastMessage);
     await signalRService.stopConnection();
   }

@@ -17,7 +17,11 @@ namespace GoldenTicket.Hubs
         public static bool debug = false;
 
         private static readonly ConcurrentDictionary<int, ConcurrentBag<string>> _connections = new ConcurrentDictionary<int,ConcurrentBag <string>>();
-       
+
+        // public overide async Task OnReconnectAsync(Exception? exception)
+        // {
+            
+        // }
         #region -   OnDisconnectedAsync
         #endregion
         public override async Task OnDisconnectedAsync(Exception? exception)
@@ -84,7 +88,8 @@ namespace GoldenTicket.Hubs
                 status = DBUtil.GetStatuses(),
                 priorities = DBUtil.GetPriorities(),
                 ratings = await DBUtil.GetRatings(),
-                notifications = await DBUtil.GetNotifications(userID)
+                notifications = await DBUtil.GetNotifications(userID),
+                apikeys = role != "Admin" ? [] : await DBUtil.GetAPIKeys()
             });
         }
         #region -   GetAvailableStaff
@@ -121,9 +126,9 @@ namespace GoldenTicket.Hubs
 
         #region -   UpdateUser
         #endregion
-        public async Task UpdateUser(int _userID, string? _username, string? _firstname, string? _middlename, string? _lastname, string? _role, List<string?> _assignedTags, string? Password)
+        public async Task UpdateUser(int _userID, string? _username, string? _firstname, string? _middlename, string? _lastname, string? _role, List<string?> _assignedTags, string? Password, bool? _disableAcc)
         {
-            var updatedUser = await DBUtil.UpdateUser(_userID, _username, _firstname, _middlename, _lastname, _role, _assignedTags);
+            var updatedUser = await DBUtil.UpdateUser(_userID, _username, _firstname, _middlename, _lastname, _role, _assignedTags, _disableAcc);
             if(updatedUser != null)
             {
                 if (Password != null && Password != ""){
@@ -743,5 +748,102 @@ namespace GoldenTicket.Hubs
             }
         }
         #endregion
+        #region API
+        #endregion
+
+
+        #region -   AddAPIKeys
+        #endregion
+        public async void AddAPIKey(string APIKey, string Notes)
+        {
+            var newApiKey = await DBUtil.AddAPIKey(APIKey, Notes);
+            var apiKey = await DBUtil.GetAPIKey(newApiKey.APIKeyID);
+            if (apiKey == null)
+            {
+                Console.WriteLine($"[GTHub] Notification with ID {newApiKey.APIKeyID} not found.");
+                return;
+            }
+            var newApiKeyDTO = new APIKeyDTO(apiKey);
+
+            var adminUsers = DBUtil.GetAdminUsers().Where(user => user.Role == "Admin");
+            foreach(var admin in adminUsers)
+            {
+                if (_connections.TryGetValue(admin.UserID, out var connectionIds))
+                {
+                    foreach (var connectionId in connectionIds)
+                    {
+                        await Clients.Client(connectionId).SendAsync("APIKeyUpdate", new { apikey = newApiKeyDTO} );
+                    }
+                }
+            }
+        }
+        #region -   UpdateApiKey
+        #endregion
+        public async void UpdateAPIKey(int APIKeyID, string APIKey, string Notes)
+        {
+            var updatedApiKey = await DBUtil.UpdateAPIKey(APIKeyID, APIKey, Notes);
+
+            if(updatedApiKey != null)
+            {
+                var apiKey = await DBUtil.GetAPIKey(updatedApiKey.APIKeyID);
+                var apiKeyDTO = new APIKeyDTO(apiKey!);
+                var adminUsers = DBUtil.GetAdminUsers().Where(user => user.Role == "Admin");
+                foreach(var admin in adminUsers)
+                {
+                    if (_connections.TryGetValue(admin.UserID, out var connectionIds))
+                    {
+                        foreach (var connectionId in connectionIds)
+                        {
+                            await Clients.Client(connectionId).SendAsync("APIKeyUpdate", new { apikey = apiKeyDTO} );
+                        }
+                    }
+                }
+            }
+            else
+            {
+                Console.WriteLine($"[GTHub] cannot find APIKey with {APIKeyID} ID.");
+            }
+        }
+        #region -   DeleteApiKey
+        #endregion
+        public async void DeleteApiKey(int APIKeyID)
+        {
+            await DBUtil.DeleteAPIKey(APIKeyID);
+            var adminUsers = DBUtil.GetAdminUsers().Where(user => user.Role == "Admin");
+            foreach(var admin in adminUsers)
+            {
+                if (_connections.TryGetValue(admin.UserID, out var connectionIds))
+                {
+                    foreach (var connectionId in connectionIds)
+                    {
+                        await Clients.Client(connectionId).SendAsync("APIKeyRemoved", new { apikey = APIKeyID } );
+                    }
+                }
+            }
+        }
+
+        #region -   APIKeyLimitReach
+        #endregion
+        public async void APIKeyLimitReach(int APIKeyID)
+        {
+            var updatedApiKey = await DBUtil.APIKeyLimitReach(APIKeyID);
+            if (updatedApiKey != null)
+            {
+                var apiKey = await DBUtil.GetAPIKey(APIKeyID);
+                var apiKeyDTO = new APIKeyDTO(apiKey!);
+
+                var adminUsers = DBUtil.GetAdminUsers().Where(user => user.Role == "Admin");
+                foreach(var admin in adminUsers)
+                {
+                    if (_connections.TryGetValue(admin.UserID, out var connectionIds))
+                    {
+                        foreach (var connectionId in connectionIds)
+                        {
+                            await Clients.Client(connectionId).SendAsync("APIKeyUpdate", new { apikey = apiKeyDTO} );
+                        }
+                    }
+                }
+            }
+        }
     }
 }

@@ -31,7 +31,7 @@ namespace GoldenTicket.Database {
         public DbSet<Rating> Rating { get; set; }
         public DbSet<Priority> Priorities { get; set;}
         public DbSet<AssignedTag> AssignedTags { get; set; }
-        
+        public DbSet<APIKeys> ApiKeys { get; set; }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             ConnectionString = config["ConnectionString"] ?? throw new Exception("Connection String is Invalid");
@@ -68,7 +68,7 @@ namespace GoldenTicket.Database {
             
             // Initialize Admin
             modelBuilder.Entity<User>().HasData(
-                new User { UserID = 100000000, Username = config["AdminUsername"], Password = $"{salt}:{hashedPassword}", FirstName = "admin", MiddleName = "Admin", LastName = "admin", RoleID = 1},
+                new User { UserID = 100000000, Username = config["AdminUsername"], Password = $"{salt}:{hashedPassword}", FirstName = config["AdminFirstName"] ?? "Admin", MiddleName = config["AdminMiddleName"] ?? "", LastName = config["AdminLastName"] ?? "Admin", RoleID = 1},
                 new User { UserID = 100000001, Username = "Golden AI", Password = $"{salt}:{hashedPassword}", FirstName = "Golden", LastName = "AI", RoleID = 1}
             );
             List<string>? mainTags = config.GetSection("Tags:MainTags").Get<List<string>>();

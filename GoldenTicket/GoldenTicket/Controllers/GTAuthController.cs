@@ -48,6 +48,7 @@ namespace GoldenTicket.Controllers
 
                     UserDTO User = new UserDTO(user);
                     DateTime sessionExpiry = DateTime.UtcNow.AddHours(24);
+                    if(user.IsDisabled) return Unauthorized(new {status = 401,  message = "Unauthorized access Account is disabled!", errorType = "unauthorized" });
                     return Ok(new {status = 200, message = "Login Successfully", body = new { user = User, sessionExpiry }});
                 }
                 else

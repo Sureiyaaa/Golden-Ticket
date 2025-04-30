@@ -22,6 +22,8 @@ public class OpenAIService
     private readonly ILogger<OpenAIService> _logger;
     private readonly ApiConfig _apiConfig;
     private readonly Dictionary<string, int> clientTokenUsage = new();
+    private readonly float _temperature;
+    private readonly int _maxOutputTokenCount;
     public static bool debug = true;
     public static int TokenCountUsed { get; private set; } = 0;
     public static int TotalCharactersUsed { get; private set; } = 0;
@@ -31,6 +33,9 @@ public class OpenAIService
         _logger = logger;
         _apiConfig = apiConfig;
         string baseUrl = config.OpenAISettings.BaseUrl;
+
+        _temperature = config.OpenAISettings.Temperature;
+        _maxOutputTokenCount = config.OpenAISettings.MaxOutputTokenCount;
 
         _options = new OpenAIClientOptions()
         {
@@ -79,8 +84,8 @@ public class OpenAIService
 
         var requestOptions = new ChatCompletionOptions()
         {
-            Temperature = 0.4f,
-            MaxOutputTokenCount = 2048,
+            Temperature = _temperature,
+            MaxOutputTokenCount = _maxOutputTokenCount,
         };
 
         var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
@@ -145,6 +150,8 @@ public class OpenAIService
 
     private async Task<string> HandleRateLimit(string chatroomID, string userInput, string Prompt, bool isDirect)
     {
+        //var expireDate = new DateTime();
+        
         if (_loopAmount[chatroomID] < ApiConfig.OpenAIKeys!.Count)
         {
             _loopAmount[chatroomID]++;
@@ -155,6 +162,7 @@ public class OpenAIService
                 _apiKeyIndex[chatroomID] = 0;
             }
             _logger.LogWarning("[OpenAIService] Switching API key from API_{OldIndex} to API_{NewIndex}", oldIndex, _apiKeyIndex[chatroomID]);
+            
             _apiCredential = new ApiKeyCredential("Bearer " + _apiConfig.GetOpenAIKey(_apiKeyIndex[chatroomID]));
             _client = new ChatClient("gpt-4o", _apiCredential, _options);
             return await GetAIResponse(chatroomID, userInput, Prompt, isDirect);

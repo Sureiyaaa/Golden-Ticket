@@ -103,7 +103,6 @@ class DisconnectedOverlay extends StatelessWidget {
                     // Retry Button with Glow
                     ElevatedButton(
                       onPressed: () {
-                        print("🔄 Retrying connection...");
                         context.read<DataManager>().signalRService.reconnect();
                       },
                       style: ElevatedButton.styleFrom(

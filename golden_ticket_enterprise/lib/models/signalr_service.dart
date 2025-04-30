@@ -1,6 +1,7 @@
 import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:golden_ticket_enterprise/entities/apikey.dart';
 import 'package:golden_ticket_enterprise/entities/chatroom.dart';
 import 'package:golden_ticket_enterprise/entities/faq.dart';
 import 'package:golden_ticket_enterprise/entities/notification.dart' as notif;
@@ -28,6 +29,7 @@ class SignalRService with ChangeNotifier {
   final List<void Function(Message, Chatroom)> _onReceiveMessageListeners = [];
   final List<void Function(Chatroom)> _onReceiveSupportListeners = [];
   final List<void Function(notif.Notification)> _onNotificationListener = [];
+  final List<void Function(UserDTO.User)> _onUserUpdateListener = [];
   Function(List<String>)? onPriorityUpdate;
   Function(List<FAQ>)? onFAQUpdate;
   Function(Chatroom)? onChatroomUpdate;
@@ -35,9 +37,11 @@ class SignalRService with ChangeNotifier {
   Function(Rating)? onRatingUpdate;
   Function(List<Rating>)? onRatingsUpdate;
   Function(List<Ticket>)? onTicketsUpdate;
+  Function(List<ApiKey>)? onAPIKeysUpdate;
+  Function(int)? onAPIKeyRemoved;
+  Function(ApiKey)? onAPIKeyUpdate;
   Function(Ticket)? onTicketUpdate;
   Function(List<UserDTO.User>)? onUsersUpdate;
-  Function(UserDTO.User)? onUserUpdate;
   Function(notif.Notification)? onNotificationReceive;
   Function(List<int>)? onNotificationDeleted;
   Function(List<notif.Notification>)? onNotificationsUpdate;
@@ -166,7 +170,6 @@ class SignalRService with ChangeNotifier {
       });
   }
   void addRating(int chatroomID, int score, String? feedback)async{
-    print('yes');
     await _hubConnection!.invoke('AddOrUpdateRating', args: [chatroomID, score, feedback]).catchError((err) {
       logger.e("There was an error caught while saving rating", error: err.toString().isEmpty ? "None provided" : err.toString());
     });
@@ -193,8 +196,15 @@ class SignalRService with ChangeNotifier {
       logger.e("There was an error caught while deleting notification", error: err.toString().isEmpty ? "None provided" : err.toString());
     });
   }
-  void updateUser(int userID, String? username, String? password, String? firstName, String? middleName, String? lastName, String? role, List<String?> assignedTags) async {
-      await _hubConnection!.invoke('UpdateUser', args: [userID, username, firstName, middleName, lastName, role, assignedTags, password]).catchError((err) {
+
+  void deleteAPIKey(int apiKey) async{
+    await _hubConnection!.invoke('DeleteAPIKey', args: [apiKey]).catchError((err) {
+      logger.e("There was an error caught while deleting API Key", error: err.toString().isEmpty ? "None provided" : err.toString());
+    });
+  }
+
+  void updateUser(int userID, String? username, String? password, String? firstName, String? middleName, String? lastName, String? role, List<String?> assignedTags, bool isDisabled) async {
+      await _hubConnection!.invoke('UpdateUser', args: [userID, username, firstName, middleName, lastName, role, assignedTags, password, isDisabled]).catchError((err) {
         logger.e("There was an error caught while updating user", error: err.toString().isEmpty ? "None provided" : err.toString());
       });
   }
@@ -203,6 +213,17 @@ class SignalRService with ChangeNotifier {
       await _hubConnection!.invoke('AddUser', args: [username, password, firstName, middleName,lastName, role, assignedTags]).catchError((err) {
         logger.e("There was an error caught while Add User", error: err.toString().isEmpty ? "None provided" : err.toString());
       });
+  }
+
+  void addAPIKey(String apiKey, String? notes) async{
+    await _hubConnection!.invoke('AddAPIKey', args: [apiKey, notes]).catchError((err) {
+      logger.e("There was an error caught while Adding API Key", error: err.toString().isEmpty ? "None provided" : err.toString());
+    });
+  }
+  void updateAPIKey(int apiKeyID, String apiKey, String? notes) async{
+    await _hubConnection!.invoke('UpdateAPIKey', args: [apiKeyID, apiKey, notes ?? 'No note provided']).catchError((err) {
+      logger.e("There was an error caught while Updating API Key", error: err.toString().isEmpty ? "None provided" : err.toString());
+    });
   }
 
   void sendMessage(int userID, int chatroomID, String messageContent) async {
@@ -282,6 +303,12 @@ class SignalRService with ChangeNotifier {
       }
     });
 
+    _hubConnection!.on('APIKeyUpdate', (arguments){
+      if(arguments != null){
+        onAPIKeyUpdate?.call(ApiKey.fromJson(arguments[0]['apikey']));
+        notifyListeners();
+      }
+    });
 
     _hubConnection!.on('RatingsReceived', (arguments) {
       if(arguments != null){
@@ -366,9 +393,7 @@ class SignalRService with ChangeNotifier {
       if(arguments != null) {
 
         UserDTO.User user = UserDTO.User.fromJson(arguments[0]['user']);
-        onUserUpdate?.call(user);
-
-
+        _triggerUserUpdate(user);
         var userSession = Hive.box<UserSession.HiveSession>('sessionBox').get('user')!.user;
 
         if(user.userID == userSession.userID){
@@ -394,6 +419,13 @@ class SignalRService with ChangeNotifier {
         List<int> deletedNotifications =
         (arguments[0]['notification'] as List).map((notif) => int.parse(notif.toString())).toList();
         onNotificationDeleted?.call(deletedNotifications);
+        notifyListeners();
+      }
+    });
+    _hubConnection!.on('APIKeyRemoved', (arguments){
+      if(arguments != null){
+        print(arguments[0]);
+        onAPIKeyRemoved?.call(arguments[0]['apikey'] as int);
         notifyListeners();
       }
     });
@@ -429,6 +461,9 @@ class SignalRService with ChangeNotifier {
         List<notif.Notification> updatedNotifications =
         (arguments[0]['notifications'] as List).map((notification) => notif.Notification.fromJson(notification)).toList();
 
+        List<ApiKey> updatedAPIKeys =
+        (arguments[0]['apikeys'] as List).map((apiKey) => ApiKey.fromJson(apiKey)).toList();
+
         logger.i("🔹 Updated Tags: ${updatedTags.length}\n"
             "🔹 Updated FAQs: ${updatedFAQs.length}\n"
             "🔹 Updated Chatrooms: ${updatedChatrooms.length}\n"
@@ -446,6 +481,7 @@ class SignalRService with ChangeNotifier {
         onStatusUpdate?.call(updatedStatus);
         onUsersUpdate?.call(updatedUsers);
         onChatroomsUpdate?.call(updatedChatrooms);
+        onAPIKeysUpdate?.call(updatedAPIKeys);
         onNotificationsUpdate?.call(updatedNotifications);
         onRatingsUpdate?.call(updatedRatings);
       }
@@ -460,16 +496,20 @@ class SignalRService with ChangeNotifier {
   void addOnNotificationListener(void Function(notif.Notification) listener) {
     _onNotificationListener.add(listener);
   }
-
+  void addOnUserUpdateListener(void Function(UserDTO.User) listener) {
+    _onUserUpdateListener.add(listener);
+  }
   void removeOnReceiveMessageListener(void Function(Message, Chatroom) listener) {
     _onReceiveMessageListeners.remove(listener);
   }
   void removeOnReceiveSupportListener(void Function(Chatroom) listener) {
     _onReceiveSupportListeners.remove(listener);
   }
-
   void removeOnNotificationListener(void Function(notif.Notification) listener) {
     _onNotificationListener.remove(listener);
+  }
+  void removeOnUserListener(void Function(UserDTO.User) listener) {
+    _onUserUpdateListener.remove(listener);
   }
   void _triggerOnReceiveMessage(Message message, Chatroom chatroom) {
     for (var listener in _onReceiveMessageListeners) {
@@ -486,7 +526,11 @@ class SignalRService with ChangeNotifier {
       listener(notification);
     }
   }
-
+  void _triggerUserUpdate(UserDTO.User user) {
+    for (var listener in _onUserUpdateListener) {
+      listener(user);
+    }
+  }
   /// Starts the SignalR connection
   Future<void> startConnection() async {
     if (_hubConnection == null) return;
@@ -606,8 +650,10 @@ void openChatroom(BuildContext context, UserSession.HiveSession session, DataMan
   dataManager.chatroomID = chatroomID;
   dataManager.isInChatroom = true;
   context.push('/hub/chatroom/${chatroomID}');
+  Future.delayed(Duration(seconds: 2),() {
+    dataManager.enableRequestButton();
+  });
   dataManager.signalRService.openChatroom(
       session.user.userID,
       chatroomID);
-
 }

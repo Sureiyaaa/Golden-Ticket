@@ -92,5 +92,20 @@ namespace GoldenTicket.Utilities
             int count = chatroom!.Messages.Count(m => m.SenderID != userID && m.CreatedAt > chatroom.Members.FirstOrDefault(m => m.MemberID == userID)?.LastSeenAt);
             return count;
         }
+        public async static Task<List<APIKeys>> APIKeys (ApplicationDbContext context)
+        {
+            var APIKeys = await context.ApiKeys
+                .AsNoTracking()
+                .ToListAsync();
+            return APIKeys;
+
+        }public async static Task<APIKeys?> APIKey (int APIKeyID, ApplicationDbContext context)
+        {
+            var APIKeys = await context.ApiKeys
+                .Where(a => a.APIKeyID == APIKeyID)
+                .AsNoTracking()
+                .FirstOrDefaultAsync();
+            return APIKeys;
+        }
     }
 }

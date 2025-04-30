@@ -254,9 +254,9 @@ namespace GoldenTicket.Hubs
             int callerID = _connections.FirstOrDefault(kvp => kvp.Value.Contains(Context.ConnectionId)).Key;
             string userName = DBUtil.FindUser(callerID).FirstName!;
             if(chatroomDTO.Ticket != null)
-                NotifyUser(chatroomDTO.Ticket!.Assigned!.UserID, 2, $"{userName} has closed the chatroom!", $"{userName} has closed the chatroom and is now ready for rating", ChatroomID);
+                await NotifyUser(chatroomDTO.Ticket!.Assigned!.UserID, 2, $"{userName} has closed the chatroom!", $"{userName} has closed the chatroom and is now ready for rating", ChatroomID);
             else
-                NotifyUser(chatroomDTO.Author!.UserID, 2, "Chatroom Closed", "The chatroom has been successfully closed. Thank you for using our service! If you have further questions or need assistance, feel free to reach out again.", ChatroomID);
+                await NotifyUser(chatroomDTO.Author!.UserID, 2, "Chatroom Closed", "The chatroom has been successfully closed. Thank you for using our service! If you have further questions or need assistance, feel free to reach out again.", ChatroomID);
         }
 
         #region -   JoinChatroom
@@ -284,7 +284,7 @@ namespace GoldenTicket.Hubs
                     }
                 }
             }
-            NotifyGroup(userIDList, 2, $"{userName} has joined the chatroom!", $"A staff has joined the chatroom", ChatroomID);
+            await NotifyGroup(userIDList, 2, $"{userName} has joined the chatroom!", $"A staff has joined the chatroom", ChatroomID);
             await SendMessage(AIUtil.GetChatbotID(), ChatroomID, $"**{userName}** has joined the chatroom!");
         }
         #region -   OpenChatroom
@@ -511,9 +511,9 @@ namespace GoldenTicket.Hubs
             await Clients.Caller.SendAsync("TicketUpdate", new {ticket = ticketDTO});
             await Clients.Caller.SendAsync("ChatroomUpdate", new {chatroom = chatroomDTO});
             if (AssignedID != null && AssignedID != 0)
-                NotifyUser(AssignedID!.Value, 1, "New Ticket Assigned to you", $"You have been assigned to a new ticket! Ticket ID: {ticketDTO.TicketID}", ticketDTO.TicketID);
+                await NotifyUser(AssignedID!.Value, 1, "New Ticket Assigned to you", $"You have been assigned to a new ticket! Ticket ID: {ticketDTO.TicketID}", ticketDTO.TicketID);
             else 
-                NotifyGroup(adminUserID, 1, "New Open Ticket", $"A new ticket has been created! Ticket ID: {ticketDTO.TicketID}", ticketDTO.TicketID);
+                await NotifyGroup(adminUserID, 1, "New Open Ticket", $"A new ticket has been created! Ticket ID: {ticketDTO.TicketID}", ticketDTO.TicketID);
         }
         #region -   UpdateTicket
         #endregion
@@ -592,23 +592,23 @@ namespace GoldenTicket.Hubs
             switch(Status)
             {
                 case "Open":
-                    NotifyGroup(userIDList, 1, $"Ticket {TicketID} Re-Opened!", $"Your ticket has been Re-Opened by {EditorName}.", TicketID);
-                    break;
-                case "Closed":
-                    NotifyGroup(userIDList, 1, $"Ticket {TicketID} Closed!", $"Your ticket has been Close by {EditorName}.", TicketID);
-                    break;
-                case "In Progress":
-                    NotifyGroup(userIDList, 1, $"Ticket {TicketID} In Progress", $"Your ticket has been assigned to {chatroomDTO.Ticket!.Assigned!.FirstName}.", TicketID);
-                    break;
-                case "Unresolved":
-                    NotifyGroup(userIDList, 1, $"Ticket {TicketID} Unresolved", $"Your ticket has been mark as Unresolved.", TicketID);
-                    break;
-                case "Postponed":
-                    NotifyGroup(userIDList, 1, $"Ticket {TicketID} In Progress", $"Your ticket has been Postponed.", TicketID);
-                    break;
-                default:
-                    NotifyGroup(userIDList, 1, $"Ticket updated!", $"Your ticket has been updated by {EditorName}", TicketID);
-                    break;
+            await NotifyGroup(userIDList, 1, $"Ticket {TicketID} Re-Opened!", $"Your ticket has been Re-Opened by {EditorName}.", TicketID);
+            break;
+        case "Closed":
+            await NotifyGroup(userIDList, 1, $"Ticket {TicketID} Closed!", $"Your ticket has been Close by {EditorName}.", TicketID);
+            break;
+        case "In Progress":
+            await NotifyGroup(userIDList, 1, $"Ticket {TicketID} In Progress", $"Your ticket has been assigned to {chatroomDTO.Ticket!.Assigned!.FirstName}.", TicketID);
+            break;
+        case "Unresolved":
+            await NotifyGroup(userIDList, 1, $"Ticket {TicketID} Unresolved", $"Your ticket has been mark as Unresolved.", TicketID);
+            break;
+        case "Postponed":
+            await NotifyGroup(userIDList, 1, $"Ticket {TicketID} In Progress", $"Your ticket has been Postponed.", TicketID);
+            break;
+        default:
+            await NotifyGroup(userIDList, 1, $"Ticket updated!", $"Your ticket has been updated by {EditorName}", TicketID);
+            break;
             }
             
         }
@@ -671,7 +671,7 @@ namespace GoldenTicket.Hubs
             await Clients.Caller.SendAsync("RatingReceived", new { rating = ratingDTO });
             if(ratingDTO.Chatroom.Ticket != null)
             {
-                NotifyUser(ratingDTO.Chatroom.Ticket.Assigned!.UserID, 2, $"{ratingDTO.Chatroom.Author!.FirstName} has rated you {ratingDTO.Score}/5", $"{ratingDTO.Chatroom.Author!.FirstName} has rated your performance at Ticket ID: {ratingDTO.Chatroom.Ticket.TicketID}", ratingDTO.Chatroom.ChatroomID);
+            await NotifyUser(ratingDTO.Chatroom.Ticket.Assigned!.UserID, 2, $"{ratingDTO.Chatroom.Author!.FirstName} has rated you {ratingDTO.Score}/5", $"{ratingDTO.Chatroom.Author!.FirstName} has rated your performance at Ticket ID: {ratingDTO.Chatroom.Ticket.TicketID}", ratingDTO.Chatroom.ChatroomID);
             }
         }
         #endregion 
@@ -682,7 +682,7 @@ namespace GoldenTicket.Hubs
 
         #region -   NotifyGroup
         #endregion
-        public async void NotifyGroup (List<int> userList, int notifType, string title, string description, int? referenceID)
+        public async Task NotifyGroup (List<int> userList, int notifType, string title, string description, int? referenceID)
         {
             var notifications = await DBUtil.NotifyGroup(userList, notifType, title, description, referenceID);
             var notifList = notifications.Select(n => n.Value.NotificationID).ToList();
@@ -701,7 +701,7 @@ namespace GoldenTicket.Hubs
         }
         #region -   NotifyUser
         #endregion
-        public async void NotifyUser (int userID, int notifType, string title, string description, int? referenceID)
+        public async Task NotifyUser (int userID, int notifType, string title, string description, int? referenceID)
         {
             var newNotif = await DBUtil.NotifyUser(userID, notifType, title, description, referenceID);
             var notification = await DBUtil.GetNotification(newNotif.NotificationID);
@@ -721,7 +721,7 @@ namespace GoldenTicket.Hubs
         }
         #region -   ReadNotification
         #endregion
-        public async void ReadNotification(List<int> NotificationID, int UserID)
+        public async Task ReadNotification(List<int> NotificationID, int UserID)
         {
             await DBUtil.ReadNotification(NotificationID);
             List<NotificationDTO> newNotifDTO = await DBUtil.GetNotifications(UserID);
@@ -736,7 +736,7 @@ namespace GoldenTicket.Hubs
         }
         #region -   DeleteNotification
         #endregion
-        public async void DeleteNotification(List<int> NotificationID, int UserID)
+        public async Task DeleteNotification(List<int> NotificationID, int UserID)
         {
             await DBUtil.DeleteNotification(NotificationID);
             if (_connections.TryGetValue(UserID, out var connectionIds))
@@ -754,7 +754,7 @@ namespace GoldenTicket.Hubs
 
         #region -   AddAPIKeys
         #endregion
-        public async void AddAPIKey(string APIKey, string Notes)
+        public async Task AddAPIKey(string APIKey, string Notes)
         {
             var newApiKey = await DBUtil.AddAPIKey(APIKey, Notes);
             var apiKey = await DBUtil.GetAPIKey(newApiKey.APIKeyID);
@@ -779,7 +779,7 @@ namespace GoldenTicket.Hubs
         }
         #region -   UpdateApiKey
         #endregion
-        public async void UpdateAPIKey(int APIKeyID, string APIKey, string Notes)
+        public async Task UpdateAPIKey(int APIKeyID, string APIKey, string Notes)
         {
             var updatedApiKey = await DBUtil.UpdateAPIKey(APIKeyID, APIKey, Notes);
 
@@ -806,7 +806,7 @@ namespace GoldenTicket.Hubs
         }
         #region -   DeleteApiKey
         #endregion
-        public async void DeleteApiKey(int APIKeyID)
+        public async Task DeleteApiKey(int APIKeyID)
         {
             await DBUtil.DeleteAPIKey(APIKeyID);
             var adminUsers = DBUtil.GetAdminUsers().Where(user => user.Role == "Admin");
@@ -824,7 +824,7 @@ namespace GoldenTicket.Hubs
 
         #region -   APIKeyLimitReach
         #endregion
-        public async void APIKeyLimitReach(int APIKeyID)
+        public async Task APIKeyLimitReach(int APIKeyID)
         {
             var updatedApiKey = await DBUtil.APIKeyLimitReach(APIKeyID);
             if (updatedApiKey != null)

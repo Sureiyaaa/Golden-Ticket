@@ -65,6 +65,13 @@ namespace GoldenTicket.Controllers
         public IActionResult Verify([FromBody] VerifyRequest request)
         {
             if (request == null) return BadRequest(new { message = "Invalid client request" });
+
+            if (request == null || !ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                return BadRequest(new { status = "400", message = "Invalid client request", errors });
+            }
+            
             int userID = request.userID!.Value;
             var user = DBUtil.FindUser(userID);
             

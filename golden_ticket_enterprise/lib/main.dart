@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
-import 'package:golden_ticket_enterprise/models/signalr/signalr_event_handlers.dart';
 import 'package:golden_ticket_enterprise/models/signalr/signalr_service.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
 import 'package:golden_ticket_enterprise/models/user.dart';

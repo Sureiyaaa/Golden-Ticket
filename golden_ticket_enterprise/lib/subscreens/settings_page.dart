@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
+import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:golden_ticket_enterprise/widgets/api_tab.dart';
 import 'package:golden_ticket_enterprise/widgets/notification_widget.dart';
 import 'package:golden_ticket_enterprise/widgets/tags_tab.dart';
@@ -17,33 +18,6 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  final TextEditingController _mainTagController = TextEditingController();
-  final TextEditingController _subTagController = TextEditingController();
-
-  String? selectedMainTag;
-
-  void _addMainTag(DataManager dataManager) {
-    String tagName = _mainTagController.text.trim();
-    if (tagName.isNotEmpty) {
-      dataManager.signalRService.addMainTag(tagName);
-      _mainTagController.clear();
-    }
-  }
-
-  void _addSubTag(DataManager dataManager) {
-    String subTagName = _subTagController.text.trim();
-    if (subTagName.isNotEmpty && selectedMainTag != null) {
-      MainTag? mainTag = dataManager.mainTags.firstWhere(
-            (tag) => tag.tagName == selectedMainTag,
-        orElse: () => MainTag(tagID: -1, tagName: '', subTags: []),
-      );
-
-      if (mainTag.tagID != -1) {
-        dataManager.signalRService.addSubTag(subTagName, mainTag.tagName);
-        _subTagController.clear();
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context) {

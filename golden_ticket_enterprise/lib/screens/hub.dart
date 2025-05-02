@@ -66,7 +66,7 @@ class _HubPageState extends State<HubPage> {
   void didChangeDependencies() {
     if (!_isInitialized && !widget.dataManager.signalRService.isConnected) {
       log("HubPage: Initializing SignalR Connection...");
-      widget.dataManager.signalRService.initializeConnection(widget.session!);
+      widget.dataManager.signalRService.initializeConnection();
       _isInitialized = true;
     }
     super.didChangeDependencies();

@@ -137,6 +137,7 @@ class _ChatroomPageState extends State<ChatroomPage> {
               .sendMessage(userSession.user.userID, widget.chatroomID, messageContent);
 
           messageController.clear();
+
           if (chatroom.ticket == null) {
             setState(() {
               enableMessage = false;
@@ -240,7 +241,8 @@ class _ChatroomPageState extends State<ChatroomPage> {
                             child: Column(
                               crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                               children: [
-                                Padding(
+                                if (previousMessage == null || previousMessage.sender.userID != message.sender.userID)
+                                  Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 8.0),
                                   child: Text(
                                     "${message.sender.firstName}",
@@ -268,9 +270,15 @@ class _ChatroomPageState extends State<ChatroomPage> {
                                         child: MarkdownBody(
                                           data: message.messageContent,
                                           styleSheet: MarkdownStyleSheet(
-                                            p: const TextStyle(fontSize: 14, color: Colors.black),
+                                            p: const TextStyle(fontSize: 14, color: Colors.black, fontFamilyFallback: [
+                                              'Apple Color Emoji',
+                                              'Segoe UI Emoji',
+                                              'Noto Color Emoji',
+                                              'EmojiOne Color',
+                                            ]),
                                             strong: const TextStyle(fontWeight: FontWeight.bold),
                                             blockquote: TextStyle(color: Colors.grey[600], fontStyle: FontStyle.italic),
+
                                           ),
                                           selectable: true,
                                         ),

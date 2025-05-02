@@ -38,7 +38,10 @@ public static class ApplicationServiceExtensions
             options.EnableDetailedErrors = true;
             options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
             options.KeepAliveInterval = TimeSpan.FromSeconds(5);
-            options.MaximumParallelInvocationsPerClient = 10;
+            options.StreamBufferCapacity = 100;
+            options.MaximumReceiveMessageSize = 2 * 1024 * 1024;
+            options.MaximumParallelInvocationsPerClient = 50;
+            
         });
         services.AddControllersWithViews();
 

@@ -75,37 +75,38 @@ class SignalRService with ChangeNotifier {
     _hubConnection = HubConnectionBuilder()
         .withUrl(
           serverUrl,
-          // HttpConnectionOptions(logging: (level, message) {
-          //   switch(level){
-          //     case LogLevel.information:
-          //         // logger.i(message);
-          //       break;
-          //     case LogLevel.trace:
-          //       logger.t(message);
-          //     case LogLevel.debug:
-          //       logger.d(message);
-          //     case LogLevel.warning:
-          //       logger.w(message);
-          //     case LogLevel.error:
-          //       logger.e(message, error: "None Provided");
-          //     case LogLevel.critical:
-          //       logger.f(message);
-          //     case LogLevel.none:
-          //       logger.d(message);
-          //   }
-          // }), // Debug logs
+          HttpConnectionOptions(logging: (level, message) {
+            switch(level){
+              case LogLevel.information:
+                  // logger.i(message);
+                break;
+              case LogLevel.trace:
+                logger.t(message);
+              case LogLevel.debug:
+                logger.d(message);
+              case LogLevel.warning:
+                logger.w(message);
+              case LogLevel.error:
+                logger.e(message, error: "None Provided");
+              case LogLevel.critical:
+                logger.f(message);
+              case LogLevel.none:
+                logger.d(message);
+            }
+          }),
         )
         .build();
 
     _hubConnection!.serverTimeoutInMilliseconds = 30000;
     _hubConnection!.keepAliveIntervalInMilliseconds = 5000;
 
+
     await startConnection();
   }
 
   void requestChat(int userID) async {
     await _hubConnection!
-        .invoke('RequestChat', args: [userID]).catchError((err) {
+        .send(methodName: 'RequestChat', args: [userID]).catchError((err) {
       logger.e("There was an error caught while sending a message",
           error: err.toString().isEmpty ? "None provided" : err.toString());
     });
@@ -113,7 +114,7 @@ class SignalRService with ChangeNotifier {
 
   void openChatroom(int userID, int chatroomID) async {
     await _hubConnection!
-        .invoke('OpenChatroom', args: [userID, chatroomID]).catchError((err) {
+        .send(methodName: 'OpenChatroom', args: [userID, chatroomID]).catchError((err) {
       logger.e("There was an error caught while opening chatroom",
           error: err.toString().isEmpty ? "None provided" : err.toString());
     });
@@ -121,7 +122,7 @@ class SignalRService with ChangeNotifier {
 
   void addMainTag(String tagName) async {
     await _hubConnection!
-        .invoke('AddMainTag', args: [tagName]).catchError((err) {
+        .send(methodName: 'AddMainTag', args: [tagName]).catchError((err) {
       logger.e("There was an error caught while saving main tag",
           error: err.toString().isEmpty ? "None provided" : err.toString());
     });
@@ -129,7 +130,7 @@ class SignalRService with ChangeNotifier {
 
   void updateTicket(int ticketID, String title, String status, String priority,
       String? mainTag, String? subTag, int? assignedID) async {
-    await _hubConnection!.invoke('UpdateTicket', args: [
+    await _hubConnection!.send(methodName: 'UpdateTicket', args: [
       ticketID,
       title,
       status,
@@ -155,7 +156,7 @@ class SignalRService with ChangeNotifier {
       String? mainTag,
       String? subTag,
       bool faqArchive) async {
-    await _hubConnection!.invoke('UpdateFAQ', args: [
+    await _hubConnection!.send(methodName: 'UpdateFAQ', args: [
       faqID,
       faqTitle,
       faqDescription,
@@ -173,14 +174,14 @@ class SignalRService with ChangeNotifier {
 
   void addSubTag(String tagName, String mainTagName) async {
     await _hubConnection!
-        .invoke('AddSubTag', args: [tagName, mainTagName]).catchError((err) {
+        .send(methodName: 'AddSubTag', args: [tagName, mainTagName]).catchError((err) {
       logger.e("There was an error caught while sending a message",
           error: err.toString().isEmpty ? "None provided" : err.toString());
     });
   }
 
   void addRating(int chatroomID, int score, String? feedback) async {
-    await _hubConnection!.invoke('AddOrUpdateRating',
+    await _hubConnection!.send(methodName: 'AddOrUpdateRating',
         args: [chatroomID, score, feedback]).catchError((err) {
       logger.e("There was an error caught while saving rating",
           error: err.toString().isEmpty ? "None provided" : err.toString());
@@ -189,7 +190,7 @@ class SignalRService with ChangeNotifier {
 
   void addFAQ(String title, String description, String solution, String mainTag,
       String subTag) async {
-    await _hubConnection!.invoke('AddFAQ', args: [
+    await _hubConnection!.send(methodName: 'AddFAQ', args: [
       title,
       description,
       solution,
@@ -203,14 +204,14 @@ class SignalRService with ChangeNotifier {
 
   void joinChatroom(int userID, int chatroomID) async {
     await _hubConnection!
-        .invoke('JoinChatroom', args: [userID, chatroomID]).catchError((err) {
+        .send(methodName: 'JoinChatroom', args: [userID, chatroomID]).catchError((err) {
       logger.e("There was an error caught while joining chatroom",
           error: err.toString().isEmpty ? "None provided" : err.toString());
     });
   }
 
   void markAsRead(List<int> notifications, int userID) async {
-    await _hubConnection!.invoke('ReadNotification',
+    await _hubConnection!.send(methodName: 'ReadNotification',
         args: [notifications, userID]).catchError((err) {
       logger.e("There was an error caught while marking as read",
           error: err.toString().isEmpty ? "None provided" : err.toString());
@@ -218,7 +219,7 @@ class SignalRService with ChangeNotifier {
   }
 
   void markAsDelete(List<int> notifications, int userID) async {
-    await _hubConnection!.invoke('DeleteNotification',
+    await _hubConnection!.send(methodName: 'DeleteNotification',
         args: [notifications, userID]).catchError((err) {
       logger.e("There was an error caught while deleting notification",
           error: err.toString().isEmpty ? "None provided" : err.toString());
@@ -227,7 +228,7 @@ class SignalRService with ChangeNotifier {
 
   void deleteAPIKey(int apiKey) async {
     await _hubConnection!
-        .invoke('DeleteAPIKey', args: [apiKey]).catchError((err) {
+        .send(methodName: 'DeleteAPIKey', args: [apiKey]).catchError((err) {
       logger.e("There was an error caught while deleting API Key",
           error: err.toString().isEmpty ? "None provided" : err.toString());
     });
@@ -243,7 +244,7 @@ class SignalRService with ChangeNotifier {
       String? role,
       List<String?> assignedTags,
       bool isDisabled) async {
-    await _hubConnection!.invoke('UpdateUser', args: [
+    await _hubConnection!.send(methodName: 'UpdateUser', args: [
       userID,
       username,
       firstName,
@@ -267,7 +268,7 @@ class SignalRService with ChangeNotifier {
       String lastName,
       String role,
       List<String> assignedTags) async {
-    await _hubConnection!.invoke('AddUser', args: [
+    await _hubConnection!.send(methodName: 'AddUser', args: [
       username,
       password,
       firstName,
@@ -283,14 +284,14 @@ class SignalRService with ChangeNotifier {
 
   void addAPIKey(String apiKey, String? notes) async {
     await _hubConnection!
-        .invoke('AddAPIKey', args: [apiKey, notes]).catchError((err) {
+        .send(methodName: 'AddAPIKey', args: [apiKey, notes]).catchError((err) {
       logger.e("There was an error caught while Adding API Key",
           error: err.toString().isEmpty ? "None provided" : err.toString());
     });
   }
 
   void updateAPIKey(int apiKeyID, String apiKey, String? notes) async {
-    await _hubConnection!.invoke('UpdateAPIKey', args: [
+    await _hubConnection!.send(methodName: 'UpdateAPIKey', args: [
       apiKeyID,
       apiKey,
       notes ?? 'No note provided'
@@ -301,7 +302,7 @@ class SignalRService with ChangeNotifier {
   }
 
   void sendMessage(int userID, int chatroomID, String messageContent) async {
-    await _hubConnection!.invoke('SendMessage',
+    await _hubConnection!.send(methodName: 'SendMessage',
         args: [userID, chatroomID, messageContent]).catchError((err) {
       logger.e("There was an error caught while sending a message",
           error: err.toString());
@@ -310,7 +311,7 @@ class SignalRService with ChangeNotifier {
 
   void closeChatroom(int chatroomID) async {
     await _hubConnection!
-        .invoke('CloseChatroom', args: [chatroomID]).catchError((err) {
+        .send(methodName: 'CloseChatroom', args: [chatroomID]).catchError((err) {
       logger.e("There was an error caught while sending close chatroom",
           error: err.toString());
     });
@@ -318,7 +319,7 @@ class SignalRService with ChangeNotifier {
 
   void sendSeen(int userID, int chatroomID) async {
     await _hubConnection!
-        .invoke('UserSeen', args: [userID, chatroomID]).catchError((err) {
+        .send(methodName: 'UserSeen', args: [userID, chatroomID]).catchError((err) {
       logger.e("There was an error caught while sending user seen",
           error: err.toString());
     });
@@ -399,7 +400,7 @@ class SignalRService with ChangeNotifier {
       logger.i("🔄 Invoking Online Event...");
       var userSession =
           Hive.box<UserSession.HiveSession>('sessionBox').get('user');
-      await _hubConnection!.invoke("Online",
+      await _hubConnection!.send(methodName: "Online",
           args: [userSession!.user.userID, userSession!.user.role]);
     } catch (e) {
       logger.e("❌ Error connecting to SignalR:", error: e.toString());

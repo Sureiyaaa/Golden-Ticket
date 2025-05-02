@@ -21,8 +21,8 @@ class LoginPage extends StatefulWidget {
 class _LoginPage extends State<LoginPage> {
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  bool _obscurePassword = true; // This will toggle password visibility
   var logger = Logger();
-  // This widget is the root of your application.
 
   @override
   void initState() {
@@ -35,7 +35,7 @@ class _LoginPage extends State<LoginPage> {
       if (userSession != null) {
         bool isDisabled = await accountDisabled(context, userSession.user.userID);
 
-        if(!isDisabled) {
+        if (!isDisabled) {
           logger.i("User session found: ${userSession.user.username}");
           context.go('/hub/dashboard', extra: userSession.user);
         }
@@ -50,28 +50,27 @@ class _LoginPage extends State<LoginPage> {
 
       if (username.isEmpty || password.isEmpty) {
         TopNotification.show(
-            context: context,
-            message: "Fill out all the fields!",
-            backgroundColor: Colors.redAccent,
-            duration: Duration(seconds: 2),
-            textColor: Colors.black,
-            onTap: () {
-              TopNotification.dismiss();
-            }
+          context: context,
+          message: "Fill out all the fields!",
+          backgroundColor: Colors.redAccent,
+          duration: Duration(seconds: 2),
+          textColor: Colors.black,
+          onTap: () {
+            TopNotification.dismiss();
+          },
         );
         return;
       }
 
-
       var url = Uri.http(kBaseURL, kLogin);
 
       var response = await http.requestJson(
-          url,
-          method: http.RequestMethod.post,
-          body: {
-            'username': usernameController.text,
-            'password': passwordController.text
-          }
+        url,
+        method: http.RequestMethod.post,
+        body: {
+          'username': usernameController.text,
+          'password': passwordController.text,
+        },
       );
 
       if (response['status'] == 200) {
@@ -81,26 +80,26 @@ class _LoginPage extends State<LoginPage> {
         context.go('/hub/dashboard', extra: data);
       } else {
         TopNotification.show(
-            context: context,
-            message: "Login failed: ${response['message']}",
-            backgroundColor: Colors.redAccent,
-            duration: Duration(seconds: 2),
-            textColor: Colors.white,
-            onTap: () {
-              TopNotification.dismiss();
-            }
-        );
-      }
-    }catch(Exception){
-      TopNotification.show(
           context: context,
-          message: "Login failed: Can't connect to webserver",
+          message: "Login failed: ${response['message']}",
           backgroundColor: Colors.redAccent,
           duration: Duration(seconds: 2),
           textColor: Colors.white,
           onTap: () {
             TopNotification.dismiss();
-          }
+          },
+        );
+      }
+    } catch (Exception) {
+      TopNotification.show(
+        context: context,
+        message: "Login failed: Can't connect to webserver",
+        backgroundColor: Colors.redAccent,
+        duration: Duration(seconds: 2),
+        textColor: Colors.white,
+        onTap: () {
+          TopNotification.dismiss();
+        },
       );
     }
   }
@@ -108,22 +107,20 @@ class _LoginPage extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        backgroundColor: kSurface,
-        appBar: AppBar(
-          // TRY THIS: Try changing the color here to a specific color (to
-          // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-          // change color while the other colors stay the same.
-          backgroundColor: kPrimary,
-          // Here we take the value from the MyHomePage object that was created by
-          // the App.build method, and use it to set our appbar title.
-          title: Text("Login"),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment.center, // Center of the gradient
+            radius: 0.8, // Radius of the gradient
+            colors: [kSurface, kPrimary], // Colors of the gradient
+            stops: [0.02, 2.0], // Stop points for the colors
+          ),
         ),
-        body: Center(
+        child: Center(
           child: Card(
             elevation: 8,
             color: kPrimaryContainer,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: Padding(
               padding: const EdgeInsets.all(24.0),
               child: SizedBox(
@@ -131,7 +128,7 @@ class _LoginPage extends State<LoginPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text("Login",
+                    Text("Golden Ticket",
                         style: TextStyle(
                             fontSize: 24, fontWeight: FontWeight.bold)),
                     SizedBox(height: 20),
@@ -147,11 +144,21 @@ class _LoginPage extends State<LoginPage> {
                     SizedBox(height: 12),
                     TextField(
                       controller: passwordController,
-                      obscureText: true,
+                      obscureText: _obscurePassword, // Toggle visibility
                       onSubmitted: (val) => _login(),
                       decoration: InputDecoration(
                         labelText: "Password",
                         prefixIcon: Icon(Icons.lock),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword; // Toggle the password visibility
+                            });
+                          },
+                        ),
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8)),
                       ),
@@ -164,7 +171,7 @@ class _LoginPage extends State<LoginPage> {
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8)),
                         padding:
-                            EdgeInsets.symmetric(horizontal: 50, vertical: 12),
+                        EdgeInsets.symmetric(horizontal: 50, vertical: 12),
                       ),
                       child: Text("Login", style: TextStyle(fontSize: 16, color: kSurface)),
                     ),
@@ -173,7 +180,8 @@ class _LoginPage extends State<LoginPage> {
               ),
             ),
           ),
-        ) // This trailing comma makes auto-formatting nicer for build methods.
-        );
+        ),
+      ),
+    );
   }
 }

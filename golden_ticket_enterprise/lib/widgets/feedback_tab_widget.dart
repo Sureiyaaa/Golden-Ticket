@@ -103,27 +103,32 @@ class _FeedbackReportTabState extends State<FeedbackReportTab> {
                             columnSpacing: 40,
                             headingRowColor: MaterialStateColor.resolveWith(
                                 (states) => Colors.grey.shade200),
-                            columns: const [
+                            columns: [
                               DataColumn(
-                                  label: Text("Name",
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold))),
+                                label: Flexible(
+                                  child: Text("Name", overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                ),
+                              ),
                               DataColumn(
-                                  label: Text("Average Rating",
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold))),
+                                label: Flexible(
+                                  child: Text("Average Rating", overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                ),
+                              ),
                               DataColumn(
-                                  label: Text("In Progress",
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold))),
+                                label: Flexible(
+                                  child: Text("In Progress", overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                ),
+                              ),
                               DataColumn(
-                                  label: Text("Resolved",
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold))),
+                                label: Flexible(
+                                  child: Text("Resolved", overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                ),
+                              ),
                               DataColumn(
-                                  label: Text("Actions",
-                                      style: TextStyle(
-                                          fontWeight: FontWeight.bold))),
+                                label: Flexible(
+                                  child: Text("Actions", overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                ),
+                              ),
                             ],
                             rows: allStaff.map((staff) {
                               final ratings = dataManager.ratings

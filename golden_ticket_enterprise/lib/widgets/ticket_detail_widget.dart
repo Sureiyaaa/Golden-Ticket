@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'package:go_router/go_router.dart';
 import 'package:golden_ticket_enterprise/entities/ticket.dart';
 import 'package:golden_ticket_enterprise/models/time_utils.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
@@ -8,13 +7,13 @@ import 'package:golden_ticket_enterprise/styles/icons.dart';
 
 class TicketDetailsPopup extends StatelessWidget {
   final Ticket ticket;
-
   final VoidCallback onChatPressed;
 
   const TicketDetailsPopup({Key? key, required this.ticket, required this.onChatPressed}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+
     return Dialog(
       insetPadding: EdgeInsets.symmetric(horizontal: 20),
       child: ConstrainedBox(
@@ -24,251 +23,250 @@ class TicketDetailsPopup extends StatelessWidget {
         ),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            return SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '#${ticket.ticketID}: ${ticket.ticketTitle ?? "No title provided"}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        color: kPrimary,
-                      ),
-                    ),
-                    SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Text('Author: ',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 16)),
-                        Text(
-                            '${ticket.author.firstName} ${ticket.author.lastName}',
-                            style: TextStyle(fontSize: 16)),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        Text('Assigned: ',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 16)),
-                        Text(
-                          ticket.assigned != null
-                              ? '${ticket.assigned!.firstName} ${ticket.assigned!.lastName}'
-                              : 'None assigned',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+            return Column(
+              children: [
+                // Title bar
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: kPrimary,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Ticket',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold)),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            Text('Priority: ',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 16)),
-                            Chip(
-                              label: Text(ticket.priority,
-                                  style: TextStyle(fontWeight: FontWeight.normal)),
-                              backgroundColor:
-                              getPriorityColor(ticket.priority),
-                              labelStyle: TextStyle(color: Colors.white),
+                            IconButton(
+                              icon: Icon(Icons.chat, color: Colors.white),
+                              tooltip: 'Open Chat',
+                              onPressed: () {
+                                onChatPressed();
+                                Navigator.pop(context);
+                              },
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.close, color: Colors.white),
+                              tooltip: 'Close',
+                              onPressed: () => Navigator.pop(context),
                             ),
                           ],
                         ),
-                        SizedBox(height: 6),
-                        if (ticket.mainTag != null)
-                          Row(
+                      )
+
+                    ],
+                  ),
+                ),
+
+                // Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '#${ticket.ticketID}: ${ticket.ticketTitle ?? "No title provided"}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            color: kPrimary,
+                          ),
+                        ),
+                        SizedBox(height: 12),
+                        Card(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 2,
+                          child: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _infoRow(Icons.person, 'Author:', '${ticket.author.firstName} ${ticket.author.lastName}'),
+                                SizedBox(height: 6),
+                                _infoRow(Icons.assignment_ind, 'Assigned:',
+                                    ticket.assigned != null
+                                        ? '${ticket.assigned!.firstName} ${ticket.assigned!.lastName}'
+                                        : 'None assigned'),
+                              ],
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 12),
+                        Card(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 2,
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Wrap(
+                                  spacing: 12,
+                                  runSpacing: 12,
+                                  children: [
+                                    _chipRow('Priority:', ticket.priority, getPriorityColor(ticket.priority)),
+                                    _chipRow('Status:', ticket.status, getStatusColor(ticket.status)),
+                                    if (ticket.mainTag != null)
+                                      _chipRow('Main Tag:', ticket.mainTag!.tagName, Colors.redAccent),
+                                    _chipRow('Sub Tag:', ticket.subTag?.subTagName ?? 'No Sub Tag Provided', Colors.blueAccent),
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text('Created At:',
+                                            style: TextStyle(fontWeight: FontWeight.bold)),
+                                        SizedBox(width: 6),
+                                        Text(TimeUtil.formatCreationDate(ticket.createdAt)),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 20),
+                        Text('Ticket History',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        SizedBox(height: 10),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: EdgeInsets.all(12),
+                          height: 300,
+                          child: Stack(
                             children: [
-                              Text('Main Tag: ',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.bold, fontSize: 16)),
-                              Chip(
-                                label: Text(ticket.mainTag!.tagName,
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.normal)),
-                                backgroundColor: Colors.redAccent,
-                                labelStyle: TextStyle(color: Colors.white),
+                              Positioned(
+                                left: 15,
+                                top: 0,
+                                bottom: 0,
+                                child: Container(
+                                  width: 2,
+                                  color: kPrimary.withOpacity(0.5),
+                                ),
+                              ),
+                              ListView.builder(
+                                itemCount: ticket.ticketHistory?.length ?? 0,
+                                itemBuilder: (context, index) {
+                                  var sortedHistory = [...?ticket.ticketHistory]
+                                    ..sort((a, b) => a.actionDate.compareTo(b.actionDate));
+                                  var historyItem = sortedHistory[index];
+
+                                  return Container(
+                                    margin: EdgeInsets.only(bottom: 20),
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Container(
+                                          width: 30,
+                                          alignment: Alignment.center,
+                                          child: CircleAvatar(
+                                            radius: 12,
+                                            backgroundColor: kPrimary,
+                                            child: Icon(
+                                              getActionHandlerIcon(historyItem.action),
+                                              size: 14,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                        SizedBox(width: 10),
+                                        Expanded(
+                                          child: Container(
+                                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                            decoration: BoxDecoration(
+                                              color: kPrimaryContainer,
+                                              borderRadius: BorderRadius.circular(8),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black.withOpacity(0.05),
+                                                  blurRadius: 4,
+                                                  offset: Offset(0, 2),
+                                                )
+                                              ],
+                                            ),
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  '${TimeUtil.formatCreationDate(historyItem.actionDate)}: ${historyItem.action}',
+                                                  style: TextStyle(
+                                                      fontWeight: FontWeight.bold, fontSize: 14),
+                                                ),
+                                                SizedBox(height: 4),
+                                                MarkdownBody(
+                                                  data: historyItem.actionMessage,
+                                                  styleSheet: MarkdownStyleSheet(
+                                                    p: TextStyle(fontSize: 14, color: Colors.black),
+                                                    strong:
+                                                    const TextStyle(fontWeight: FontWeight.bold),
+                                                    blockquote: TextStyle(
+                                                        color: Colors.grey[600],
+                                                        fontStyle: FontStyle.italic),
+                                                  ),
+                                                  selectable: true,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
                               ),
                             ],
                           ),
-                        SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Text('Sub Tag: ',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 16)),
-                            Chip(
-                              label: Text(
-                                  ticket.subTag?.subTagName ?? "No Sub Tag Provided",
-                                  style: TextStyle(fontWeight: FontWeight.normal)),
-                              backgroundColor: Colors.blueAccent,
-                              labelStyle: TextStyle(color: Colors.white),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Text('Status: ',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 16)),
-                            Chip(
-                              label: Text(ticket.status,
-                                  style: TextStyle(fontWeight: FontWeight.normal)),
-                              backgroundColor: getStatusColor(ticket.status),
-                              labelStyle: TextStyle(color: Colors.white),
-                            ),
-                          ],
                         ),
                       ],
                     ),
-
-                    SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Text('Created At: ',
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 16)),
-                        Text(
-                            '${TimeUtil.formatCreationDate(ticket.createdAt)}',
-                            style: TextStyle(fontSize: 16)),
-                      ],
-                    ),
-                    SizedBox(height: 20),
-
-                    // Ticket History Section with Background Separator
-                    Text('Ticket History',
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 16)),
-                    SizedBox(height: 10),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.grey[350], // Light background color
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      padding: EdgeInsets.all(12),
-                      child: Container(
-                        height: 200,
-                        child: ListView.builder(
-                          itemCount: ticket.ticketHistory?.length ?? 0,
-                          itemBuilder: (context, index) {
-                            var sortedHistory = ticket.ticketHistory!
-                              ..sort((a, b) =>
-                                  b.actionDate.compareTo(a.actionDate));
-                            var historyItem = sortedHistory[index];
-                            bool isLast = index == sortedHistory.length - 1;
-
-                            return Padding(
-                              padding:
-                              const EdgeInsets.symmetric(vertical: 8.0),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    width: 30,
-                                    child: Column(
-                                      children: [
-                                        Icon(
-                                            getActionHandlerIcon(
-                                                historyItem.action),
-                                            size: 24,
-                                            color: kPrimary),
-                                        if (!isLast)
-                                          Container(
-                                            width: 2,
-                                            height: 60, // Increased for better flow
-                                            color: kPrimary,
-                                          ),
-                                      ],
-                                    ),
-                                  ),
-                                  Expanded(
-                                    child: Container(
-                                      margin: EdgeInsets.only(left: 10),
-                                      decoration: BoxDecoration(
-                                        color: kPrimaryContainer,
-                                        borderRadius: BorderRadius.circular(8),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color:
-                                            Colors.black.withOpacity(0.05),
-                                            blurRadius: 6,
-                                            offset: Offset(0, 3),
-                                          )
-                                        ],
-                                      ),
-                                      child: ListTile(
-                                        contentPadding: EdgeInsets.symmetric(
-                                            horizontal: 10, vertical: 10),
-                                        title: Text(
-                                          '${TimeUtil.formatCreationDate(historyItem.actionDate)}: ${historyItem.action}',
-                                          style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 14),
-                                        ),
-                                        subtitle: MarkdownBody(
-                                          data: historyItem.actionMessage, // ✅ Render Markdown
-                                          styleSheet: MarkdownStyleSheet(
-                                            p: TextStyle(fontSize: 14, color: Colors.black),
-                                            strong: const TextStyle(fontWeight: FontWeight.bold),
-                                            blockquote: TextStyle(color: Colors.grey[600], fontStyle: FontStyle.italic),
-                                          ),
-                                          selectable: true,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-
-                    SizedBox(height: 20),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        ElevatedButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: ElevatedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 12),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8)),
-                            backgroundColor: kPrimary,
-                          ),
-                          child: Text('Close', style: TextStyle(fontSize: 16, color: Colors.white)),
-                        ),
-                        SizedBox(width: 16),  // Add space between buttons
-                        ElevatedButton(
-                          onPressed: () {
-                            onChatPressed();
-                            Navigator.pop(context);
-                          },
-                          style: ElevatedButton.styleFrom(
-                            padding: EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 12),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8)),
-                            backgroundColor: kPrimary,
-                          ),
-                          child: Text('Open Chat', style: TextStyle(fontSize: 16, color: Colors.white)),
-                        )
-                      ],
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             );
           },
         ),
+      ),
+    );
+  }
+
+  Widget _infoRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: Colors.grey),
+        SizedBox(width: 8),
+        Text(label, style: TextStyle(fontWeight: FontWeight.bold)),
+        SizedBox(width: 4),
+        Text(value),
+      ],
+    );
+  }
+
+  Widget _chipRow(String label, String value, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        children: [
+          Text(label,
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          SizedBox(width: 6),
+          Chip(
+            label: Text(value, style: TextStyle(fontWeight: FontWeight.normal)),
+            backgroundColor: color,
+            labelStyle: TextStyle(color: Colors.white),
+          ),
+        ],
       ),
     );
   }

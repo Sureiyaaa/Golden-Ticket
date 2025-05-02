@@ -8,15 +8,20 @@ import 'package:golden_ticket_enterprise/entities/message.dart';
 import 'package:golden_ticket_enterprise/entities/rating.dart';
 import 'package:golden_ticket_enterprise/entities/ticket.dart';
 import 'package:golden_ticket_enterprise/entities/user.dart' as UserDTO;
+import 'package:golden_ticket_enterprise/models/class_enums.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart'
 as UserSession;
 import 'package:golden_ticket_enterprise/models/signalr/signalr_service.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:logger/logger.dart';
 import 'package:signalr_core/signalr_core.dart';
 
 class SignalREventHandler extends ChangeNotifier {
   final SignalRService _service;
   final HubConnection _hubConnection;
+
+  var logger = Logger();
+
   SignalREventHandler(this._service, this._hubConnection);
 
   void setupEventHandlers(){
@@ -261,5 +266,37 @@ class SignalREventHandler extends ChangeNotifier {
         _service.onRatingsUpdate?.call(updatedRatings);
       }
     });
+
+
+    _hubConnection.onclose((error) {
+      logger.e("❌ SignalR Connection Closed:",
+          error: error.toString().isEmpty ? "None provided" : error.toString());
+
+      _service.updateConnectionState(ConnectionType.disconnected);
+      if (_service.shouldReconnect) _service.attemptReconnect(); // ✅ Only retry if allowed
+    });
+
+    _hubConnection.onreconnecting((error) {
+      logger.e("🔄 Reconnecting... Error:",
+          error: error.toString().isEmpty ? "None provided" : error.toString());
+      _service.updateConnectionState(ConnectionType.reconnecting);
+    });
+
+    _hubConnection.onreconnected((connectionId) async {
+
+      var userSession =
+      Hive.box<UserSession.HiveSession>('sessionBox').get('user');
+      logger.i("✅ Reconnected: $connectionId");
+      _service.retryCount = 0; // Reset retry count on successful reconnection
+      _service.updateConnectionState(ConnectionType.connected);
+      await _hubConnection.invoke("Online", args: [userSession!.user.userID, userSession.user.role]);
+    });
+
+
+  }
+
+  void updateConnectionState(ConnectionType state) {
+    _service.updateConnectionState(state);
+    notifyListeners();
   }
 }

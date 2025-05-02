@@ -67,11 +67,11 @@ class SignalRService with ChangeNotifier {
   bool get isConnected => _connectionState == ConnectionType.connected;
 
   final String serverUrl = "http://${kBaseURL}/${kGTHub}";
-  int _retryCount = 0; // For exponential backoff
-  bool _shouldReconnect = true; // ✅ Prevents reconnecting after logout
+  int retryCount = 0; // For exponential backoff
+  bool shouldReconnect = true; // ✅ Prevents reconnecting after logout
 
   /// Initializes the SignalR connection
-  Future<void> initializeConnection(UserSession.HiveSession user) async {
+  Future<void> initializeConnection() async {
     _hubConnection = HubConnectionBuilder()
         .withUrl(
           serverUrl,
@@ -99,27 +99,6 @@ class SignalRService with ChangeNotifier {
 
     _hubConnection!.serverTimeoutInMilliseconds = 30000;
     _hubConnection!.keepAliveIntervalInMilliseconds = 5000;
-
-    _hubConnection!.onclose((error) {
-      logger.e("❌ SignalR Connection Closed:",
-          error: error.toString().isEmpty ? "None provided" : error.toString());
-      _updateConnectionState(ConnectionType.disconnected);
-      if (_shouldReconnect) _attemptReconnect(); // ✅ Only retry if allowed
-    });
-
-    _hubConnection!.onreconnecting((error) {
-      logger.e("🔄 Reconnecting... Error:",
-          error: error.toString().isEmpty ? "None provided" : error.toString());
-      _updateConnectionState(ConnectionType.reconnecting);
-    });
-
-    _hubConnection!.onreconnected((connectionId) async {
-      logger.i("✅ Reconnected: $connectionId");
-      _retryCount = 0; // Reset retry count on successful reconnection
-      _updateConnectionState(ConnectionType.connected);
-      await _hubConnection!
-          .invoke("Online", args: [user.user.userID, user.user.role]);
-    });
 
     await startConnection();
   }
@@ -408,12 +387,12 @@ class SignalRService with ChangeNotifier {
     if (_hubConnection == null) return;
 
     try {
-      _shouldReconnect = true; // ✅ Allow reconnects on normal use
-      _updateConnectionState(ConnectionType.connecting);
+      shouldReconnect = true; // ✅ Allow reconnects on normal use
+      updateConnectionState(ConnectionType.connecting);
       await _hubConnection!
           .start(); // ❌ If the old tab is using the same user ID, it might get disconnected
       logger.i("✅ SignalR Connected!");
-      _updateConnectionState(ConnectionType.connected);
+      updateConnectionState(ConnectionType.connected);
 
       onConnected?.call();
       _setupEventHandlers();
@@ -424,8 +403,8 @@ class SignalRService with ChangeNotifier {
           args: [userSession!.user.userID, userSession!.user.role]);
     } catch (e) {
       logger.e("❌ Error connecting to SignalR:", error: e.toString());
-      _updateConnectionState(ConnectionType.disconnected);
-      if (_shouldReconnect) _attemptReconnect();
+      updateConnectionState(ConnectionType.disconnected);
+      if (shouldReconnect) attemptReconnect();
     }
   }
 
@@ -435,15 +414,15 @@ class SignalRService with ChangeNotifier {
   }
 
   /// Attempt to reconnect with exponential backoff
-  Future<void> _attemptReconnect() async {
-    if (!_shouldReconnect || _connectionState == ConnectionType.connected)
+  Future<void> attemptReconnect() async {
+    if (!shouldReconnect || _connectionState == ConnectionType.connected)
       return;
 
-    _retryCount++;
-    if (_retryCount > 3) _shouldReconnect = false;
+    retryCount++;
+    if (retryCount > 3) shouldReconnect = false;
     int delay =
-        (5 * _retryCount).clamp(5, 30); // Delay increases but max 30 sec
-    logger.i("🕐 Retrying in $delay seconds... (Attempt: $_retryCount)");
+        (5 * retryCount).clamp(5, 30); // Delay increases but max 30 sec
+    logger.i("🕐 Retrying in $delay seconds... (Attempt: $retryCount)");
 
     await Future.delayed(Duration(seconds: delay));
     await startConnection();
@@ -452,15 +431,15 @@ class SignalRService with ChangeNotifier {
   /// Manually trigger reconnection
   Future<void> reconnect() async {
     logger.i("🔁 Manual Reconnect Triggered...");
-    _shouldReconnect = true; // ✅ Ensure manual reconnects are allowed
-    _retryCount = 0;
+    shouldReconnect = true; // ✅ Ensure manual reconnects are allowed
+    retryCount = 0;
     await startConnection();
   }
 
   /// Stops the SignalR connection and prevents reconnection
   Future<void> stopConnection() async {
     if (_hubConnection != null) {
-      _shouldReconnect = false;
+      shouldReconnect = false;
       log("SignalR: Stopping connection...");
       await _hubConnection!.stop();
       _hubConnection = null; // Ensure it's fully cleared
@@ -468,7 +447,7 @@ class SignalRService with ChangeNotifier {
   }
 
   /// Updates connection state and notifies listeners
-  void _updateConnectionState(ConnectionType state) {
+  void updateConnectionState(ConnectionType state) {
     _connectionState = state;
     notifyListeners();
   }

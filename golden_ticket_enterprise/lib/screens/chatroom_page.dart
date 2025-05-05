@@ -50,24 +50,39 @@ class _ChatroomPageState extends State<ChatroomPage> {
     messageFocusNode.requestFocus();
     dm = Provider.of<DataManager>(context, listen: false);
 
-    dm.signalRService.addOnReceiveMessageListener(_handleChatroomMessage);
+    dm.signalRService.addOnReceiveMessageListener(handleChatroomMessage);
+
+    dm.signalRService.onReconnected = () {
+
+      var userSession = Hive.box<HiveSession>('sessionBox').get('user');
+      dm.signalRService.openChatroom(userSession!.user.userID, widget.chatroomID);
+      dm.signalRService.removeOnReceiveMessageListener(handleChatroomMessage);
+      dm.signalRService.addOnReceiveMessageListener(handleChatroomMessage);
+      dm.signalRService.sendSeen(userSession.user.userID, widget.chatroomID);
+    };
+
+    dm.signalRService.onDisconnected = (){
+      dm.signalRService.removeOnReceiveMessageListener(handleChatroomMessage);
+    };
     dm.enterChatroom(widget.chatroomID);
   }
   @override
   void didChangeDependencies() {
 
     super.didChangeDependencies();
+
   }
   @override
   void dispose(){
-    dm.signalRService.removeOnReceiveMessageListener(_handleChatroomMessage);
+    dm.signalRService.removeOnReceiveMessageListener(handleChatroomMessage);
     dm.exitChatroom(widget.chatroomID);
+    _scrollController.dispose();
     messageFocusNode.dispose();
     super.dispose();
   }
 
 
-  void _handleChatroomMessage(Message message, Chatroom chatroom) {
+  void handleChatroomMessage(Message message, Chatroom chatroom) {
 
     var userSession = Hive.box<HiveSession>('sessionBox').get('user');
 
@@ -89,10 +104,14 @@ class _ChatroomPageState extends State<ChatroomPage> {
   Widget build(BuildContext context) {
     return Consumer<DataManager>(
       builder: (context, dataManager, child) {
-        Chatroom chatroom = dataManager.findChatroomByID(widget.chatroomID)!;
+
         if (!dataManager.signalRService.isConnected) {
+
           return DisconnectedOverlay();
         }
+
+        Chatroom chatroom = dataManager.findChatroomByID(widget.chatroomID)!;
+
         final allMessages = (chatroom.messages ?? []).toList(); // safety if null
         if (allMessages.isEmpty) {
           return const Center(child: CircularProgressIndicator()); // or a 'Loading...' placeholder

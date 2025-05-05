@@ -60,6 +60,8 @@ class SignalRService with ChangeNotifier {
   Function()? onAlreadyMember;
   Function()? onAlreadyDeleted;
   Function()? onRegistrationError;
+  Function()? onReconnected;
+  Function()? onDisconnected;
 
   ConnectionType _connectionState = ConnectionType.disconnected;
   ConnectionType get connectionState => _connectionState;
@@ -75,32 +77,33 @@ class SignalRService with ChangeNotifier {
     _hubConnection = HubConnectionBuilder()
         .withUrl(
           serverUrl,
-          HttpConnectionOptions(logging: (level, message) {
-            switch(level){
-              case LogLevel.information:
-                  // logger.i(message);
-                break;
-              case LogLevel.trace:
-                logger.t(message);
-              case LogLevel.debug:
-                logger.d(message);
-              case LogLevel.warning:
-                logger.w(message);
-              case LogLevel.error:
-                logger.e(message, error: "None Provided");
-              case LogLevel.critical:
-                logger.f(message);
-              case LogLevel.none:
-                logger.d(message);
-            }
-          }),
+          // HttpConnectionOptions(logging: (level, message) {
+          //   switch(level){
+          //     case LogLevel.information:
+          //         // logger.i(message);
+          //       break;
+          //     case LogLevel.trace:
+          //       logger.t(message);
+          //     case LogLevel.debug:
+          //       logger.d(message);
+          //     case LogLevel.warning:
+          //       logger.w(message);
+          //     case LogLevel.error:
+          //       logger.e(message, error: "None Provided");
+          //     case LogLevel.critical:
+          //       logger.f(message);
+          //     case LogLevel.none:
+          //       logger.d(message);
+          //   }
+          // }),
         )
         .build();
 
     _hubConnection!.serverTimeoutInMilliseconds = 30000;
     _hubConnection!.keepAliveIntervalInMilliseconds = 5000;
 
-
+    _eventHandlers = SignalREventHandler(this, _hubConnection!);
+    _setupEventHandlers();
     await startConnection();
   }
 
@@ -327,6 +330,7 @@ class SignalRService with ChangeNotifier {
 
   void addOnReceiveMessageListener(void Function(Message, Chatroom) listener) {
     _onReceiveMessageListeners.add(listener);
+
   }
 
   void addOnReceiveSupportListener(void Function(Chatroom) listener) {
@@ -341,9 +345,8 @@ class SignalRService with ChangeNotifier {
     _onUserUpdateListener.add(listener);
   }
 
-  void removeOnReceiveMessageListener(
-      void Function(Message, Chatroom) listener) {
-    _onReceiveMessageListeners.remove(listener);
+  void removeOnReceiveMessageListener(void Function(Message, Chatroom) listener) {
+      _onReceiveMessageListeners.remove(listener);
   }
 
   void removeOnReceiveSupportListener(void Function(Chatroom) listener) {
@@ -396,7 +399,7 @@ class SignalRService with ChangeNotifier {
       updateConnectionState(ConnectionType.connected);
 
       onConnected?.call();
-      _setupEventHandlers();
+
       logger.i("🔄 Invoking Online Event...");
       var userSession =
           Hive.box<UserSession.HiveSession>('sessionBox').get('user');
@@ -410,7 +413,6 @@ class SignalRService with ChangeNotifier {
   }
 
   void _setupEventHandlers() async {
-    _eventHandlers = SignalREventHandler(this, _hubConnection!);
     _eventHandlers.setupEventHandlers();
   }
 
@@ -449,6 +451,13 @@ class SignalRService with ChangeNotifier {
 
   /// Updates connection state and notifies listeners
   void updateConnectionState(ConnectionType state) {
+    if(state == ConnectionType.disconnected && connectionState == ConnectionType.connected){
+      onDisconnected?.call();
+    }
+
+    if(state == ConnectionType.connected && connectionState == ConnectionType.connecting){
+      onReconnected?.call();
+    }
     _connectionState = state;
     notifyListeners();
   }

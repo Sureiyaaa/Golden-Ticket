@@ -25,7 +25,7 @@ public class OpenAIService
     private readonly Dictionary<string, int> clientTokenUsage = new();
     private readonly float _temperature;
     private readonly int _maxOutputTokenCount;
-    public static bool debug = true;
+    public static bool debug = false;
     public static int TokenCountUsed { get; private set; } = 0;
     public static int TotalCharactersUsed { get; private set; } = 0;
 
@@ -52,10 +52,9 @@ public class OpenAIService
     {
         if (_client == null || _apiCredential == null)
         {
-            _currentKey = await _apiConfig.GetOpenAIKey();
+            _currentKey = await _apiConfig.GetLeastUsedAPI();
             _apiCredential = new ApiKeyCredential("Bearer " + _currentKey.APIKey);
             _client = new ChatClient("gpt-4o", _apiCredential, _options);
-            Console.WriteLine($"[OpenAIService] Bearer {_currentKey.APIKey}");
         }
     }
 
@@ -72,7 +71,7 @@ public class OpenAIService
         }
         if (!_apiKeyIndex.ContainsKey(chatroomID))
         {
-            _apiKeyIndex[chatroomID] = _currentKey!.APIKeyID!.Value;
+            _apiKeyIndex[chatroomID] = 0;
         }
 
         List<ChatMessage> messages = clientMessages[chatroomID];
@@ -103,13 +102,36 @@ public class OpenAIService
 
         try
         {
+            if(userInput.Contains("-commit") && debug == false)
+            {
+                string cmdMessage = "";
+                debug = true;
+                cmdMessage += "Debugging mode activated.\n";
+
+                if(userInput.Contains("-commit ClientResultException"))
+                {
+                    throw new ClientResultException("--[ Client result exception for debugging. ]--");
+                }
+                else if(userInput.Contains("-commit OperationCanceledException"))
+                {
+                    throw new OperationCanceledException("--[ Timeout exception for debugging. ]--");
+                }
+                else if(userInput.Contains("-commit HttpRequestException"))
+                {
+                    throw new HttpRequestException("--[ Rate Limit exception for debugging. ]--", null, System.Net.HttpStatusCode.TooManyRequests);
+                }
+                else if(userInput.Contains("-commit Exception"))
+                {
+                    throw new Exception("--[ General exception for debugging. ]--");
+                }
+            }
             var response = await _client!.CompleteChatAsync(!isDirect ? messages : directMsg, requestOptions, cts.Token);
 
             // DEBUG
-            if(debug) foreach (var message in messages)
-            {
-                Console.WriteLine($"Message Type: {message.GetType()}\nContent Type: {message.Content.FirstOrDefault()!.Text}");
-            }
+            // if(debug) foreach (var message in messages)
+            // {
+            //     Console.WriteLine($"Message Type: {message.GetType()}\nContent Type: {message.Content.FirstOrDefault()!.Text}");
+            // }
 
             if (response == null || response.Value == null || response.Value.Content.Count == 0)
             {
@@ -130,6 +152,9 @@ public class OpenAIService
 
             GetTotalTokenUsed(chatroomID);
             _loopAmount[chatroomID] = 0;
+            _apiKeyIndex[chatroomID] = 0;
+            await DBUtil.APIKeyIncrementUsage(_currentKey!.APIKeyID!.Value);
+            debug = false;
             return content;
         }
         catch (ClientResultException ex) when (ex.Message.Contains("content_filter"))
@@ -143,14 +168,13 @@ public class OpenAIService
         {
             _logger.LogWarning($"[OpenAIService][catch 2] {ex.Message}");
             _logger.LogWarning("[OpenAIService] Request timeout detected. Possible rate limit reached. Trying to change API key...");
-            await _apiConfig.GetApiID(_apiCredential!.ToString()!);
             return await HandleRateLimit(chatroomID, userInput, Prompt, isDirect);
         }
         catch (HttpRequestException httpEx) when (httpEx.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
         {
             _logger.LogWarning($"[OpenAIService][catch 3] {httpEx.Message}");
             _logger.LogWarning("[OpenAIService] Rate Limit Exceeded: Too many requests. Trying to change API key...");
-            return await HandleRateLimit(chatroomID, userInput, Prompt, isDirect);
+            return await HandleRateLimit(chatroomID, userInput, Prompt, isDirect, true);
         }
         catch (Exception ex)
         {
@@ -160,21 +184,24 @@ public class OpenAIService
         }
     }
 
-    private async Task<string> HandleRateLimit(string chatroomID, string userInput, string Prompt, bool isDirect)
+    // aaaaaaaaaaaaaaaaaaaaaaaaaaaaaawjdkhakjwdha
+    private async Task<string> HandleRateLimit(string chatroomID, string userInput, string Prompt, bool isDirect, bool LimitReached = false)
     {
         //var expireDate = new DateTime();
         
-        if (_loopAmount[chatroomID] < ApiConfig.OpenAIKeys!.Count)
+        if (_loopAmount[chatroomID] < ApiConfig.AvailableKeys!.Count * 2)
         {
             _loopAmount[chatroomID]++;
-            int oldID = _apiKeyIndex[chatroomID];
-            await DBUtil.APIKeyLimitReach(oldID);
-            _apiKeyIndex[chatroomID] = await _apiConfig.GetLeastUsedAPI(oldID);
-            _currentKey = await _apiConfig.GetOpenAIKey(_apiKeyIndex[chatroomID]);
+            int oldID = _currentKey!.APIKeyID!.Value;
+            if(LimitReached) await DBUtil.APIKeyLimitReach(oldID);
+            _apiKeyIndex[chatroomID]++;
+            if(_apiKeyIndex[chatroomID] > ApiConfig.AvailableKeys?.Count - 1)
+                _apiKeyIndex[chatroomID] = 0;
+            _currentKey = await _apiConfig.GetLeastUsedAPI(_currentKey.APIKeyID.Value, _apiKeyIndex[chatroomID]);
 
-            _logger.LogWarning("[OpenAIService] Switching API key from API_{OldID} to API_{NewID}", oldID, _apiKeyIndex[chatroomID]);
+            _logger.LogWarning("[OpenAIService] Switching API key from API_{OldID} to API_{NewID}", oldID, _currentKey!.APIKeyID!.Value);
             
-            _apiCredential = new ApiKeyCredential("Bearer " + _currentKey);
+            _apiCredential = new ApiKeyCredential("Bearer " + _currentKey.APIKey);
             _client = new ChatClient("gpt-4o", _apiCredential, _options);
             return await GetAIResponse(chatroomID, userInput, Prompt, isDirect);
         }

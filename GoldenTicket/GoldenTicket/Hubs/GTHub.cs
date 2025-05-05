@@ -210,15 +210,17 @@ namespace GoldenTicket.Hubs
 
             var chatroom = await DBUtil.AddChatroom(AuthorID);
             var adminUser = DBUtil.GetAdminUsers();
-            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(chatroom.ChatroomID)!, true);
-            var chatroomDTOAdmin = new ChatroomDTO(DBUtil.GetChatroom(chatroom.ChatroomID, false)!);
+            var chtrm = await DBUtil.GetChatroom(chatroom.ChatroomID);
+            var chtrmAdmin = await DBUtil.GetChatroom(chatroom.ChatroomID, false);
+            var chatroomDTO = new ChatroomDTO(chtrm!, true);
+            var chatroomDTOAdmin = new ChatroomDTO(chtrmAdmin!);
 
             await Clients.Caller.SendAsync("ReceiveSupport", new { chatroom = chatroomDTO });
         }
 
         #region -   ResolveTickets
         #endregion
-        public async void ResolveTickets(List<ChatroomDTO> Chatrooms)
+        public async Task ResolveTickets(List<ChatroomDTO> Chatrooms)
         {
             if(Chatrooms == null || Chatrooms.Count() == 0) 
             {
@@ -249,7 +251,8 @@ namespace GoldenTicket.Hubs
         public async Task CloseChatroom(int ChatroomID)
         {
             var chatroom = await DBUtil.CloseChatroom(ChatroomID);
-            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(chatroom.ChatroomID)!);
+            var chtrm = await DBUtil.GetChatroom(chatroom.ChatroomID);
+            var chatroomDTO = new ChatroomDTO(chtrm!);
             await Clients.Caller.SendAsync("ChatroomUpdate", new { chatroom = chatroomDTO });
             int callerID = _connections.FirstOrDefault(kvp => kvp.Value.Contains(Context.ConnectionId)).Key;
             string userName = DBUtil.FindUser(callerID).FirstName!;
@@ -263,13 +266,14 @@ namespace GoldenTicket.Hubs
         #endregion
         public async Task JoinChatroom(int UserID, int ChatroomID)
         {
-            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID, false)!);
+            var chtrm = await DBUtil.GetChatroom(ChatroomID, false);
+            var chatroomDTO = new ChatroomDTO(chtrm!);
             if (chatroomDTO!.GroupMembers.Any(m => m.User.UserID == UserID))
             {
                 await Clients.Caller.SendAsync("AlreadyMember");
                 return;
             }
-            chatroomDTO = DBUtil.JoinChatroom(UserID, ChatroomID);
+            chatroomDTO = await DBUtil.JoinChatroom(UserID, ChatroomID);
             var userDTO = new UserDTO(DBUtil.FindUser(UserID));
             List<int> userIDList = new List<int>();
             string userName = DBUtil.FindUser(UserID).FirstName!;
@@ -293,7 +297,8 @@ namespace GoldenTicket.Hubs
         {
             try
             {
-                var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID)!, true);
+                var chtrm = await DBUtil.GetChatroom(ChatroomID);
+                var chatroomDTO = new ChatroomDTO(chtrm!, true);
             
                 await Clients.Caller.SendAsync("ReceiveMessages", new {chatroom = chatroomDTO});
                 await UserSeen(UserID, ChatroomID);
@@ -312,7 +317,8 @@ namespace GoldenTicket.Hubs
             Console.WriteLine($"UserSeen[{DBUtil.FindUser(UserID).FirstName}]: UserSeen started!");
 
             var tasks = new List<Task>();
-            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID, false)!);
+            var chtrm = await DBUtil.GetChatroom(ChatroomID, false);
+            var chatroomDTO = new ChatroomDTO(chtrm!);
             tasks.Add(DBUtil.UpdateLastSeen(UserID, ChatroomID));
             foreach(var member in chatroomDTO.GroupMembers)
             {
@@ -351,8 +357,12 @@ namespace GoldenTicket.Hubs
             Console.WriteLine($"SendMessage[{DBUtil.FindUser(SenderID).FirstName}]: Message sent!!");
             // await UserSeen(SenderID, ChatroomID);
 
-            var messageDTO = new MessageDTO(DBUtil.GetMessage(message.MessageID)!);
-            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID, false)!);
+            var dbMessage = await DBUtil.GetMessage(message.MessageID);
+            var messageDTO = new MessageDTO(dbMessage!);
+
+            var chatroom = await DBUtil.GetChatroom(ChatroomID, false);
+            var chatroomDTO = new ChatroomDTO(chatroom!);
+            
             var MembersToInvoke = new List<int>();
             
             foreach(var member in chatroomDTO.GroupMembers){
@@ -404,8 +414,10 @@ namespace GoldenTicket.Hubs
             }
           
             var message = await DBUtil.SendMessage(ChatbotID, chatroomID, response!.Message);
-            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(chatroomID, false)!);
-            var messageDTO = new MessageDTO(DBUtil.GetMessage(message.MessageID)!);
+            var chtrm = await DBUtil.GetChatroom(chatroomID, false);
+            var chatroomDTO = new ChatroomDTO(chtrm!);
+            var mssg = await DBUtil.GetMessage(message.MessageID);
+            var messageDTO = new MessageDTO(mssg!);
             foreach(var member in chatroomDTO.GroupMembers){
                 if(member.User.UserID == userID){
                     if (_connections.TryGetValue(userID, out var connectionIds)){
@@ -443,7 +455,8 @@ namespace GoldenTicket.Hubs
                         
                         foreach (var connectionId in connectionIds)
                         {
-                            chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(chatroomID, false)!);
+                            chtrm = await DBUtil.GetChatroom(chatroomID, false);
+                            chatroomDTO = new ChatroomDTO(chtrm!);
                             await Clients.Client(connectionId).SendAsync("AllowMessage");
                         }
                     }
@@ -492,7 +505,8 @@ namespace GoldenTicket.Hubs
                 return;
             }
             var ticketDTO = new TicketDTO(DBUtil.GetTicket(newTicket.TicketID)!);
-            var chatroomDTO = new ChatroomDTO(DBUtil.GetChatroom(ChatroomID)!);
+            var chtrm = await DBUtil.GetChatroom(ChatroomID, false);
+            var chatroomDTO = new ChatroomDTO(chtrm!);
             var adminUser = DBUtil.GetAdminUsers();
             var adminUserID = new List<int>();
             foreach(var user in adminUser){
@@ -669,9 +683,9 @@ namespace GoldenTicket.Hubs
                 }
             }
             await Clients.Caller.SendAsync("RatingReceived", new { rating = ratingDTO });
-            if(ratingDTO.Chatroom.Ticket != null)
+            if(ratingDTO.Chatroom.Ticket != null && ratingDTO.Chatroom.Ticket?.Assigned != null)
             {
-            await NotifyUser(ratingDTO.Chatroom.Ticket.Assigned!.UserID, 2, $"{ratingDTO.Chatroom.Author!.FirstName} has rated you {ratingDTO.Score}/5", $"{ratingDTO.Chatroom.Author!.FirstName} has rated your performance at Ticket ID: {ratingDTO.Chatroom.Ticket.TicketID}", ratingDTO.Chatroom.ChatroomID);
+                await NotifyUser(ratingDTO.Chatroom.Ticket.Assigned.UserID, 2, $"{ratingDTO.Chatroom.Author!.FirstName} has rated you {ratingDTO.Score}/5", $"{ratingDTO.Chatroom.Author!.FirstName} has rated your performance at Ticket ID: {ratingDTO.Chatroom.Ticket.TicketID}", ratingDTO.Chatroom.ChatroomID);
             }
         }
         #endregion 
@@ -841,6 +855,24 @@ namespace GoldenTicket.Hubs
                         {
                             await Clients.Client(connectionId).SendAsync("APIKeyUpdate", new { apikey = apiKeyDTO} );
                         }
+                    }
+                }
+            }
+        }
+        #region -   GetApiKeys
+        #endregion
+        public async Task GetApiKeys()
+        {
+            var apiKeyDTOs = await DBUtil.GetAPIKeys();
+
+            var adminUsers = DBUtil.GetAdminUsers().Where(user => user.Role == "Admin");
+            foreach(var admin in adminUsers)
+            {
+                if (_connections.TryGetValue(admin.UserID, out var connectionIds))
+                {
+                    foreach (var connectionId in connectionIds)
+                    {
+                        await Clients.Client(connectionId).SendAsync("UpdateAPIKeys", new { apikeys = apiKeyDTOs} );
                     }
                 }
             }

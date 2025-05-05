@@ -424,7 +424,6 @@ namespace GoldenTicket.Hubs
                         foreach (var connectionId in connectionIds)
                         {
                             await Clients.Client(connectionId).SendAsync("ReceiveMessage", new {chatroom = chatroomDTO, message = messageDTO});
-                            Console.WriteLine("Wow");
                             await Clients.Client(connectionId).SendAsync("AllowMessage");
                         }
                     }

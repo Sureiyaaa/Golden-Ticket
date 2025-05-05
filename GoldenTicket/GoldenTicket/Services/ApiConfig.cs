@@ -45,7 +45,7 @@ public class ApiConfig
         APIKeyDTO? leastUsedKeyEntity;
 
         leastUsedKeyEntity = LeastUsedKeys.ElementAtOrDefault(index)!;
-        if (leastUsedKeyEntity.APIKeyID == lastID && index != 0)
+        if (leastUsedKeyEntity?.APIKeyID == lastID && index != 0)
         {
             leastUsedKeyEntity = LeastUsedKeys.ElementAtOrDefault(index - 1)!;
         }

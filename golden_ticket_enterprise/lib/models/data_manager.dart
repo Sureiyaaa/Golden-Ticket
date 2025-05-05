@@ -26,6 +26,7 @@ class DataManager extends ChangeNotifier {
   List<ApiKey> apiKeys = [];
   bool isInChatroom = false;
   bool disableRequest = false;
+  bool _eventsMounted = false;
   int? chatroomID = null;
   DataManager({required this.signalRService}) {
     _initializeSignalR();
@@ -68,8 +69,10 @@ class DataManager extends ChangeNotifier {
     signalRService.onChatroomUpdate = (updatedChatroom){
       updateChatroom(updatedChatroom);
     };
-
-    signalRService.addOnReceiveMessageListener(updateLastMessage);
+    if(!_eventsMounted) {
+      _eventsMounted = true;
+      signalRService.addOnReceiveMessageListener(updateLastMessage);
+    }
     signalRService.addOnNotificationListener((notification) {
       updateNotification(notification);
     });
@@ -413,6 +416,7 @@ class DataManager extends ChangeNotifier {
     faqs = [];
     signalRService.removeOnUserListener(updateUser);
     signalRService.removeOnReceiveMessageListener(updateLastMessage);
+    _eventsMounted = false;
     await signalRService.stopConnection();
   }
 }

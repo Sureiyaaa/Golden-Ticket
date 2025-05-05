@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:golden_ticket_enterprise/config.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
+import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:golden_ticket_enterprise/widgets/notification_widget.dart';
 import 'package:provider/provider.dart';
 
@@ -81,6 +82,7 @@ class _AddUserWidgetState extends State<AddUserWidget> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Add User"),
+        backgroundColor: kPrimary,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -150,15 +152,27 @@ class _AddUserWidgetState extends State<AddUserWidget> {
                       }).toList(),
                     ),
                   const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: _isSaving ? null : () => _addUser(context, dataManager),
-                    child: _isSaving
-                        ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                        : const Text('Add User'),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children:[
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: kPrimary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          ),
+                        onPressed: _isSaving ? null : () => _addUser(context, dataManager),
+                        child: _isSaving
+                            ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                            : const Text('Add User', style: TextStyle(color: Colors.white)),
+                      ),
+                    ]
                   ),
                 ],
               ),

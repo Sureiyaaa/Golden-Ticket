@@ -195,44 +195,44 @@ class _FAQPageState extends State<FAQPage> {
                                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                               ),
                             ),
-                            LayoutBuilder(
-                              builder: (context, constraints) {
-                                if (constraints.maxWidth < 600) {
-                                  return Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      if (faq.mainTag != null)
-                                        Chip(
-                                          backgroundColor: Colors.redAccent,
-                                          label: Text(faq.mainTag!.tagName, style: TextStyle(fontWeight: FontWeight.bold, color: kSurface)),
-                                        ),
-                                      if (faq.subTag != null)
-                                        Chip(
-                                          backgroundColor: Colors.blueAccent,
-                                          label: Text(faq.subTag!.subTagName, style: TextStyle(fontWeight: FontWeight.bold, color: kSurface)),
-                                        ),
-                                    ],
-                                  );
-                                } else {
-                                  return Row(
-                                    children: [
-                                      if (faq.mainTag != null)
-                                        Chip(
-                                          backgroundColor: Colors.redAccent,
-                                          label: Text(faq.mainTag!.tagName, style: TextStyle(fontWeight: FontWeight.bold, color: kSurface)),
-                                        ),
-                                      SizedBox(width: 5),
-                                      if (faq.subTag != null)
-                                        Chip(
-                                          backgroundColor: Colors.blueAccent,
-                                          label: Text(faq.subTag!.subTagName, style: TextStyle(fontWeight: FontWeight.bold, color: kSurface)),
-                                        ),
-                                    ],
-                                  );
-                                }
-                              },
-                            ),
                           ],
+                        ),
+                        subtitle: LayoutBuilder(
+                          builder: (context, constraints) {
+                            if (constraints.maxWidth < 300) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (faq.mainTag != null)
+                                    Chip(
+                                      backgroundColor: Colors.redAccent,
+                                      label: Text(faq.mainTag!.tagName, style: TextStyle(fontWeight: FontWeight.bold, color: kSurface)),
+                                    ),
+                                  if (faq.subTag != null)
+                                    Chip(
+                                      backgroundColor: Colors.blueAccent,
+                                      label: Text(faq.subTag!.subTagName, style: TextStyle(fontWeight: FontWeight.bold, color: kSurface)),
+                                    ),
+                                ],
+                              );
+                            } else {
+                              return Row(
+                                children: [
+                                  if (faq.mainTag != null)
+                                    Chip(
+                                      backgroundColor: Colors.redAccent,
+                                      label: Text(faq.mainTag!.tagName, style: TextStyle(fontWeight: FontWeight.bold, color: kSurface)),
+                                    ),
+                                  SizedBox(width: 5),
+                                  if (faq.subTag != null)
+                                    Chip(
+                                      backgroundColor: Colors.blueAccent,
+                                      label: Text(faq.subTag!.subTagName, style: TextStyle(fontWeight: FontWeight.bold, color: kSurface)),
+                                    ),
+                                ],
+                              );
+                            }
+                          },
                         ),
                         children: [
                           Padding(

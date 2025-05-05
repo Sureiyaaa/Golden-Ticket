@@ -23,36 +23,88 @@ class _ApiKeysTabState extends State<ApiKeysTab> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(apiKey == null ? "Add API Key" : "Edit API Key"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: keyController, decoration: InputDecoration(labelText: "API Key")),
-            const SizedBox(height: 10),
-            TextField(controller: noteController, decoration: InputDecoration(labelText: "Note")),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-          ElevatedButton(
-            onPressed: () {
-              final key = keyController.text.trim();
-              final note = noteController.text.trim();
-              if (key.isNotEmpty) {
-                setState(() {
-                  if (apiKey == null) {
-                    widget.dataManager.signalRService.addAPIKey(key, note);
-                  } else if (index != null) {
-                    widget.dataManager.signalRService.updateAPIKey(apiKey.apiKeyID, key, note);
-                  }
-                });
-                Navigator.pop(context);
-              }
-            },
-            child: Text(apiKey == null ? "Add" : "Save"),
+      builder: (context) => Dialog(
+        insetPadding: EdgeInsets.symmetric(horizontal: 20),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.8,
+            maxHeight: MediaQuery.of(context).size.height * 0.9,
           ),
-        ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: kPrimary,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('${apiKey == null ? 'Add Api Key': 'Edit Api Key'}', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.close, color: Colors.white),
+                            tooltip: 'Close',
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
+                      ),
+                    )
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(controller: keyController, decoration: InputDecoration(labelText: "API Key")),
+                    const SizedBox(height: 10),
+                    TextField(controller: noteController, decoration: InputDecoration(labelText: "Note")),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        SizedBox(width: 10),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: kPrimary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          ),
+                          onPressed: ()  {
+                            final key = keyController.text.trim();
+                            final note = noteController.text.trim();
+                            if (key.isNotEmpty) {
+                              setState(() {
+                                if (apiKey == null) {
+                                  widget.dataManager.signalRService.addAPIKey(key, note);
+                                } else if (index != null) {
+                                  widget.dataManager.signalRService.updateAPIKey(apiKey.apiKeyID, key, note);
+                                }
+                              });
+                              Navigator.pop(context);
+                            }
+                          },
+                          child: Text('Save', style: TextStyle(color: Colors.white),),
+                        ),
+                      ],
+                    )
+                  ]
+                ),
+              )
+            ],
+          ),
+        ),
       ),
     );
   }

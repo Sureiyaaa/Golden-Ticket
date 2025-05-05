@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:golden_ticket_enterprise/entities/user.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
+import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:provider/provider.dart';
 
 class FeedbackReportTab extends StatefulWidget {
@@ -215,71 +216,73 @@ void showRelatedTicketsDialog(
         child: LayoutBuilder(
           builder: (context, constraints) {
             final maxWidth = MediaQuery.of(context).size.width * 0.8;
-            final maxHeight = MediaQuery.of(context).size.height * 0.8;
+            final maxHeight = MediaQuery.of(context).size.height * 0.9;
 
             return ConstrainedBox(
               constraints: BoxConstraints(
                 maxWidth: maxWidth,
                 maxHeight: maxHeight,
               ),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Tickets by ${user.firstName} ${user.lastName}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+              child: Column(
+                children: [
+                  // Header
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: kPrimary,
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
                     ),
-                    const SizedBox(height: 16),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (inProgress.isNotEmpty) ...[
-                              const Text("🛠 Currently Handling",
-                                  style:
-                                      TextStyle(fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 8),
-                              ...inProgress
-                                  .map(
-                                      (chat) => _buildTicketCard(chat, ratings))
-                                  .toList(),
-                              const SizedBox(height: 16),
-                            ],
-                            if (closed.isNotEmpty) ...[
-                              const Text("✅ Resolved Tickets",
-                                  style:
-                                      TextStyle(fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 8),
-                              ...closed
-                                  .map(
-                                      (chat) => _buildTicketCard(chat, ratings))
-                                  .toList(),
-                            ],
-                            if (inProgress.isEmpty && closed.isEmpty)
-                              const Padding(
-                                padding: EdgeInsets.only(top: 12.0),
-                                child: Text("No tickets found."),
-                              ),
-                          ],
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Tickets by ${user.firstName} ${user.lastName}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white),
+                          tooltip: 'Close',
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Scrollable content
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (inProgress.isNotEmpty) ...[
+                            const Text("🛠 Currently Handling",
+                                style: TextStyle(fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 8),
+                            ...inProgress.map((chat) => _buildTicketCard(chat, ratings)),
+                            const SizedBox(height: 16),
+                          ],
+                          if (closed.isNotEmpty) ...[
+                            const Text("✅ Resolved Tickets",
+                                style: TextStyle(fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 8),
+                            ...closed.map((chat) => _buildTicketCard(chat, ratings)),
+                          ],
+                          if (inProgress.isEmpty && closed.isEmpty)
+                            const Padding(
+                              padding: EdgeInsets.only(top: 12.0),
+                              child: Text("No tickets found."),
+                            ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: const Text("Close"),
-                      ),
-                    )
-                  ],
-                ),
+                  ),
+                ],
               ),
             );
           },

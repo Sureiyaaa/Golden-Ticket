@@ -39,16 +39,19 @@ class _HubPageState extends State<HubPage> {
   late DataManager dm;
   late int _selectedIndex; // Track selected index
   bool _isInitialized = false;
+  bool _eventsMounted = false;
 
   @override
   void initState() {
     _selectedIndex = widget.child.currentIndex;
     super.initState();
     dm = Provider.of<DataManager>(context, listen: false);
-
-    dm.signalRService.addOnReceiveSupportListener(_handleReceiveSupport);
-    dm.signalRService.addOnNotificationListener(_handleNotification);
-    dm.signalRService.addOnUserUpdateListener(_handleUserUpdate);
+    if(!_eventsMounted) {
+      _eventsMounted = true;
+      dm.signalRService.addOnReceiveSupportListener(_handleReceiveSupport);
+      dm.signalRService.addOnNotificationListener(_handleNotification);
+      dm.signalRService.addOnUserUpdateListener(_handleUserUpdate);
+    }
     dm.signalRService.onMaximumChatroom = () {
       dm.enableRequestButton();
       TopNotification.show(

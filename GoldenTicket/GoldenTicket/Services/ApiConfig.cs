@@ -4,6 +4,13 @@ namespace GoldenTicket.Services;
 
 public class ApiConfig
 {
+    private readonly ILogger<ApiConfig> _logger;
+
+    public ApiConfig(ILogger<ApiConfig> logger)
+    {
+        _logger = logger;
+    }
+
     public static List<APIKeyDTO>? OpenAIKeys;
     public static List<APIKeyDTO>? AvailableKeys;
     public static List<APIKeyDTO>? LeastUsedKeys;
@@ -32,7 +39,7 @@ public class ApiConfig
         APIKeyDTO leastUsedKeyEntity;
 
         if (OpenAIKeys == null || OpenAIKeys.Count == 0)
-            throw new InvalidOperationException("[ApiConfig] [ERROR] OpenAIKeys is not initialized or is empty.");
+            _logger.LogWarning("[ApiConfig] [ERROR] OpenAIKeys is not initialized or is empty.");
         
         leastUsedKeyEntity = LeastUsedKeys.ElementAtOrDefault(index)!;
         if (leastUsedKeyEntity.APIKeyID == lastID && index != 0)
@@ -41,7 +48,7 @@ public class ApiConfig
         }
 
         if (leastUsedKeyEntity == null || !leastUsedKeyEntity.APIKeyID.HasValue)
-            throw new InvalidOperationException("[ApiConfig] [ERROR] Unable to determine the least used API key.");
-        return leastUsedKeyEntity;
+            _logger.LogWarning("[ApiConfig] [ERROR] Unable to determine the least used API key.");
+        return leastUsedKeyEntity ?? null!;
     }
 }

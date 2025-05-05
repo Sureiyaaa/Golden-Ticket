@@ -188,9 +188,9 @@ public class OpenAIService
     private async Task<string> HandleRateLimit(string chatroomID, string userInput, string Prompt, bool isDirect, bool LimitReached = false)
     {
         //var expireDate = new DateTime();
-        if(ApiConfig.AvailableKeys!.Count == 0)
+        if(ApiConfig.AvailableKeys == null || ApiConfig.AvailableKeys.Count == 0)
         {
-            await _apiConfig.GetOpenAIKey();
+            _currentKey = await _apiConfig.GetOpenAIKey();
         }
         
         if (_loopAmount[chatroomID] < ApiConfig.AvailableKeys!.Count * 2)

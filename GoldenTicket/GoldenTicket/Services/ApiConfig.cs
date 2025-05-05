@@ -42,8 +42,8 @@ public class ApiConfig
         AvailableKeys = OpenAIKeys.Where(a => a.LastRateLimit < DateTime.UtcNow.AddHours(-24)).ToList();
         LeastUsedKeys = OpenAIKeys.Where(a => a.LastRateLimit < DateTime.UtcNow.AddHours(-24)).OrderBy(a => a.Usage).ToList();
 
-        APIKeyDTO leastUsedKeyEntity;
-        
+        APIKeyDTO? leastUsedKeyEntity;
+
         leastUsedKeyEntity = LeastUsedKeys.ElementAtOrDefault(index)!;
         if (leastUsedKeyEntity.APIKeyID == lastID && index != 0)
         {

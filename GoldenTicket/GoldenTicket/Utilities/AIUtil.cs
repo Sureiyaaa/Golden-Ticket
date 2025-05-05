@@ -133,8 +133,15 @@ namespace GoldenTicket.Utilities
                 // _logger.LogInformation($"[AI-AR Response]: {aiResponse}");
 
                 if(string.IsNullOrEmpty(parsedResponse.Message)){
-                    Console.WriteLine($"[AIUtil] Message empty, responding default unavailable message");
-                    finalResponse = AIResponse.Unavailable();
+                    _logger.LogWarning($"[AIUtil] Message empty, responding default unavailable message. Re-trying.");
+                    aiResponse = await _openAIService.GetAIResponse(_id, _message, requestPrompt);
+                    parsedResponse = AIResponse.Parse(aiResponse);
+                    if(string.IsNullOrEmpty(parsedResponse.Message))
+                    {
+                        _logger.LogError($"[AIUtil] Message still empty, sending AI unavailable.");
+                        finalResponse = AIResponse.Unavailable();
+                    }
+                        
                 } else {
                     finalResponse =  parsedResponse;
                 }

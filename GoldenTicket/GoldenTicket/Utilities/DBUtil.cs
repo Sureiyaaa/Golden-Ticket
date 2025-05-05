@@ -417,7 +417,8 @@ namespace GoldenTicket.Utilities
             List<TicketHistory> histories = new();
             
             // Checks if a Chatroom already have an existing ticket
-            if(GetChatroom(ChatroomID)?.TicketID != null)
+            var chatroomDTO = await GetChatroom(ChatroomID, false);
+            if(chatroomDTO != null && chatroomDTO!.TicketID != null)
             {
                 Console.WriteLine($"[DBUtil] Chatroom {ChatroomID} already has an existing ticket.");
                 return null!;
@@ -823,7 +824,7 @@ namespace GoldenTicket.Utilities
         }
         #endregion
         #region -   JoinChatroom
-        public static ChatroomDTO JoinChatroom(int UserID, int ChatroomID)
+        public static async Task<ChatroomDTO> JoinChatroom(int UserID, int ChatroomID)
         {
             using(var context = new ApplicationDbContext()) 
             {
@@ -840,7 +841,7 @@ namespace GoldenTicket.Utilities
                 };
                 chatroom!.Members.Add(newMember);
                 context.SaveChanges();
-                var updatedChatroom = GetChatroom(ChatroomID, false);
+                var updatedChatroom = await GetChatroom(ChatroomID, false);
                 return new ChatroomDTO(updatedChatroom!);
             }
         }
@@ -896,12 +897,12 @@ namespace GoldenTicket.Utilities
             }
         }
         #region -   GetChatroom
-        public static Chatroom? GetChatroom(int ChatroomID, bool includeMessages = true)
+        public async static Task<Chatroom?> GetChatroom(int ChatroomID, bool includeMessages = true)
         {
             var stopwatch = Stopwatch.StartNew();
             using (var context = new ApplicationDbContext())
             {
-                var chatroom = ContextUtil.Chatroom(ChatroomID, context, includeMessages);
+                var chatroom = await ContextUtil.Chatroom(ChatroomID, context, includeMessages);
                 stopwatch.Stop();
                 if(debug) Console.WriteLine($"GetChatroom(chatroomID:{ChatroomID}) sent successfully: {stopwatch.ElapsedMilliseconds} ms");
                 return chatroom;
@@ -961,11 +962,11 @@ namespace GoldenTicket.Utilities
         }
         #endregion
         #region -   GetMessage
-        public static Message? GetMessage(int MessageID)
+        public static async Task<Message?> GetMessage(int MessageID)
         {
             using (var context = new ApplicationDbContext())
             {
-                return ContextUtil.Message(MessageID, context);
+                return await ContextUtil.Message(MessageID, context);
             }
         }
         #endregion
@@ -1352,6 +1353,24 @@ namespace GoldenTicket.Utilities
                 else {
                     Console.WriteLine($"[DBUtil] [APIKeyLimitReach] APIKey with {APIKeyID} ID not found ");
                     return null;
+                }
+            }
+        }
+        #region -   APIKeyIncrementUsage
+        #endregion
+        public async static Task APIKeyIncrementUsage(int APIKeyID)
+        {
+            using(var context = new ApplicationDbContext())
+            {
+                var apiKey = context.ApiKeys.Where(a => a.APIKeyID == APIKeyID).FirstOrDefault();
+
+                if(apiKey != null)
+                {
+                    apiKey.Usage++;
+                    await context.SaveChangesAsync();
+                }
+                else {
+                    Console.WriteLine($"[DBUtil] [APIKeyIncrementUsage] APIKey with {APIKeyID} ID not found ");
                 }
             }
         }

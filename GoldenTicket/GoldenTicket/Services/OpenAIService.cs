@@ -52,8 +52,8 @@ public class OpenAIService
     {
         if (_client == null || _apiCredential == null)
         {
-            _currentKey = await _apiConfig.GetLeastUsedAPI();
-            _apiCredential = new ApiKeyCredential("Bearer " + _currentKey.APIKey);
+            _currentKey = await _apiConfig.GetLeastUsedAPI() ?? null;
+            _apiCredential = new ApiKeyCredential("Bearer " + _currentKey?.APIKey);
             _client = new ChatClient("gpt-4o", _apiCredential, _options);
         }
     }

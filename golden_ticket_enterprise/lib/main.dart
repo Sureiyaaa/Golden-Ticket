@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
-import 'package:golden_ticket_enterprise/models/signalr_service.dart';
+import 'package:golden_ticket_enterprise/models/signalr/signalr_service.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
 import 'package:golden_ticket_enterprise/models/user.dart';
 import 'package:golden_ticket_enterprise/routes.dart';
@@ -48,7 +48,7 @@ class AppInitializer extends StatelessWidget {
 
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => dataManager),
+        ChangeNotifierProvider(create: (_) => dataManager)
       ],
       child: MyApp(),
     );

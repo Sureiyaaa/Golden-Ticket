@@ -22,8 +22,14 @@ namespace GoldenTicket.Models
         public int? roleID { get; set; }
     }
     public class LoginRequest {
+        [Required(ErrorMessage = "username is required")]
         public string? username {get;set;}
+        [Required(ErrorMessage = "password is required")]
         public string? password {get;set;}
+    }
+    public class VerifyRequest {
+        [Required(ErrorMessage = "userID is required")]
+        public int? userID {get; set;}
     }
     public class AddFAQRequest {
         [Required(ErrorMessage = "Ticket Title is required")]

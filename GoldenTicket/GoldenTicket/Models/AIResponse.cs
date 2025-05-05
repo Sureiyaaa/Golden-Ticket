@@ -12,6 +12,52 @@ public class AIResponse
     public string Priority { get; set; } = "Medium";
     public bool CallAgent { get; set; } = false;
     public static int FirstResponse { get; set; } = 0;
+
+    private const string TimeBasedGreetingKey = "TIME_BASED_GREETING";
+
+    private static string GetTimeBasedGreeting()
+    {
+        int hour = DateTime.Now.Hour;
+        if (hour >= 5 && hour < 12)
+        {
+            return "A happy Golden Morning! How can I help you?";
+        }
+        else if (hour >= 12 && hour < 17)
+        {
+            return "A Golden afternoon! How can I assist you?";
+        }
+        else if (hour >= 17 && hour < 21)
+        {
+            return "A happy Golden evening! How can I help you today?";
+        }
+        else
+        {
+            return "Hello! Burning the midnight oil? How can I assist?";
+        }
+    }
+
+    public static string FirstMessage(bool Randomize = false) 
+    {
+        List<string> firstMessages = new List<string> 
+        {
+            "Hello! How can I assist you today?",
+            "Hi there! What can I do for you today?",
+            TimeBasedGreetingKey,
+            "Erm... Hello? What do you need?",
+        };
+        Random random = new Random();
+        int index = random.Next(0, firstMessages.Count);
+        if(Randomize) {
+            FirstResponse = index;
+        }
+        string message = Randomize ? firstMessages[index] : firstMessages[FirstResponse];
+        if (message == TimeBasedGreetingKey)
+        {
+            message = GetTimeBasedGreeting();
+        }
+        return message;
+    }
+
     public static AIResponse Parse(string rawResponse)
     {
         var response = new AIResponse();
@@ -48,22 +94,6 @@ public class AIResponse
             CallAgent = true
         };
     }
-    public static string FirstMessage(bool Randomize = false) 
-    {
-        List<string> firstMessages = new List<string> {
-            "Hello! How can I assist you today?",
-            "Hi there! What can I do for you today?",
-            "A happy Golden Morning! How can I help you?",
-            "Erm... Hello? What do you need?",
-        };
-        Random random = new Random();
-        int index = random.Next(0, firstMessages.Count);
-        if(Randomize) {
-            FirstResponse = index;
-        }
-        string message = Randomize ? firstMessages[index] : firstMessages[FirstResponse];
-        return message;
-    }
     public static string FilteredMessage(bool Randomize = false)
     {
         List<string> filteredMessages = new List<string> {
@@ -77,7 +107,6 @@ public class AIResponse
             "I'm not programmed to handle that. 😅",
             "I'm not sure how to respond to that. 😅",
             "I'm not sure how to handle that. 😅",
-
         };
         Random random = new Random();
         int index = random.Next(0, filteredMessages.Count);
@@ -86,9 +115,9 @@ public class AIResponse
     }
 
     public static string FirstAssistantCM(){
-        return $"TITLE: No Title Provided  \nPTAG: null  \nPSUBTAG: null  \nPRIORITY: Normal  \nSendToLiveAgent: false  \nResponse: {FirstMessage()}";
+        return $"TITLE: No Title yet  \nPTAG: null  \nPSUBTAG: null  \nPRIORITY: Normal  \nSendToLiveAgent: false  \nResponse: {FirstMessage()}";
     }
     public static string AssistantCM(string message){
-        return $"TITLE: No Title Provided  \nPTAG: null  \nPSUBTAG: null  \nPRIORITY: Normal  \nSendToLiveAgent: false  \nResponse: {message}";
+        return $"TITLE: No Title yet  \nPTAG: null  \nPSUBTAG: null  \nPRIORITY: Normal  \nSendToLiveAgent: false  \nResponse: {message}";
     }
 }

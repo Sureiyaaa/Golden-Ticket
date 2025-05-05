@@ -3,6 +3,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:go_router/go_router.dart';
 import 'package:golden_ticket_enterprise/entities/user.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
+import 'package:golden_ticket_enterprise/routes.dart';
 import 'package:golden_ticket_enterprise/secret.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:golden_ticket_enterprise/models/http_request.dart' as http;
@@ -32,8 +33,12 @@ class _LoginPage extends State<LoginPage> {
       var userSession = box.get('user');
 
       if (userSession != null) {
-        logger.i("User session found: ${userSession.user.username}");
-        context.go('/hub/dashboard', extra: userSession.user);
+        bool isDisabled = await accountDisabled(context, userSession.user.userID);
+
+        if(!isDisabled) {
+          logger.i("User session found: ${userSession.user.username}");
+          context.go('/hub/dashboard', extra: userSession.user);
+        }
       }
     });
   }

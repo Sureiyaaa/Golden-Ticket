@@ -61,5 +61,29 @@ namespace GoldenTicket.Controllers
                 return NotFound(new { status = 400, message = "User does not exist!", errorType = "unregistered" });
             }
         }
+        [HttpPost("Verify")]
+        public IActionResult Verify([FromBody] VerifyRequest request)
+        {
+            if (request == null) return BadRequest(new { message = "Invalid client request" });
+
+            if (request == null || !ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                return BadRequest(new { status = "400", message = "Invalid client request", errors });
+            }
+            
+            int userID = request.userID!.Value;
+            var user = DBUtil.FindUser(userID);
+            
+            if(user != null)
+            {
+                string message = user.IsDisabled ? "Disabled" : "Enabled";
+                return Ok(new {status = 200, message = $"Account is {message}", body = new { isDisabled = user.IsDisabled }});
+            }
+            else
+            {
+                return Unauthorized(new {status = 401,  message = "user not found.", errorType = "notFound" });
+            }
+        }
     }
 }

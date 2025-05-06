@@ -88,6 +88,16 @@ class SignalREventHandler extends ChangeNotifier {
         notifyListeners();
       }
     });
+    _hubConnection.on('APIKeysUpdate', (arguments) {
+      if (arguments != null) {
+        List<ApiKey> updatedAPIKeys = (arguments[0]['apikeys'] as List)
+            .map((apiKey) => ApiKey.fromJson(apiKey))
+            .toList();
+        print(arguments[0]);
+        _service.onAPIKeysUpdate?.call(updatedAPIKeys);
+        notifyListeners();
+      }
+    });
 
     _hubConnection.on('RatingsReceived', (arguments) {
       if (arguments != null) {

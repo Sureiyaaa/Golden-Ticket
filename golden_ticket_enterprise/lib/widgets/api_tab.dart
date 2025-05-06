@@ -64,6 +64,7 @@ class _ApiKeysTabState extends State<ApiKeysTab> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
                 child: Column(
+                  spacing: 10,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     TextField(controller: keyController, decoration: InputDecoration(labelText: "API Key")),

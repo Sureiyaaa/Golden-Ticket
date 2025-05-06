@@ -269,11 +269,14 @@ class DataManager extends ChangeNotifier {
     int index = chatrooms.indexWhere((c) => c.chatroomID == chatroom.chatroomID);
 
     if (index != -1) {
-      chatrooms[index].messages!.add(message);
-      chatrooms[index].messages!.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      final chat = chatrooms[index];
+
+      chat.messages!.add(message);
+      chat.messages!.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+      updateLastMessage(message, chat);
+      notifyListeners();
     }
-    updateLastMessage(message, chatroom);
-    notifyListeners();
   }
 
   void removeNotifications(removedNotifications){

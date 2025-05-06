@@ -184,7 +184,7 @@ public class OpenAIService
         }
     }
 
-    // aaaaaaaaaaaaaaaaaaaaaaaaaaaaaawjdkhakjwdha
+    // AAAAAAAAAAAAAAAAAAAAKWADKAJWDOA
     private async Task<string> HandleRateLimit(string chatroomID, string userInput, string Prompt, bool isDirect, bool LimitReached = false)
     {
         //var expireDate = new DateTime();

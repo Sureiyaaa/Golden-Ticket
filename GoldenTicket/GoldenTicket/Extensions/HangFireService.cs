@@ -27,7 +27,12 @@ namespace GoldenTicket.Extensions
             RecurringJob.AddOrUpdate(
                 "Update-API-Keys",
                 () => ExecuteAPIKeysUpdayeAsync(),
-                Cron.Minutely
+                Cron.Minutely // Runs once per minute
+            );
+            RecurringJob.AddOrUpdate(
+                "Reset-API-Keys-Usage",
+                () => ExecuteAPIResetUsageAsync(),
+                Cron.Daily // Runs once per day
             );
         }
         public async Task ExecuteChatResolveAsync()
@@ -46,8 +51,25 @@ namespace GoldenTicket.Extensions
         public async Task ExecuteAPIKeysUpdayeAsync()
         {
             Console.WriteLine("[HangFireService] [INFO] Updating API Keys...");
-            
+
             await _hub.GetApiKeys();
+        }
+        public async Task ExecuteAPIResetUsageAsync()
+        {
+            Console.WriteLine("[HangFireService] [INFO] Resetting API Keys Usage...");
+
+            using (var context = new ApplicationDbContext())
+            {
+                var filter = await DBUtil.GetAPIKeys();
+                var keys = filter.Where(k => k.Usage > 0).ToList();
+
+                foreach (var key in keys)
+                {
+                    key.Usage = 0;
+                    context.Update(key);
+                }
+                await context.SaveChangesAsync();
+            }
         }
     }
 }

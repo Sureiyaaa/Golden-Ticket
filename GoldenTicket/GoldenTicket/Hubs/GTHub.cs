@@ -418,6 +418,7 @@ namespace GoldenTicket.Hubs
             var chatroomDTO = new ChatroomDTO(chtrm!);
             var mssg = await DBUtil.GetMessage(message.MessageID);
             var messageDTO = new MessageDTO(mssg!);
+            var adminUsers = DBUtil.GetAdminUsers();
             foreach(var member in chatroomDTO.GroupMembers){
                 if(member.User.UserID == userID){
                     if (_connections.TryGetValue(userID, out var connectionIds)){
@@ -429,6 +430,19 @@ namespace GoldenTicket.Hubs
                     }
                 }
             }
+            // foreach(var member in adminUsers)
+            // {
+            //     if(member.Role == "Admin" || member.Role == "Staff"){
+            //         if (_connections.TryGetValue(member.UserID, out var connectionIds)){
+            //             foreach (var connectionId in connectionIds)
+            //             {
+            //                 apiKeyDTO
+            //                 await Clients.Client(connectionId).SendAsync("APIKeyUpdate", new { apikey = apiKeyDTO} );
+            //             }
+            //         }
+            //     }
+            // }
+
             if(chatroomDTO.Ticket == null)
             {
                 if(response.CallAgent)
@@ -862,8 +876,25 @@ namespace GoldenTicket.Hubs
         #endregion
         public async Task GetApiKeys()
         {
+            
             var apiKeyDTOs = await DBUtil.GetAPIKeys();
 
+            var adminUsers = DBUtil.GetAdminUsers().Where(user => user.Role == "Admin");
+            foreach(var admin in adminUsers)
+            {
+                if (_connections.TryGetValue(admin.UserID, out var connectionIds))
+                {
+                    foreach (var connectionId in connectionIds)
+                    {
+                        await Clients.Client(connectionId).SendAsync("UpdateAPIKeys", new { apikeys = apiKeyDTOs} );
+                    }
+                }
+            }
+        }
+        public async Task ResetUsage()
+        {
+            await DBUtil.ResetUsage();
+            var apiKeyDTOs = await DBUtil.GetAPIKeys();
             var adminUsers = DBUtil.GetAdminUsers().Where(user => user.Role == "Admin");
             foreach(var admin in adminUsers)
             {

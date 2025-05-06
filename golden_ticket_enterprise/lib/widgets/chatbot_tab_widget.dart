@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:golden_ticket_enterprise/entities/rating.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
-import 'package:golden_ticket_enterprise/models/signalr_service.dart';
+import 'package:golden_ticket_enterprise/models/signalr/signalr_service.dart';
 import 'package:golden_ticket_enterprise/widgets/chatroom_tile.dart';
 import 'package:intl/intl.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
@@ -49,6 +49,8 @@ class _ChatbotPerformanceTabState extends State<ChatbotPerformanceTab> {
   }
 
   Widget _buildDatePicker(String label, DateTime date, bool isFrom) {
+    bool isMobile = MediaQuery.of(context).size.width < 600;
+
     return InkWell(
       onTap: () => pickDate(context, isFrom),
       child: InputDecorator(
@@ -61,9 +63,14 @@ class _ChatbotPerformanceTabState extends State<ChatbotPerformanceTab> {
           children: [
             const Icon(Icons.calendar_today, size: 16),
             const SizedBox(width: 8),
-            Text(
-              "$label: ${DateFormat('MMM dd, yyyy').format(date)}",
-              style: const TextStyle(fontSize: 14),
+            Flexible(
+              child: Text(
+                isMobile
+                    ? "$label: ${DateFormat('MMM dd, yyyy').format(date)}"
+                    : "$label: ${DateFormat('MMM dd, yyyy').format(date)}",
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 14),
+              ),
             ),
           ],
         ),
@@ -71,49 +78,77 @@ class _ChatbotPerformanceTabState extends State<ChatbotPerformanceTab> {
     );
   }
 
-  Widget _buildFilterBar() {
+  Widget _buildTopFilters() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isMobile = constraints.maxWidth < 600;
+        bool isMobile = constraints.maxWidth < 600;
+        final childWidth = isMobile ? double.infinity : (constraints.maxWidth / 4) - 12;
+
         final children = [
-          Flexible(
-            child: DropdownButtonFormField<int?>(
-              value: selectedScore,
-              decoration: const InputDecoration(
-                labelText: "Rating Score",
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-              ),
-              items: const [
-                DropdownMenuItem(value: null, child: Text("All")),
-                DropdownMenuItem(value: 1, child: Text("1")),
-                DropdownMenuItem(value: 2, child: Text("2")),
-                DropdownMenuItem(value: 3, child: Text("3")),
-                DropdownMenuItem(value: 4, child: Text("4")),
-                DropdownMenuItem(value: 5, child: Text("5")),
-              ],
-              onChanged: (val) => setState(() => selectedScore = val),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: childWidth),
+            child: Padding(
+              padding: const EdgeInsets.all(6.0),
+              child: _buildDatePicker("From", fromDate, true),
             ),
           ),
-          const SizedBox(width: 12, height: 12),
-          Flexible(
-            child: DropdownButtonFormField<String>(
-              value: selectedRatingFilter,
-              decoration: const InputDecoration(
-                labelText: "Rating Filter",
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: childWidth),
+            child: Padding(
+              padding: const EdgeInsets.all(6.0),
+              child: _buildDatePicker("To", toDate, false),
+            ),
+          ),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: childWidth),
+            child: Padding(
+              padding: const EdgeInsets.all(6.0),
+              child: DropdownButtonFormField<int?>(
+                isExpanded: true, // important for avoiding overflow
+                value: selectedScore,
+                decoration: const InputDecoration(
+                  labelText: "Rating Score",
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                ),
+                items: const [
+                  DropdownMenuItem(value: null, child: Text("All")),
+                  DropdownMenuItem(value: 1, child: Text("1")),
+                  DropdownMenuItem(value: 2, child: Text("2")),
+                  DropdownMenuItem(value: 3, child: Text("3")),
+                  DropdownMenuItem(value: 4, child: Text("4")),
+                  DropdownMenuItem(value: 5, child: Text("5")),
+                ],
+                onChanged: (val) => setState(() => selectedScore = val),
               ),
-              items: const [
-                DropdownMenuItem(value: 'All', child: Text("All")),
-                DropdownMenuItem(value: 'With', child: Text("With Rating")),
-                DropdownMenuItem(value: 'Without', child: Text("Without Rating")),
-              ],
-              onChanged: (val) => setState(() => selectedRatingFilter = val!),
+            ),
+          ),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: childWidth),
+            child: Padding(
+              padding: const EdgeInsets.all(6.0),
+              child: DropdownButtonFormField<String>(
+                isExpanded: true, // important for avoiding overflow
+                value: selectedRatingFilter,
+                decoration: const InputDecoration(
+                  labelText: "Rating Filter",
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'All', child: Text("All")),
+                  DropdownMenuItem(value: 'With', child: Text("With Rating")),
+                  DropdownMenuItem(value: 'Without', child: Text("Without Rating")),
+                ],
+                onChanged: (val) => setState(() => selectedRatingFilter = val!),
+              ),
             ),
           ),
         ];
-        return isMobile ? Column(children: children) : Row(children: children);
+
+        return isMobile
+            ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: children)
+            : Wrap(spacing: 0, runSpacing: 0, children: children);
       },
     );
   }
@@ -160,32 +195,13 @@ class _ChatbotPerformanceTabState extends State<ChatbotPerformanceTab> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final isMobile = constraints.maxWidth < 600;
-                  final datePickers = [
-                    Flexible(
-                      child: Padding(
-                        padding: const EdgeInsets.all(6.0),
-                        child: _buildDatePicker("From", fromDate, true),
-                      ),
-                    ),
-                    Flexible(
-                      child: Padding(
-                        padding: const EdgeInsets.all(6.0),
-                        child: _buildDatePicker("To", toDate, false),
-                      ),
-                    ),
-                  ];
-                  return isMobile ? Column(children: datePickers) : Row(children: datePickers);
-                },
-              ),
+              _buildTopFilters(),
               const SizedBox(height: 16),
-              _buildFilterBar(),
+              if(filtered.isEmpty) Text('No data to filter.'),
               const SizedBox(height: 16),
-              _buildSection("AI Resolved", aiResolvedFiltered, dataManager),
+              if(filtered.isNotEmpty) _buildSection("AI Resolved", aiResolvedFiltered, dataManager),
               const SizedBox(height: 16),
-              _buildSection("Sent to live agent", sentToLive, dataManager),
+              if(filtered.isNotEmpty) _buildSection("Sent to live agent", sentToLive, dataManager),
             ],
           ),
         ),

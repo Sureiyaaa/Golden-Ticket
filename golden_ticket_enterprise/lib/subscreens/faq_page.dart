@@ -52,17 +52,6 @@ class _FAQPageState extends State<FAQPage> {
     return Consumer<DataManager>(
       builder: (context, dataManager, child) {
 
-        dataManager.signalRService.onMaximumChatroom = () {
-          TopNotification.show(
-            context: context,
-            message: "Maximum Chatroom has been reached",
-            backgroundColor: Colors.redAccent,
-            duration: Duration(seconds: 2),
-            textColor: Colors.white,
-            onTap: () => TopNotification.dismiss(),
-          );
-        };
-
         List<FAQ> filteredFAQs = dataManager.faqs.where((faq) {
           bool matchesSearch = searchQuery.isEmpty || faq.title.toLowerCase().contains(searchQuery.toLowerCase());
           bool matchesMainTag = selectedMainTag == "All" || faq.mainTag?.tagName == selectedMainTag;
@@ -84,7 +73,8 @@ class _FAQPageState extends State<FAQPage> {
             heroTag: "add_faq",
             tooltip: widget.session!.user.role == "Employee" ? "Request Chat" : "Add FAQ",
             onPressed: () {
-              if (widget.session!.user.role == "Employee") {
+              if (widget.session!.user.role == "Employee" && !dataManager.disableRequest) {
+                dataManager.disableRequestButton();
                 dataManager.signalRService.requestChat(widget.session!.user.userID);
               } else {
                 showDialog(
@@ -95,6 +85,7 @@ class _FAQPageState extends State<FAQPage> {
                 );
               }
             },
+
             child: Icon(widget.session!.user.role == "Employee" ? Icons.chat : Icons.add),
             backgroundColor: widget.session!.user.role == "Employee" ? Colors.blueAccent : kPrimary,
           ),
@@ -204,44 +195,44 @@ class _FAQPageState extends State<FAQPage> {
                                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                               ),
                             ),
-                            LayoutBuilder(
-                              builder: (context, constraints) {
-                                if (constraints.maxWidth < 600) {
-                                  return Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      if (faq.mainTag != null)
-                                        Chip(
-                                          backgroundColor: Colors.redAccent,
-                                          label: Text(faq.mainTag!.tagName, style: TextStyle(fontWeight: FontWeight.bold, color: kSurface)),
-                                        ),
-                                      if (faq.subTag != null)
-                                        Chip(
-                                          backgroundColor: Colors.blueAccent,
-                                          label: Text(faq.subTag!.subTagName, style: TextStyle(fontWeight: FontWeight.bold, color: kSurface)),
-                                        ),
-                                    ],
-                                  );
-                                } else {
-                                  return Row(
-                                    children: [
-                                      if (faq.mainTag != null)
-                                        Chip(
-                                          backgroundColor: Colors.redAccent,
-                                          label: Text(faq.mainTag!.tagName, style: TextStyle(fontWeight: FontWeight.bold, color: kSurface)),
-                                        ),
-                                      SizedBox(width: 5),
-                                      if (faq.subTag != null)
-                                        Chip(
-                                          backgroundColor: Colors.blueAccent,
-                                          label: Text(faq.subTag!.subTagName, style: TextStyle(fontWeight: FontWeight.bold, color: kSurface)),
-                                        ),
-                                    ],
-                                  );
-                                }
-                              },
-                            ),
                           ],
+                        ),
+                        subtitle: LayoutBuilder(
+                          builder: (context, constraints) {
+                            if (constraints.maxWidth < 300) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (faq.mainTag != null)
+                                    Chip(
+                                      backgroundColor: Colors.redAccent,
+                                      label: Text(faq.mainTag!.tagName, style: TextStyle(fontWeight: FontWeight.bold, color: kSurface)),
+                                    ),
+                                  if (faq.subTag != null)
+                                    Chip(
+                                      backgroundColor: Colors.blueAccent,
+                                      label: Text(faq.subTag!.subTagName, style: TextStyle(fontWeight: FontWeight.bold, color: kSurface)),
+                                    ),
+                                ],
+                              );
+                            } else {
+                              return Row(
+                                children: [
+                                  if (faq.mainTag != null)
+                                    Chip(
+                                      backgroundColor: Colors.redAccent,
+                                      label: Text(faq.mainTag!.tagName, style: TextStyle(fontWeight: FontWeight.bold, color: kSurface)),
+                                    ),
+                                  SizedBox(width: 5),
+                                  if (faq.subTag != null)
+                                    Chip(
+                                      backgroundColor: Colors.blueAccent,
+                                      label: Text(faq.subTag!.subTagName, style: TextStyle(fontWeight: FontWeight.bold, color: kSurface)),
+                                    ),
+                                ],
+                              );
+                            }
+                          },
                         ),
                         children: [
                           Padding(

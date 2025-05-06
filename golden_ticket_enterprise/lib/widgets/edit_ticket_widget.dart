@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:hive_flutter/adapters.dart';
 import 'package:provider/provider.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
@@ -104,101 +105,145 @@ class _TicketModifyPopupState extends State<TicketModifyPopup> {
         }
 
         return Dialog(
+          insetPadding: EdgeInsets.symmetric(horizontal: 20),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: Container(
-            width: MediaQuery.of(context).size.width > 600 ? 500 : double.infinity,
-            padding: EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Modify Ticket', style: Theme.of(context).textTheme.headlineMedium),
-                SizedBox(height: 10),
-
-                if (errorMessage != null) ...[
-                  Text(errorMessage!, style: TextStyle(color: Colors.red)),
-                  SizedBox(height: 10),
-                ],
-
-                _buildTextField("Title", _titleController),
-                SizedBox(height: 10),
-                _buildDropdown("Status", selectedStatus, statuses, (value) {
-                  setState(() => selectedStatus = value);
-                }),
-                SizedBox(height: 10),
-                _buildDropdown("Main Tag", selectedMainTag, tags.keys.toList(), (value) {
-                  setState(() {
-                    selectedMainTag = value;
-                    selectedSubTag = null;
-                  });
-                }),
-                SizedBox(height: 10),
-                _buildDropdown(
-                  "Sub Tag",
-                  selectedSubTag,
-                  selectedMainTag != null && selectedMainTag != 'None'
-                      ? ['None', ...tags[selectedMainTag]!]
-                      : ['None'],
-                      (value) {
-                    setState(() => selectedSubTag = value);
-                  },
-                  disabled: selectedMainTag == null || selectedMainTag == 'None',
-                ),
-                SizedBox(height: 10),
-                _buildDropdown("Priority", selectedPriority, priorities, (value) {
-                  setState(() => selectedPriority = value);
-                }),
-                SizedBox(height: 10),
-
-                // Agent Assignment Dropdown
-                DropdownButtonFormField<int>(
-                  value: selectedAgentID ?? 0,
-                  decoration: InputDecoration(
-                    labelText: "Assign to",
-                    border: OutlineInputBorder(),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.8,
+            maxHeight: MediaQuery.of(context).size.height * 0.9,
+            ),
+            child: Container(
+              width: MediaQuery.of(context).size.width > 600 ? 500 : double.infinity,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: kPrimary,
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Edit Ticket', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.close, color: Colors.white),
+                                tooltip: 'Close',
+                                onPressed: () => Navigator.pop(context),
+                              ),
+                            ],
+                          ),
+                        )
+                      ],
+                    ),
                   ),
-                  items: agentMap.entries.map((entry) {
-                    return DropdownMenuItem<int>(
-                      value: entry.key,
-                      child: Text(entry.value),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    if (selectedStatus == "In Progress" && value == 0) {
-                      setState(() => errorMessage = "Cannot unassign while status is 'In Progress'. Set status to 'Open' first.");
-                      return;
-                    }
-                    if (selectedStatus == "Closed" && value == 0) {
-                      setState(() => errorMessage = "Cannot change the status of the ticket to 'Closed'. Assignee is required!");
-                      return;
-                    }
-                    if (selectedStatus == "Unresolved" && value == 0) {
-                      setState(() => errorMessage = "Cannot change the status of the ticket to 'Unresolved'. Assignee is required!");
-                      return;
-                    }
-                    setState(() {
-                      selectedAgentID = value;
-                      if (value != 0) selectedStatus = "In Progress"; // Auto-update status
-                    });
-                  },
-                ),
-                SizedBox(height: 10),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(height: 10),
 
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text('Cancel'),
-                    ),
-                    SizedBox(width: 10),
-                    ElevatedButton(
-                      onPressed: () => _saveTicket(dataManager),
-                      child: Text('Save'),
-                    ),
-                  ],
-                ),
-              ],
+                        if (errorMessage != null) ...[
+                          Text(errorMessage!, style: TextStyle(color: Colors.red)),
+                          SizedBox(height: 10),
+                        ],
+
+                        _buildTextField("Title", _titleController),
+                        SizedBox(height: 10),
+                        _buildDropdown("Status", selectedStatus, statuses, (value) {
+                          setState(() => selectedStatus = value);
+                        }),
+                        SizedBox(height: 10),
+                        _buildDropdown("Main Tag", selectedMainTag, tags.keys.toList(), (value) {
+                          setState(() {
+                            selectedMainTag = value;
+                            selectedSubTag = null;
+                          });
+                        }),
+                        SizedBox(height: 10),
+                        _buildDropdown(
+                          "Sub Tag",
+                          selectedSubTag,
+                          selectedMainTag != null && selectedMainTag != 'None'
+                              ? ['None', ...tags[selectedMainTag]!]
+                              : ['None'],
+                              (value) {
+                            setState(() => selectedSubTag = value);
+                          },
+                          disabled: selectedMainTag == null || selectedMainTag == 'None',
+                        ),
+                        SizedBox(height: 10),
+                        _buildDropdown("Priority", selectedPriority, priorities, (value) {
+                          setState(() => selectedPriority = value);
+                        }),
+                        SizedBox(height: 10),
+
+                        // Agent Assignment Dropdown
+                        DropdownButtonFormField<int>(
+                          value: selectedAgentID ?? 0,
+                          decoration: InputDecoration(
+                            labelText: "Assign to",
+                            border: OutlineInputBorder(),
+                          ),
+                          items: agentMap.entries.map((entry) {
+                            return DropdownMenuItem<int>(
+                              value: entry.key,
+                              child: Text(entry.value),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (selectedStatus == "In Progress" && value == 0) {
+                              setState(() => errorMessage = "Cannot unassign while status is 'In Progress'. Set status to 'Open' first.");
+                              return;
+                            }
+                            if (selectedStatus == "Closed" && value == 0) {
+                              setState(() => errorMessage = "Cannot change the status of the ticket to 'Closed'. Assignee is required!");
+                              return;
+                            }
+                            if (selectedStatus == "Unresolved" && value == 0) {
+                              setState(() => errorMessage = "Cannot change the status of the ticket to 'Unresolved'. Assignee is required!");
+                              return;
+                            }
+                            setState(() {
+                              selectedAgentID = value;
+                              if (value != 0) selectedStatus = "In Progress"; // Auto-update status
+                            });
+                          },
+                        ),
+                        SizedBox(height: 10),
+
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            SizedBox(width: 10),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: kPrimary,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              ),
+                              onPressed: () => _saveTicket(dataManager),
+                              child: Text('Save', style: TextStyle(color: Colors.white),),
+                            ),
+                          ],
+                        ),
+                      ],
+                    )
+                  ),
+
+                ],
+              ),
             ),
           ),
         );
@@ -209,6 +254,7 @@ class _TicketModifyPopupState extends State<TicketModifyPopup> {
   Widget _buildTextField(String label, TextEditingController controller) {
     return TextField(
       controller: controller,
+      maxLength: 75,
       decoration: InputDecoration(
         labelText: label,
         border: OutlineInputBorder(),

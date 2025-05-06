@@ -50,23 +50,39 @@ class _ChatroomPageState extends State<ChatroomPage> {
     messageFocusNode.requestFocus();
     dm = Provider.of<DataManager>(context, listen: false);
 
-    dm.signalRService.addOnReceiveMessageListener(_handleChatroomMessage);
+    dm.signalRService.addOnReceiveMessageListener(handleChatroomMessage);
+
+    dm.signalRService.onReconnected = () {
+
+      var userSession = Hive.box<HiveSession>('sessionBox').get('user');
+      dm.signalRService.openChatroom(userSession!.user.userID, widget.chatroomID);
+      dm.signalRService.removeOnReceiveMessageListener(handleChatroomMessage);
+      dm.signalRService.addOnReceiveMessageListener(handleChatroomMessage);
+      dm.signalRService.sendSeen(userSession.user.userID, widget.chatroomID);
+    };
+
+    dm.signalRService.onDisconnected = (){
+      dm.signalRService.removeOnReceiveMessageListener(handleChatroomMessage);
+    };
     dm.enterChatroom(widget.chatroomID);
   }
   @override
   void didChangeDependencies() {
 
     super.didChangeDependencies();
+
   }
   @override
   void dispose(){
-    dm.signalRService.removeOnReceiveMessageListener(_handleChatroomMessage);
+    dm.signalRService.removeOnReceiveMessageListener(handleChatroomMessage);
     dm.exitChatroom(widget.chatroomID);
+    _scrollController.dispose();
+    messageFocusNode.dispose();
     super.dispose();
   }
 
 
-  void _handleChatroomMessage(Message message, Chatroom chatroom) {
+  void handleChatroomMessage(Message message, Chatroom chatroom) {
 
     var userSession = Hive.box<HiveSession>('sessionBox').get('user');
 
@@ -88,10 +104,14 @@ class _ChatroomPageState extends State<ChatroomPage> {
   Widget build(BuildContext context) {
     return Consumer<DataManager>(
       builder: (context, dataManager, child) {
-        Chatroom chatroom = dataManager.findChatroomByID(widget.chatroomID)!;
+
         if (!dataManager.signalRService.isConnected) {
+
           return DisconnectedOverlay();
         }
+
+        Chatroom chatroom = dataManager.findChatroomByID(widget.chatroomID)!;
+
         final allMessages = (chatroom.messages ?? []).toList(); // safety if null
         if (allMessages.isEmpty) {
           return const Center(child: CircularProgressIndicator()); // or a 'Loading...' placeholder
@@ -136,6 +156,7 @@ class _ChatroomPageState extends State<ChatroomPage> {
               .sendMessage(userSession.user.userID, widget.chatroomID, messageContent);
 
           messageController.clear();
+
           if (chatroom.ticket == null) {
             setState(() {
               enableMessage = false;
@@ -239,7 +260,8 @@ class _ChatroomPageState extends State<ChatroomPage> {
                             child: Column(
                               crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                               children: [
-                                Padding(
+                                if (previousMessage == null || previousMessage.sender.userID != message.sender.userID)
+                                  Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 8.0),
                                   child: Text(
                                     "${message.sender.firstName}",
@@ -267,9 +289,15 @@ class _ChatroomPageState extends State<ChatroomPage> {
                                         child: MarkdownBody(
                                           data: message.messageContent,
                                           styleSheet: MarkdownStyleSheet(
-                                            p: const TextStyle(fontSize: 14, color: Colors.black),
+                                            p: const TextStyle(fontSize: 14, color: Colors.black, fontFamilyFallback: [
+                                              'Apple Color Emoji',
+                                              'Segoe UI Emoji',
+                                              'Noto Color Emoji',
+                                              'EmojiOne Color',
+                                            ]),
                                             strong: const TextStyle(fontWeight: FontWeight.bold),
                                             blockquote: TextStyle(color: Colors.grey[600], fontStyle: FontStyle.italic),
+
                                           ),
                                           selectable: true,
                                         ),

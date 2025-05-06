@@ -15,12 +15,12 @@ namespace GoldenTicket.Utilities
                 .BuildBaseChatroomQuery(includeMessages)
                 .ToListAsync();
         }
-        public static Chatroom? Chatroom(int ChatroomID, ApplicationDbContext context, bool includeMessages = false)
+        public static async Task<Chatroom?> Chatroom(int ChatroomID, ApplicationDbContext context, bool includeMessages = false)
         {
-            return context.Chatrooms
+            return await context.Chatrooms
                 .BuildBaseChatroomQuery(includeMessages)
                 .Where(c => c.ChatroomID == ChatroomID)
-                .FirstOrDefault();
+                .FirstOrDefaultAsync();
         }
         public static Chatroom? ChatroomByTicketID(int? ticketID, ApplicationDbContext context, bool includeMessages = false)
         {
@@ -29,12 +29,12 @@ namespace GoldenTicket.Utilities
                 .Where(c => ticketID == null ? c.TicketID == null : c.TicketID == ticketID)
                 .FirstOrDefault();
         }
-        public static Message? Message (int MessageID, ApplicationDbContext context) 
+        public async static Task<Message?> Message (int MessageID, ApplicationDbContext context) 
         {
-            return context.Messages
+            return await context.Messages
                     .BuildBaseMessageQuery()
                     .Where(m => m.MessageID == MessageID)
-                    .FirstOrDefault();
+                    .FirstOrDefaultAsync();
         }
         public async static Task<List<Rating>> Ratings(ApplicationDbContext context)
         {
@@ -91,6 +91,21 @@ namespace GoldenTicket.Utilities
                 .FirstOrDefaultAsync();
             int count = chatroom!.Messages.Count(m => m.SenderID != userID && m.CreatedAt > chatroom.Members.FirstOrDefault(m => m.MemberID == userID)?.LastSeenAt);
             return count;
+        }
+        public async static Task<List<APIKeys>> APIKeys (ApplicationDbContext context)
+        {
+            var APIKeys = await context.ApiKeys
+                .AsNoTracking()
+                .ToListAsync();
+            return APIKeys;
+
+        }public async static Task<APIKeys?> APIKey (int APIKeyID, ApplicationDbContext context)
+        {
+            var APIKeys = await context.ApiKeys
+                .Where(a => a.APIKeyID == APIKeyID)
+                .AsNoTracking()
+                .FirstOrDefaultAsync();
+            return APIKeys;
         }
     }
 }

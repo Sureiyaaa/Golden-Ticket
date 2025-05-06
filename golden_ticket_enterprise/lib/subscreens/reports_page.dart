@@ -41,9 +41,6 @@ class _ReportsPageState extends State<ReportsPage>
     List<LineColor> lineColor = [];
     return Consumer<DataManager>(
       builder: (context, dataManager, child) {
-        if (dataManager.tickets.isEmpty) {
-          return const Center(child: CircularProgressIndicator());
-        }
         lineColor = [];
         lineColor.add(new LineColor(name: 'Not assigned', color: generateRandomColor()));
         for(var line in dataManager.mainTags)
@@ -51,15 +48,23 @@ class _ReportsPageState extends State<ReportsPage>
 
         return Scaffold(
           appBar: AppBar(
-            title: TabBar(
-              controller: _tabController,
-              tabs: const [
-                Tab(text: 'Priority Reports'),
-                Tab(text: 'Tag Reports'),
-                Tab(text: 'User Reports'),
-                Tab(text: 'Chatbot Performance'),
-                Tab(text: 'FAQ Suggestions'),
-              ],
+            title: Container(
+              width: double.infinity,
+              alignment: Alignment.center,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: TabBar(
+                  controller: _tabController,
+                  isScrollable: true,
+                  tabs: const [
+                    Tab(text: 'Priority Reports'),
+                    Tab(text: 'Tag Reports'),
+                    Tab(text: 'User Reports'),
+                    Tab(text: 'Chatbot Performance'),
+                    Tab(text: 'FAQ Suggestions'),
+                  ],
+                ),
+              ),
             ),
           ),
           body: TabBarView(

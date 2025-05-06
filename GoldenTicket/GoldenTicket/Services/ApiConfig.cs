@@ -1,27 +1,57 @@
-﻿namespace GoldenTicket.Services;
+﻿using GoldenTicket.Entities;
+using GoldenTicket.Utilities;
+namespace GoldenTicket.Services;
 
 public class ApiConfig
 {
-    public static List<string>? OpenAIKeys { get; private set; }
-    public static string? UnrealSpeechKey { get; private set; }
+    private readonly ILogger<ApiConfig> _logger;
 
-    public ApiConfig(IConfiguration configuration)
+    public ApiConfig(ILogger<ApiConfig> logger)
     {
-        // Load API keys from "Config/secret.json"
-        OpenAIKeys = configuration.GetSection("OpenAIKey").Get<List<string>>() ?? throw new Exception("[ERROR] Missing OpenAIKey in secret.json");
-
-        if (OpenAIKeys.Count == 0)
-            throw new Exception("[ERROR] OpenAIKey array is empty in secret.json");
-
-        // Load UnrealSpeechKey from "Config/secret.json"
-        UnrealSpeechKey = configuration["UnrealSpeechKey"] ?? throw new Exception("[ERROR] Missing UnrealSpeechKey in secret.json");
+        _logger = logger;
     }
 
-    public string GetOpenAIKey(int index = 0)
-    {
-        if (index < 0 || index >= OpenAIKeys!.Count)
-            throw new IndexOutOfRangeException($"Invalid OpenAIKey index: {index}");
+    public static List<APIKeyDTO>? OpenAIKeys;
+    public static List<APIKeyDTO>? AvailableKeys;
+    public static List<APIKeyDTO>? LeastUsedKeys;
 
-        return OpenAIKeys[index];
+
+    public async Task<APIKeyDTO> GetOpenAIKey(int index = 0)
+    {
+        OpenAIKeys = await DBUtil.GetAPIKeys();
+        
+        if (OpenAIKeys == null || OpenAIKeys.Count == 0)
+            throw new InvalidOperationException($"[ApiConfig] [ERROR] OpenAIKeys is not initialized or is empty. (index = {index})");
+
+        AvailableKeys = OpenAIKeys.Where(a => a.LastRateLimit < DateTime.UtcNow.AddHours(-24) || a.LastRateLimit == null).ToList();
+        LeastUsedKeys = OpenAIKeys.Where(a => a.LastRateLimit < DateTime.UtcNow.AddHours(-24) || a.LastRateLimit == null).OrderBy(a => a.Usage).ToList();
+        if (AvailableKeys == null || AvailableKeys.Count == 0)
+            throw new InvalidOperationException($"[ApiConfig] [ERROR] All Keys are exhausted for today!");
+        return AvailableKeys[index]!;
+    }
+
+    public async Task<APIKeyDTO> GetLeastUsedAPI(int lastID = 0,int index = 0)
+    {
+        OpenAIKeys = await DBUtil.GetAPIKeys();
+        if( OpenAIKeys == null || OpenAIKeys.Count == 0)
+        {
+            if (OpenAIKeys == null || OpenAIKeys.Count == 0)
+            _logger.LogWarning("[ApiConfig] [ERROR] OpenAIKeys is not initialized or is empty.");
+            return null!;
+        }
+        AvailableKeys = OpenAIKeys.Where(a => a.LastRateLimit < DateTime.UtcNow.AddHours(-24) || a.LastRateLimit == null).ToList();
+        LeastUsedKeys = OpenAIKeys.Where(a => a.LastRateLimit < DateTime.UtcNow.AddHours(-24) || a.LastRateLimit == null).OrderBy(a => a.Usage).ToList();
+
+        APIKeyDTO? leastUsedKeyEntity;
+
+        leastUsedKeyEntity = LeastUsedKeys.ElementAtOrDefault(index)!;
+        if (leastUsedKeyEntity != null && leastUsedKeyEntity?.APIKeyID == lastID && index != 0)
+        {
+            leastUsedKeyEntity = LeastUsedKeys.ElementAtOrDefault(index - 1)!;
+        }
+
+        if (leastUsedKeyEntity == null || !leastUsedKeyEntity.APIKeyID.HasValue)
+            _logger.LogWarning("[ApiConfig] [ERROR] Unable to determine the least used API key.");
+        return leastUsedKeyEntity ?? null!;
     }
 }

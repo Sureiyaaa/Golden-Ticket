@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 
 class FaqSuggestionTab extends StatefulWidget {
   final HiveSession session;
-  FaqSuggestionTab({super.key, required this.session});
+  const FaqSuggestionTab({super.key, required this.session});
 
   @override
   State<FaqSuggestionTab> createState() => _FaqSuggestionTabState();
@@ -48,8 +48,7 @@ class _FaqSuggestionTabState extends State<FaqSuggestionTab> {
       ..sort((a, b) => b.value.compareTo(a.value));
 
     setState(() {
-      topSuggestions =
-          suggestions; // no need to take(5) since you're filtering by weight == 5
+      topSuggestions = suggestions;
       topRequested = requested.take(10).toList();
     });
   }
@@ -58,42 +57,99 @@ class _FaqSuggestionTabState extends State<FaqSuggestionTab> {
   Widget build(BuildContext context) {
     return Consumer<DataManager>(builder: (context, dataManager, child) {
       return Scaffold(
-        appBar: AppBar(title: const Text('FAQ Suggestions')),
+        appBar: AppBar(
+          title: const Text('📖 FAQ Suggestions'),
+        ),
         body: Padding(
           padding: const EdgeInsets.all(16.0),
           child: ListView(
             children: [
-              const Text("📌 Suggested FAQs (Not Yet Created)",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
-              ...topSuggestions.map((entry) {
-                final parts = entry.key.split('-');
-                return Card(
-                  color: Colors.blue[50],
-                  child: ListTile(
-                    title: Text("Main Tag: ${parts[0]}"),
-                    subtitle: Text("Subtag: ${parts[1]}"),
-                    trailing: Text("Requests: ${entry.value}"),
-                  ),
-                );
-              }),
+              _buildSectionCard(
+                icon: Icons.lightbulb_outline,
+                iconColor: Colors.amber[700],
+                title: "Suggested FAQs (Not Yet Created)",
+                children: topSuggestions.map((entry) {
+                  final parts = entry.key.split('-');
+                  return Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    child: ListTile(
+                      leading: const Icon(Icons.help_outline, color: Colors.blue),
+                      title: Text(
+                        parts[0],
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(parts[1]),
+                      trailing: Chip(
+                        label: Text('${entry.value} requests'),
+                        backgroundColor: Colors.blue.shade100,
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
               const SizedBox(height: 24),
-              const Text("🔥 Most Requested Tags",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
-              ...topRequested.map((entry) {
-                final parts = entry.key.split('-');
-                return ListTile(
-                  leading: const Icon(Icons.label_important),
-                  title: Text("Main Tag: ${parts[0]}"),
-                  subtitle: Text("Subtag: ${parts[1]}"),
-                  trailing: Text("Count: ${entry.value}"),
-                );
-              }),
+              _buildSectionCard(
+                icon: Icons.trending_up,
+                iconColor: Colors.redAccent,
+                title: "Most Requested Tags",
+                children: topRequested.map((entry) {
+                  final parts = entry.key.split('-');
+                  return ListTile(
+                    leading: const Icon(Icons.label_important, color: Colors.red),
+                    title: Text(
+                      parts[0],
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text(parts[1]),
+                    trailing: Text(
+                      '${entry.value}',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade700),
+                    ),
+                  );
+                }).toList(),
+              ),
             ],
           ),
         ),
       );
     });
+  }
+
+  Widget _buildSectionCard({
+    required IconData icon,
+    required Color? iconColor,
+    required String title,
+    required List<Widget> children,
+  }) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 3,
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: iconColor),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ...children,
+          ],
+        ),
+      ),
+    );
   }
 }

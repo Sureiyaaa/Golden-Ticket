@@ -6,14 +6,16 @@ import 'package:golden_ticket_enterprise/entities/chatroom.dart';
 import 'package:golden_ticket_enterprise/entities/main_tag.dart';
 import 'package:golden_ticket_enterprise/entities/notification.dart'
     as notifClass;
+import 'package:golden_ticket_enterprise/entities/user.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart';
 import 'package:golden_ticket_enterprise/models/notification_overlay.dart';
-import 'package:golden_ticket_enterprise/models/signalr_service.dart';
+import 'package:golden_ticket_enterprise/models/signalr/signalr_service.dart';
 import 'package:golden_ticket_enterprise/screens/connectionstate.dart';
 import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:golden_ticket_enterprise/screens/notification_page.dart';
 import 'package:golden_ticket_enterprise/widgets/notification_tile_widget.dart';
+import 'package:golden_ticket_enterprise/widgets/notification_widget.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 
@@ -37,22 +39,37 @@ class _HubPageState extends State<HubPage> {
   late DataManager dm;
   late int _selectedIndex; // Track selected index
   bool _isInitialized = false;
+  bool _eventsMounted = false;
 
   @override
   void initState() {
     _selectedIndex = widget.child.currentIndex;
     super.initState();
     dm = Provider.of<DataManager>(context, listen: false);
-
-    dm.signalRService.addOnReceiveSupportListener(_handleReceiveSupport);
-    dm.signalRService.addOnNotificationListener(_handleNotification);
+    if(!_eventsMounted) {
+      _eventsMounted = true;
+      dm.signalRService.addOnReceiveSupportListener(_handleReceiveSupport);
+      dm.signalRService.addOnNotificationListener(_handleNotification);
+      dm.signalRService.addOnUserUpdateListener(_handleUserUpdate);
+    }
+    dm.signalRService.onMaximumChatroom = () {
+      dm.enableRequestButton();
+      TopNotification.show(
+        context: context,
+        message: "Maximum Chatroom has been reached",
+        backgroundColor: Colors.redAccent,
+        duration: Duration(seconds: 2),
+        textColor: Colors.white,
+        onTap: () => TopNotification.dismiss(),
+      );
+    };
   }
 
   @override
   void didChangeDependencies() {
     if (!_isInitialized && !widget.dataManager.signalRService.isConnected) {
       log("HubPage: Initializing SignalR Connection...");
-      widget.dataManager.signalRService.initializeConnection(widget.session!);
+      widget.dataManager.signalRService.initializeConnection();
       _isInitialized = true;
     }
     super.didChangeDependencies();
@@ -60,8 +77,8 @@ class _HubPageState extends State<HubPage> {
 
   @override
   void dispose() {
-    log("HubPage disposed: $this");
     dm.signalRService.removeOnNotificationListener(_handleNotification);
+    dm.signalRService.removeOnUserListener(_handleUserUpdate);
     dm.signalRService.removeOnReceiveSupportListener(_handleReceiveSupport);
     super.dispose();
   }
@@ -79,8 +96,6 @@ class _HubPageState extends State<HubPage> {
   }
 
   void _handleNotification(notifClass.Notification notification) {
-    print(dm.chatroomID);
-    print(notification.referenceID);
     if (notification.notificationType == 'Chatroom' &&
         (dm.isInChatroom && dm.chatroomID == notification.referenceID)) return;
     NotificationOverlay.show(context, message: notification.title, onTap: () {
@@ -88,6 +103,21 @@ class _HubPageState extends State<HubPage> {
         handleNotificationRedirect(context, dm, widget.session!, notification);
       }
     });
+  }
+
+  void _handleUserUpdate(User user) async{
+    if(user.userID == widget.session!.user.userID && user.isDisabled){
+      var box = Hive.box<HiveSession>('sessionBox');
+      context.go('/login');
+      await box.delete('user'); // Clear session
+      await dm.closeConnection();
+      TopNotification.show(
+        context: context,
+        message: "Your Account has been Disabled!",
+        backgroundColor: Colors.redAccent,
+        duration: Duration(seconds: 2)
+      );
+    }
   }
 
   @override
@@ -242,7 +272,7 @@ class _HubPageState extends State<HubPage> {
                 _buildDrawerItem(Icons.list, "Tickets", 2),
                 _buildDrawerItem(Icons.question_mark, "FAQ", 3),
                 if (widget.session?.user.role != "Employee")
-                  _buildDrawerItem(Icons.show_chart, "Reports", 4),
+                  _buildDrawerItem(Icons.stacked_bar_chart, "Reports", 4),
                 if (widget.session?.user.role == "Admin")
                   _buildDrawerItem(Icons.person_outline, "User Management", 5),
                 if (widget.session?.user.role == "Admin")

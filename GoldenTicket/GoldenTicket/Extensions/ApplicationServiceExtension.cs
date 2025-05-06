@@ -38,7 +38,10 @@ public static class ApplicationServiceExtensions
             options.EnableDetailedErrors = true;
             options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
             options.KeepAliveInterval = TimeSpan.FromSeconds(5);
-            options.MaximumParallelInvocationsPerClient = 10;
+            options.StreamBufferCapacity = 100;
+            options.MaximumReceiveMessageSize = 2 * 1024 * 1024;
+            options.MaximumParallelInvocationsPerClient = 50;
+            
         });
         services.AddControllersWithViews();
 
@@ -48,35 +51,28 @@ public static class ApplicationServiceExtensions
         //     opt.UseSqlite(config.GetConnectionString("DefaultConnection"));
         // });
 
-    //    services.AddCors((opt) => opt.AddPolicy(
-    //         "GoldenTicket",
-    //         (policy) => policy
-    //             .WithOrigins(
-    //                 "http://localhost:8000",
-    //                 "https://localhost:8000",
-    //                 "http://172.20.20.71:8000",
-    //                 "https://172.20.20.71:8001",
-    //                 "http://172.20.20.71",          // ✅ ADD THIS
-    //                 "http://localhost"              // ✅ and this (if testing from localhost:80)
-    //             )
-    //             .AllowAnyMethod()
-    //             .AllowAnyHeader()
-    //             .AllowCredentials()
-    //     ));
-
-        services.AddCors((opt) => opt.AddPolicy(
+       services.AddCors((opt) => opt.AddPolicy(
             "GoldenTicket",
             (policy) => policy
-                .AllowAnyOrigin()
+                .WithOrigins(
+                    "http://172.20.20.71",          // ✅ ADD THIS
+                    "http://localhost"              // ✅ and this (if testing from localhost:80)
+                )
                 .AllowAnyMethod()
                 .AllowAnyHeader()
+                .AllowCredentials()
         ));
+
+        // services.AddCors((opt) => opt.AddPolicy(
+        //     "GoldenTicket",
+        //     (policy) => policy
+        //         .AllowAnyOrigin()
+        //         .AllowAnyMethod()
+        //         .AllowAnyHeader()
+        // ));
+
         string flutterWebPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "app");
         services.AddSingleton<IFileProvider>(new PhysicalFileProvider(flutterWebPath));
-
-        // // Define flutter web build file provider
-        // string flutterWebPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "app");
-        // services.AddSingleton<IFileProvider>(new PhysicalFileProvider(flutterWebPath));
 
         return services;
     }

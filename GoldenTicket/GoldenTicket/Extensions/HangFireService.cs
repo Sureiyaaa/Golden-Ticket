@@ -24,6 +24,16 @@ namespace GoldenTicket.Extensions
                 () => ExecuteChatResolveAsync(),
                 Cron.Daily // Runs once per day
             );
+            RecurringJob.AddOrUpdate(
+                "Update-API-Keys",
+                () => ExecuteAPIKeysUpdayeAsync(),
+                Cron.Minutely // Runs once per minute
+            );
+            RecurringJob.AddOrUpdate(
+                "Reset-API-Keys-Usage",
+                () => ExecuteAPIResetUsageAsync(),
+                Cron.Daily // Runs once per day
+            );
         }
         public async Task ExecuteChatResolveAsync()
         {
@@ -35,8 +45,20 @@ namespace GoldenTicket.Extensions
                     .Where(c => c.LastMessage != null && c.IsClosed == false && c.LastMessage.CreatedAt <= threeDaysAgo && c.Ticket == null)
                     .ToList();
 
-                _hub.ResolveTickets(chatrooms);
+                await _hub.ResolveTickets(chatrooms);
             }
+        }
+        public async Task ExecuteAPIKeysUpdayeAsync()
+        {
+            Console.WriteLine("[HangFireService] [INFO] Updating API Keys...");
+
+            await _hub.GetApiKeys();
+        }
+        public async Task ExecuteAPIResetUsageAsync()
+        {
+            Console.WriteLine("[HangFireService] [INFO] Resetting API Keys Usage...");
+
+            await _hub.ResetUsage();
         }
     }
 }

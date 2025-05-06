@@ -2,6 +2,7 @@ using System.Diagnostics;
 using GoldenTicket.Database;
 using GoldenTicket.Entities;
 using GoldenTicket.Models;
+using Hangfire.States;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -286,7 +287,7 @@ namespace GoldenTicket.Utilities
         }
         #endregion
         #region -   UpdateUser
-        public async static Task<User?> UpdateUser(int _userID, string? _username, string? _firstname, string? _middlename, string? _lastname, string? _role, List<string?> _assignedTags) {
+        public async static Task<User?> UpdateUser(int _userID, string? _username, string? _firstname, string? _middlename, string? _lastname, string? _role, List<string?> _assignedTags, bool? _disableAcc) {
             using(var context = new ApplicationDbContext()){
                 var user = context.Users
                     .Include(u => u.Role)
@@ -304,6 +305,8 @@ namespace GoldenTicket.Utilities
                     user.MiddleName = _middlename ?? user.MiddleName;
                     user.LastName = _lastname ?? user.LastName;
                     user.RoleID = roleID!.RoleID;
+                    user.IsDisabled = _disableAcc ?? user.IsDisabled;
+
                     if(_assignedTags != null) 
                     {
                         // Emptys User's assignedTags so that database dont go crazy
@@ -414,7 +417,8 @@ namespace GoldenTicket.Utilities
             List<TicketHistory> histories = new();
             
             // Checks if a Chatroom already have an existing ticket
-            if(GetChatroom(ChatroomID)?.TicketID != null)
+            var chatroomDTO = await GetChatroom(ChatroomID, false);
+            if(chatroomDTO != null && chatroomDTO!.TicketID != null)
             {
                 Console.WriteLine($"[DBUtil] Chatroom {ChatroomID} already has an existing ticket.");
                 return null!;
@@ -820,7 +824,7 @@ namespace GoldenTicket.Utilities
         }
         #endregion
         #region -   JoinChatroom
-        public static ChatroomDTO JoinChatroom(int UserID, int ChatroomID)
+        public static async Task<ChatroomDTO> JoinChatroom(int UserID, int ChatroomID)
         {
             using(var context = new ApplicationDbContext()) 
             {
@@ -837,7 +841,7 @@ namespace GoldenTicket.Utilities
                 };
                 chatroom!.Members.Add(newMember);
                 context.SaveChanges();
-                var updatedChatroom = GetChatroom(ChatroomID, false);
+                var updatedChatroom = await GetChatroom(ChatroomID, false);
                 return new ChatroomDTO(updatedChatroom!);
             }
         }
@@ -893,12 +897,12 @@ namespace GoldenTicket.Utilities
             }
         }
         #region -   GetChatroom
-        public static Chatroom? GetChatroom(int ChatroomID, bool includeMessages = true)
+        public async static Task<Chatroom?> GetChatroom(int ChatroomID, bool includeMessages = true)
         {
             var stopwatch = Stopwatch.StartNew();
             using (var context = new ApplicationDbContext())
             {
-                var chatroom = ContextUtil.Chatroom(ChatroomID, context, includeMessages);
+                var chatroom = await ContextUtil.Chatroom(ChatroomID, context, includeMessages);
                 stopwatch.Stop();
                 if(debug) Console.WriteLine($"GetChatroom(chatroomID:{ChatroomID}) sent successfully: {stopwatch.ElapsedMilliseconds} ms");
                 return chatroom;
@@ -958,11 +962,11 @@ namespace GoldenTicket.Utilities
         }
         #endregion
         #region -   GetMessage
-        public static Message? GetMessage(int MessageID)
+        public static async Task<Message?> GetMessage(int MessageID)
         {
             using (var context = new ApplicationDbContext())
             {
-                return ContextUtil.Message(MessageID, context);
+                return await ContextUtil.Message(MessageID, context);
             }
         }
         #endregion
@@ -1235,5 +1239,155 @@ namespace GoldenTicket.Utilities
             }
         }
         #endregion
+        #region API
+        #endregion
+
+
+        #region -   GetAPIKeys
+        #endregion
+        public async static Task<List<APIKeyDTO>> GetAPIKeys() 
+        {
+            if(debug) Console.WriteLine($"[DBUtil] GetAPIKeys() ran!");
+            var stopwatch = Stopwatch.StartNew();
+            using(var context = new ApplicationDbContext())
+            {
+                var APIKeyDTOs = new List<APIKeyDTO>();
+                
+                var APIKeys = await ContextUtil.APIKeys(context);
+                if(debug) Console.WriteLine($"[DBUtil] GetAPIKeys() data read at: {stopwatch.ElapsedMilliseconds} ms");
+                if(APIKeys != null)
+                {
+                    foreach(var apiKey in APIKeys)
+                    {
+                        APIKeyDTOs.Add(new APIKeyDTO(apiKey));
+                    }
+                }
+                else Console.WriteLine($"[DBUtil] APIKeys table empty, no data found.");
+                if(debug) Console.WriteLine($"[DBUtil] GetAPIKeys sent successfully: {stopwatch.ElapsedMilliseconds} ms");
+                return APIKeyDTOs;
+            }
+        }
+        #region -   GetAPIKey
+        #endregion
+        public async static Task<APIKeys?> GetAPIKey(int APIKeyID)
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                var apiKey = await ContextUtil.APIKey(APIKeyID, context);
+                if(apiKey != null)
+                {
+                    return apiKey;
+                } else {
+                    Console.WriteLine($"[DBUtil] APIKey with {APIKeyID} ID not found.");
+                    return null;
+                }
+
+            }
+        }
+        #region -   AddAPIKey
+        #endregion
+        public async static Task<APIKeys> AddAPIKey(string APIKey, string Notes)
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                var apiKey = new APIKeys
+                {
+                    ApiKey = APIKey,
+                    Notes = Notes
+                };
+                context.ApiKeys.Add(apiKey);
+                await context.SaveChangesAsync();
+
+                return apiKey;
+            }
+        }
+        #region -   UpdateAPIKey
+        #endregion
+        public async static Task<APIKeys?> UpdateAPIKey(int APIKeyID, string? APIKey, string? Notes)
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                var apiKey = await context.ApiKeys.Where(a => a.APIKeyID == APIKeyID).FirstOrDefaultAsync();
+                
+                if(apiKey != null)
+                {
+                    apiKey.ApiKey = APIKey ?? apiKey.ApiKey;
+                    apiKey.Notes = Notes ?? apiKey.Notes;
+                    await context.SaveChangesAsync();
+                    return apiKey;
+                } else {
+                    Console.WriteLine($"[DBUtil] [UpdateAPIKey] APIKey with {APIKeyID} ID not found ");
+                    return null;
+                }
+            }
+        }
+        #region -   DeleteAPIKey
+        #endregion
+        public async static Task DeleteAPIKey(int APIKeyID)
+        {
+            using(var context = new ApplicationDbContext())
+            {
+                var apiKey = await context.ApiKeys.Where(a => a.APIKeyID == APIKeyID).FirstOrDefaultAsync();
+                if(apiKey != null)
+                {
+                    context.ApiKeys.Remove(apiKey);
+                    await context.SaveChangesAsync();
+                }
+                else 
+                    Console.WriteLine($"[DBUtil] [DeleteAPIKey] APIKey with {APIKeyID} ID not found ");
+            }
+        }
+        #region -   APIKeyLimitReach
+        #endregion
+        public async static Task<APIKeys?> APIKeyLimitReach(int APIKeyID)
+        {
+            using (var context = new ApplicationDbContext())
+            {
+                var apiKey = await context.ApiKeys.Where(a => a.APIKeyID == APIKeyID).FirstOrDefaultAsync();
+                if(apiKey != null)
+                {
+                    apiKey.LastRateLimit = DateTime.Now;
+                    await context.SaveChangesAsync();
+                    return apiKey;
+                }
+                else {
+                    Console.WriteLine($"[DBUtil] [APIKeyLimitReach] APIKey with {APIKeyID} ID not found ");
+                    return null;
+                }
+            }
+        }
+        #region -   APIKeyIncrementUsage
+        #endregion
+        public async static Task APIKeyIncrementUsage(int APIKeyID)
+        {
+            using(var context = new ApplicationDbContext())
+            {
+                var apiKey = context.ApiKeys.Where(a => a.APIKeyID == APIKeyID).FirstOrDefault();
+
+                if(apiKey != null)
+                {
+                    apiKey.Usage++;
+                    await context.SaveChangesAsync();
+                }
+                else {
+                    Console.WriteLine($"[DBUtil] [APIKeyIncrementUsage] APIKey with {APIKeyID} ID not found ");
+                }
+            }
+        }
+        #region -   ResetUsage
+        #endregion
+        public async static Task ResetUsage()
+        {
+            using(var context = new ApplicationDbContext())
+            {
+                var apiKeys = context.ApiKeys.ToList();
+                foreach(var apiKey in apiKeys)
+                {
+                    apiKey.Usage = 0;
+                    context.ApiKeys.Update(apiKey);
+                }
+                await context.SaveChangesAsync();
+            }
+        }
     }
 }

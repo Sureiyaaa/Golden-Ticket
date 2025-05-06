@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:golden_ticket_enterprise/entities/ticket.dart';
-import 'package:golden_ticket_enterprise/models/signalr_service.dart';
+import 'package:golden_ticket_enterprise/models/signalr/signalr_service.dart';
 import 'package:golden_ticket_enterprise/widgets/edit_ticket_widget.dart';
 import 'package:golden_ticket_enterprise/widgets/notification_widget.dart';
 import 'package:golden_ticket_enterprise/widgets/ticket_detail_widget.dart';

@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:golden_ticket_enterprise/entities/chatroom.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
@@ -16,9 +15,8 @@ class ChatroomDetailsDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print(
-        "Building ChatroomDetailsDrawer - Ticket Status: ${chatroom.ticket?.status}");
     var userSession = Hive.box<HiveSession>('sessionBox').get('user');
+
     return Drawer(
       backgroundColor: kPrimaryContainer,
       child: ListView(

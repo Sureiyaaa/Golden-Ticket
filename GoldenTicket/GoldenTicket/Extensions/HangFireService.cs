@@ -58,18 +58,7 @@ namespace GoldenTicket.Extensions
         {
             Console.WriteLine("[HangFireService] [INFO] Resetting API Keys Usage...");
 
-            using (var context = new ApplicationDbContext())
-            {
-                var filter = await DBUtil.GetAPIKeys();
-                var keys = filter.Where(k => k.Usage > 0).ToList();
-
-                foreach (var key in keys)
-                {
-                    key.Usage = 0;
-                    context.Update(key);
-                }
-                await context.SaveChangesAsync();
-            }
+            await _hub.ResetUsage();
         }
     }
 }

@@ -59,16 +59,11 @@ GoldenTicket/Config/secret.json Example
 > OpenAIKeys are the Github Access Tokens
 ```json
 {
-    "OpenAIKey": 
-    [
-        "apikey1",
-        "apikey2",
-    ],
-    "ConnectionString": "Server=serverIp;User=databaseUser;Password=databasePassword;Database=databaseName;",
-    "AdminUsername": "Admin",
-    "AdminPassword": "admin",
-    "AdminFirstName": "John",
-    "AdminMiddleName": "Jane",
+    "ConnectionString": "Server=10.10.10.10;User=someUsername;Password=somePassword;Database=someDatabase;",
+    "AdminUsername": "AdminGT",
+    "AdminPassword": "citillion2019",
+    "AdminFirstName": "John Mar",
+    "AdminMiddleName": "",
     "AdminLastName": "Doe"
 }
 ```
@@ -100,11 +95,12 @@ const Set<String> kLocalStorageBoxNames = {'session'};
 // Note for building: Before Building make sure to delete wwwroot/app folder in your .NET folder, then build project the IP with your server IP
 // Note for building: Before r
 // Note for deployment: NEVER USE LOCALHOST URL FOR PRODUCTION USE YOUR SERVER IP
-const String kBaseURL = "yourip"; // 0.0.0.0
+const String kBaseURL = "190.20.20.10";
 
-
+// only modify this if you know what you're doing!
 const String kGTHub = 'GTHub';
 const String kLogin = 'api/GTAuth/Login';
+const String kValidate = 'api/GTAuth/Verify';
 ```
 
 Install dependencies:

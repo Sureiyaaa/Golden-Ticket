@@ -45,6 +45,8 @@ namespace GoldenTicket.Extensions
         }
         public async Task ExecuteAPIKeysUpdayeAsync()
         {
+            Console.WriteLine("[HangFireService] [INFO] Updating API Keys...");
+            
             await _hub.GetApiKeys();
         }
     }

@@ -51,25 +51,26 @@ public static class ApplicationServiceExtensions
         //     opt.UseSqlite(config.GetConnectionString("DefaultConnection"));
         // });
 
-    //    services.AddCors((opt) => opt.AddPolicy(
-    //         "GoldenTicket",
-    //         (policy) => policy
-    //             .WithOrigins(
-    //                 "http://172.20.20.71",          // ✅ ADD THIS
-    //                 "http://localhost"              // ✅ and this (if testing from localhost:80)
-    //             )
-    //             .AllowAnyMethod()
-    //             .AllowAnyHeader()
-    //             .AllowCredentials()
-    //     ));
-
-        services.AddCors((opt) => opt.AddPolicy(
+       services.AddCors((opt) => opt.AddPolicy(
             "GoldenTicket",
             (policy) => policy
-                .AllowAnyOrigin()
+                .WithOrigins(
+                    "http://172.20.20.71",          // ✅ ADD THIS
+                    "http://localhost"              // ✅ and this (if testing from localhost:80)
+                )
                 .AllowAnyMethod()
                 .AllowAnyHeader()
+                .AllowCredentials()
         ));
+
+        // services.AddCors((opt) => opt.AddPolicy(
+        //     "GoldenTicket",
+        //     (policy) => policy
+        //         .AllowAnyOrigin()
+        //         .AllowAnyMethod()
+        //         .AllowAnyHeader()
+        // ));
+
         string flutterWebPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "app");
         services.AddSingleton<IFileProvider>(new PhysicalFileProvider(flutterWebPath));
 

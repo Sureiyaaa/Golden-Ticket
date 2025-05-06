@@ -190,7 +190,8 @@ public class OpenAIService
         //var expireDate = new DateTime();
         if(ApiConfig.AvailableKeys == null || ApiConfig.AvailableKeys.Count == 0)
         {
-            _currentKey = await _apiConfig.GetOpenAIKey();
+            _currentKey = await _apiConfig.GetLeastUsedAPI();
+            _logger.LogInformation("[OpenAIService] No available keys. Using the least used key: {Key}", _currentKey?.APIKey);
         }
         
         if (_loopAmount[chatroomID] < ApiConfig.AvailableKeys!.Count * 2)

@@ -23,8 +23,8 @@ public class ApiConfig
         if (OpenAIKeys == null || OpenAIKeys.Count == 0)
             throw new InvalidOperationException($"[ApiConfig] [ERROR] OpenAIKeys is not initialized or is empty. (index = {index})");
 
-        AvailableKeys = OpenAIKeys.Where(a => a.LastRateLimit < DateTime.UtcNow.AddHours(-24)).ToList();
-        LeastUsedKeys = OpenAIKeys.Where(a => a.LastRateLimit < DateTime.UtcNow.AddHours(-24)).OrderBy(a => a.Usage).ToList();
+        AvailableKeys = OpenAIKeys.Where(a => a.LastRateLimit < DateTime.UtcNow.AddHours(-24) || a.LastRateLimit == null).ToList();
+        LeastUsedKeys = OpenAIKeys.Where(a => a.LastRateLimit < DateTime.UtcNow.AddHours(-24) || a.LastRateLimit == null).OrderBy(a => a.Usage).ToList();
         if (AvailableKeys == null || AvailableKeys.Count == 0)
             throw new InvalidOperationException($"[ApiConfig] [ERROR] All Keys are exhausted for today!");
         return AvailableKeys[index]!;
@@ -39,13 +39,13 @@ public class ApiConfig
             _logger.LogWarning("[ApiConfig] [ERROR] OpenAIKeys is not initialized or is empty.");
             return null!;
         }
-        AvailableKeys = OpenAIKeys.Where(a => a.LastRateLimit < DateTime.UtcNow.AddHours(-24)).ToList();
-        LeastUsedKeys = OpenAIKeys.Where(a => a.LastRateLimit < DateTime.UtcNow.AddHours(-24)).OrderBy(a => a.Usage).ToList();
+        AvailableKeys = OpenAIKeys.Where(a => a.LastRateLimit < DateTime.UtcNow.AddHours(-24) || a.LastRateLimit == null).ToList();
+        LeastUsedKeys = OpenAIKeys.Where(a => a.LastRateLimit < DateTime.UtcNow.AddHours(-24) || a.LastRateLimit == null).OrderBy(a => a.Usage).ToList();
 
         APIKeyDTO? leastUsedKeyEntity;
 
         leastUsedKeyEntity = LeastUsedKeys.ElementAtOrDefault(index)!;
-        if (leastUsedKeyEntity?.APIKeyID == lastID && index != 0)
+        if (leastUsedKeyEntity != null && leastUsedKeyEntity?.APIKeyID == lastID && index != 0)
         {
             leastUsedKeyEntity = LeastUsedKeys.ElementAtOrDefault(index - 1)!;
         }

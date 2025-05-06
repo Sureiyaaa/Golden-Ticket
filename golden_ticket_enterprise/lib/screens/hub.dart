@@ -39,16 +39,19 @@ class _HubPageState extends State<HubPage> {
   late DataManager dm;
   late int _selectedIndex; // Track selected index
   bool _isInitialized = false;
+  bool _eventsMounted = false;
 
   @override
   void initState() {
     _selectedIndex = widget.child.currentIndex;
     super.initState();
     dm = Provider.of<DataManager>(context, listen: false);
-
-    dm.signalRService.addOnReceiveSupportListener(_handleReceiveSupport);
-    dm.signalRService.addOnNotificationListener(_handleNotification);
-    dm.signalRService.addOnUserUpdateListener(_handleUserUpdate);
+    if(!_eventsMounted) {
+      _eventsMounted = true;
+      dm.signalRService.addOnReceiveSupportListener(_handleReceiveSupport);
+      dm.signalRService.addOnNotificationListener(_handleNotification);
+      dm.signalRService.addOnUserUpdateListener(_handleUserUpdate);
+    }
     dm.signalRService.onMaximumChatroom = () {
       dm.enableRequestButton();
       TopNotification.show(
@@ -66,7 +69,7 @@ class _HubPageState extends State<HubPage> {
   void didChangeDependencies() {
     if (!_isInitialized && !widget.dataManager.signalRService.isConnected) {
       log("HubPage: Initializing SignalR Connection...");
-      widget.dataManager.signalRService.initializeConnection(widget.session!);
+      widget.dataManager.signalRService.initializeConnection();
       _isInitialized = true;
     }
     super.didChangeDependencies();

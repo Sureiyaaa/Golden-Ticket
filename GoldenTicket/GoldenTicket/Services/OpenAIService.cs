@@ -52,8 +52,8 @@ public class OpenAIService
     {
         if (_client == null || _apiCredential == null)
         {
-            _currentKey = await _apiConfig.GetLeastUsedAPI();
-            _apiCredential = new ApiKeyCredential("Bearer " + _currentKey.APIKey);
+            _currentKey = await _apiConfig.GetLeastUsedAPI() ?? null;
+            _apiCredential = new ApiKeyCredential("Bearer " + _currentKey?.APIKey);
             _client = new ChatClient("gpt-4o", _apiCredential, _options);
         }
     }
@@ -184,10 +184,15 @@ public class OpenAIService
         }
     }
 
-    // aaaaaaaaaaaaaaaaaaaaaaaaaaaaaawjdkhakjwdha
+    // AAAAAAAAAAAAAAAAAAAAKWADKAJWDOA
     private async Task<string> HandleRateLimit(string chatroomID, string userInput, string Prompt, bool isDirect, bool LimitReached = false)
     {
         //var expireDate = new DateTime();
+        if(ApiConfig.AvailableKeys == null || ApiConfig.AvailableKeys.Count == 0)
+        {
+            _currentKey = await _apiConfig.GetLeastUsedAPI();
+            _logger.LogInformation("[OpenAIService] No available keys. Using the least used key: {Key}", _currentKey?.APIKey);
+        }
         
         if (_loopAmount[chatroomID] < ApiConfig.AvailableKeys!.Count * 2)
         {

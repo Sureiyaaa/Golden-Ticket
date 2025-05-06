@@ -13,6 +13,7 @@ import 'package:golden_ticket_enterprise/entities/user.dart' as UserDTO;
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
 import 'package:golden_ticket_enterprise/models/hive_session.dart'
     as UserSession;
+import 'package:golden_ticket_enterprise/models/signalr/signalr_event_handlers.dart';
 import 'package:golden_ticket_enterprise/secret.dart';
 import 'package:golden_ticket_enterprise/widgets/notification_widget.dart';
 import 'package:golden_ticket_enterprise/widgets/ticket_detail_widget.dart';
@@ -24,13 +25,17 @@ import 'package:golden_ticket_enterprise/models/class_enums.dart';
 class SignalRService with ChangeNotifier {
   HubConnection? _hubConnection;
   VoidCallback? onConnected;
+  late SignalREventHandler _eventHandlers;
+
   var logger = Logger();
-  Function(List<MainTag>)? onTagUpdate;
+
   final List<void Function(Message, Chatroom)> _onReceiveMessageListeners = [];
   final List<void Function(Chatroom)> _onReceiveSupportListeners = [];
   final List<void Function(notif.Notification)> _onNotificationListener = [];
   final List<void Function(UserDTO.User)> _onUserUpdateListener = [];
+
   Function(List<String>)? onPriorityUpdate;
+  Function(List<MainTag>)? onTagUpdate;
   Function(List<FAQ>)? onFAQUpdate;
   Function(Chatroom)? onChatroomUpdate;
   Function(List<Chatroom>)? onChatroomsUpdate;
@@ -55,6 +60,8 @@ class SignalRService with ChangeNotifier {
   Function()? onAlreadyMember;
   Function()? onAlreadyDeleted;
   Function()? onRegistrationError;
+  Function()? onReconnected;
+  Function()? onDisconnected;
 
   ConnectionType _connectionState = ConnectionType.disconnected;
   ConnectionType get connectionState => _connectionState;
@@ -62,11 +69,11 @@ class SignalRService with ChangeNotifier {
   bool get isConnected => _connectionState == ConnectionType.connected;
 
   final String serverUrl = "http://${kBaseURL}/${kGTHub}";
-  int _retryCount = 0; // For exponential backoff
-  bool _shouldReconnect = true; // ✅ Prevents reconnecting after logout
+  int retryCount = 0; // For exponential backoff
+  bool shouldReconnect = true; // ✅ Prevents reconnecting after logout
 
   /// Initializes the SignalR connection
-  Future<void> initializeConnection(UserSession.HiveSession user) async {
+  Future<void> initializeConnection() async {
     _hubConnection = HubConnectionBuilder()
         .withUrl(
           serverUrl,
@@ -88,40 +95,21 @@ class SignalRService with ChangeNotifier {
           //     case LogLevel.none:
           //       logger.d(message);
           //   }
-          // }), // Debug logs
+          // }),
         )
         .build();
 
     _hubConnection!.serverTimeoutInMilliseconds = 30000;
     _hubConnection!.keepAliveIntervalInMilliseconds = 5000;
 
-    _hubConnection!.onclose((error) {
-      logger.e("❌ SignalR Connection Closed:",
-          error: error.toString().isEmpty ? "None provided" : error.toString());
-      _updateConnectionState(ConnectionType.disconnected);
-      if (_shouldReconnect) _attemptReconnect(); // ✅ Only retry if allowed
-    });
-
-    _hubConnection!.onreconnecting((error) {
-      logger.e("🔄 Reconnecting... Error:",
-          error: error.toString().isEmpty ? "None provided" : error.toString());
-      _updateConnectionState(ConnectionType.reconnecting);
-    });
-
-    _hubConnection!.onreconnected((connectionId) async {
-      logger.i("✅ Reconnected: $connectionId");
-      _retryCount = 0; // Reset retry count on successful reconnection
-      _updateConnectionState(ConnectionType.connected);
-      await _hubConnection!
-          .invoke("Online", args: [user.user.userID, user.user.role]);
-    });
-
+    _eventHandlers = SignalREventHandler(this, _hubConnection!);
+    _setupEventHandlers();
     await startConnection();
   }
 
   void requestChat(int userID) async {
     await _hubConnection!
-        .invoke('RequestChat', args: [userID]).catchError((err) {
+        .send(methodName: 'RequestChat', args: [userID]).catchError((err) {
       logger.e("There was an error caught while sending a message",
           error: err.toString().isEmpty ? "None provided" : err.toString());
     });
@@ -129,7 +117,7 @@ class SignalRService with ChangeNotifier {
 
   void openChatroom(int userID, int chatroomID) async {
     await _hubConnection!
-        .invoke('OpenChatroom', args: [userID, chatroomID]).catchError((err) {
+        .send(methodName: 'OpenChatroom', args: [userID, chatroomID]).catchError((err) {
       logger.e("There was an error caught while opening chatroom",
           error: err.toString().isEmpty ? "None provided" : err.toString());
     });
@@ -137,7 +125,7 @@ class SignalRService with ChangeNotifier {
 
   void addMainTag(String tagName) async {
     await _hubConnection!
-        .invoke('AddMainTag', args: [tagName]).catchError((err) {
+        .send(methodName: 'AddMainTag', args: [tagName]).catchError((err) {
       logger.e("There was an error caught while saving main tag",
           error: err.toString().isEmpty ? "None provided" : err.toString());
     });
@@ -145,7 +133,7 @@ class SignalRService with ChangeNotifier {
 
   void updateTicket(int ticketID, String title, String status, String priority,
       String? mainTag, String? subTag, int? assignedID) async {
-    await _hubConnection!.invoke('UpdateTicket', args: [
+    await _hubConnection!.send(methodName: 'UpdateTicket', args: [
       ticketID,
       title,
       status,
@@ -171,7 +159,7 @@ class SignalRService with ChangeNotifier {
       String? mainTag,
       String? subTag,
       bool faqArchive) async {
-    await _hubConnection!.invoke('UpdateFAQ', args: [
+    await _hubConnection!.send(methodName: 'UpdateFAQ', args: [
       faqID,
       faqTitle,
       faqDescription,
@@ -189,14 +177,14 @@ class SignalRService with ChangeNotifier {
 
   void addSubTag(String tagName, String mainTagName) async {
     await _hubConnection!
-        .invoke('AddSubTag', args: [tagName, mainTagName]).catchError((err) {
+        .send(methodName: 'AddSubTag', args: [tagName, mainTagName]).catchError((err) {
       logger.e("There was an error caught while sending a message",
           error: err.toString().isEmpty ? "None provided" : err.toString());
     });
   }
 
   void addRating(int chatroomID, int score, String? feedback) async {
-    await _hubConnection!.invoke('AddOrUpdateRating',
+    await _hubConnection!.send(methodName: 'AddOrUpdateRating',
         args: [chatroomID, score, feedback]).catchError((err) {
       logger.e("There was an error caught while saving rating",
           error: err.toString().isEmpty ? "None provided" : err.toString());
@@ -205,7 +193,7 @@ class SignalRService with ChangeNotifier {
 
   void addFAQ(String title, String description, String solution, String mainTag,
       String subTag) async {
-    await _hubConnection!.invoke('AddFAQ', args: [
+    await _hubConnection!.send(methodName: 'AddFAQ', args: [
       title,
       description,
       solution,
@@ -219,14 +207,14 @@ class SignalRService with ChangeNotifier {
 
   void joinChatroom(int userID, int chatroomID) async {
     await _hubConnection!
-        .invoke('JoinChatroom', args: [userID, chatroomID]).catchError((err) {
+        .send(methodName: 'JoinChatroom', args: [userID, chatroomID]).catchError((err) {
       logger.e("There was an error caught while joining chatroom",
           error: err.toString().isEmpty ? "None provided" : err.toString());
     });
   }
 
   void markAsRead(List<int> notifications, int userID) async {
-    await _hubConnection!.invoke('ReadNotification',
+    await _hubConnection!.send(methodName: 'ReadNotification',
         args: [notifications, userID]).catchError((err) {
       logger.e("There was an error caught while marking as read",
           error: err.toString().isEmpty ? "None provided" : err.toString());
@@ -234,7 +222,7 @@ class SignalRService with ChangeNotifier {
   }
 
   void markAsDelete(List<int> notifications, int userID) async {
-    await _hubConnection!.invoke('DeleteNotification',
+    await _hubConnection!.send(methodName: 'DeleteNotification',
         args: [notifications, userID]).catchError((err) {
       logger.e("There was an error caught while deleting notification",
           error: err.toString().isEmpty ? "None provided" : err.toString());
@@ -243,7 +231,7 @@ class SignalRService with ChangeNotifier {
 
   void deleteAPIKey(int apiKey) async {
     await _hubConnection!
-        .invoke('DeleteAPIKey', args: [apiKey]).catchError((err) {
+        .send(methodName: 'DeleteAPIKey', args: [apiKey]).catchError((err) {
       logger.e("There was an error caught while deleting API Key",
           error: err.toString().isEmpty ? "None provided" : err.toString());
     });
@@ -259,7 +247,7 @@ class SignalRService with ChangeNotifier {
       String? role,
       List<String?> assignedTags,
       bool isDisabled) async {
-    await _hubConnection!.invoke('UpdateUser', args: [
+    await _hubConnection!.send(methodName: 'UpdateUser', args: [
       userID,
       username,
       firstName,
@@ -283,7 +271,7 @@ class SignalRService with ChangeNotifier {
       String lastName,
       String role,
       List<String> assignedTags) async {
-    await _hubConnection!.invoke('AddUser', args: [
+    await _hubConnection!.send(methodName: 'AddUser', args: [
       username,
       password,
       firstName,
@@ -299,14 +287,14 @@ class SignalRService with ChangeNotifier {
 
   void addAPIKey(String apiKey, String? notes) async {
     await _hubConnection!
-        .invoke('AddAPIKey', args: [apiKey, notes]).catchError((err) {
+        .send(methodName: 'AddAPIKey', args: [apiKey, notes]).catchError((err) {
       logger.e("There was an error caught while Adding API Key",
           error: err.toString().isEmpty ? "None provided" : err.toString());
     });
   }
 
   void updateAPIKey(int apiKeyID, String apiKey, String? notes) async {
-    await _hubConnection!.invoke('UpdateAPIKey', args: [
+    await _hubConnection!.send(methodName: 'UpdateAPIKey', args: [
       apiKeyID,
       apiKey,
       notes ?? 'No note provided'
@@ -317,7 +305,7 @@ class SignalRService with ChangeNotifier {
   }
 
   void sendMessage(int userID, int chatroomID, String messageContent) async {
-    await _hubConnection!.invoke('SendMessage',
+    await _hubConnection!.send(methodName: 'SendMessage',
         args: [userID, chatroomID, messageContent]).catchError((err) {
       logger.e("There was an error caught while sending a message",
           error: err.toString());
@@ -326,7 +314,7 @@ class SignalRService with ChangeNotifier {
 
   void closeChatroom(int chatroomID) async {
     await _hubConnection!
-        .invoke('CloseChatroom', args: [chatroomID]).catchError((err) {
+        .send(methodName: 'CloseChatroom', args: [chatroomID]).catchError((err) {
       logger.e("There was an error caught while sending close chatroom",
           error: err.toString());
     });
@@ -334,7 +322,7 @@ class SignalRService with ChangeNotifier {
 
   void sendSeen(int userID, int chatroomID) async {
     await _hubConnection!
-        .invoke('UserSeen', args: [userID, chatroomID]).catchError((err) {
+        .send(methodName: 'UserSeen', args: [userID, chatroomID]).catchError((err) {
       logger.e("There was an error caught while sending user seen",
           error: err.toString());
     });
@@ -342,6 +330,7 @@ class SignalRService with ChangeNotifier {
 
   void addOnReceiveMessageListener(void Function(Message, Chatroom) listener) {
     _onReceiveMessageListeners.add(listener);
+
   }
 
   void addOnReceiveSupportListener(void Function(Chatroom) listener) {
@@ -356,9 +345,8 @@ class SignalRService with ChangeNotifier {
     _onUserUpdateListener.add(listener);
   }
 
-  void removeOnReceiveMessageListener(
-      void Function(Message, Chatroom) listener) {
-    _onReceiveMessageListeners.remove(listener);
+  void removeOnReceiveMessageListener(void Function(Message, Chatroom) listener) {
+      _onReceiveMessageListeners.remove(listener);
   }
 
   void removeOnReceiveSupportListener(void Function(Chatroom) listener) {
@@ -374,25 +362,25 @@ class SignalRService with ChangeNotifier {
     _onUserUpdateListener.remove(listener);
   }
 
-  void _triggerOnReceiveMessage(Message message, Chatroom chatroom) {
+  void triggerOnReceiveMessage(Message message, Chatroom chatroom) {
     for (var listener in _onReceiveMessageListeners) {
       listener(message, chatroom);
     }
   }
 
-  void _triggerOnReceiveSupport(Chatroom chatroom) {
+  void triggerOnReceiveSupport(Chatroom chatroom) {
     for (var listener in _onReceiveSupportListeners) {
       listener(chatroom);
     }
   }
 
-  void _triggerNotification(notif.Notification notification) {
+  void triggerNotification(notif.Notification notification) {
     for (var listener in _onNotificationListener) {
       listener(notification);
     }
   }
 
-  void _triggerUserUpdate(UserDTO.User user) {
+  void triggerUserUpdate(UserDTO.User user) {
     for (var listener in _onUserUpdateListener) {
       listener(user);
     }
@@ -403,292 +391,41 @@ class SignalRService with ChangeNotifier {
     if (_hubConnection == null) return;
 
     try {
-      _shouldReconnect = true; // ✅ Allow reconnects on normal use
-      _updateConnectionState(ConnectionType.connecting);
+      shouldReconnect = true; // ✅ Allow reconnects on normal use
+      updateConnectionState(ConnectionType.connecting);
       await _hubConnection!
           .start(); // ❌ If the old tab is using the same user ID, it might get disconnected
       logger.i("✅ SignalR Connected!");
-      _updateConnectionState(ConnectionType.connected);
+      updateConnectionState(ConnectionType.connected);
 
       onConnected?.call();
-      _setupEventHandlers();
+
       logger.i("🔄 Invoking Online Event...");
       var userSession =
           Hive.box<UserSession.HiveSession>('sessionBox').get('user');
-      await _hubConnection!.invoke("Online",
+      await _hubConnection!.send(methodName: "Online",
           args: [userSession!.user.userID, userSession!.user.role]);
     } catch (e) {
       logger.e("❌ Error connecting to SignalR:", error: e.toString());
-      _updateConnectionState(ConnectionType.disconnected);
-      if (_shouldReconnect) _attemptReconnect();
+      updateConnectionState(ConnectionType.disconnected);
+      if (shouldReconnect) attemptReconnect();
     }
   }
 
   void _setupEventHandlers() async {
-    _hubConnection!.on('MaximumChatroom', (arguments) {
-      onMaximumChatroom?.call();
-      notifyListeners();
-    });
-
-    _hubConnection!.on('AlreadyMember', (arguments) {
-      onAlreadyMember?.call();
-      notifyListeners();
-    });
-
-    _hubConnection!.on('ExistingTag', (arguments) {
-      onExistingTag?.call();
-      notifyListeners();
-    });
-
-    _hubConnection!.on('UserExist', (arguments) {
-      onRegistrationError?.call();
-      notifyListeners();
-    });
-
-    _hubConnection!.on('UserSeen', (arguments) {
-      if (arguments != null) {
-        int chatroomID = arguments[0]['chatroomID'];
-        int userID = arguments[0]['userID'];
-
-        onSeenUpdate?.call(userID, chatroomID);
-        notifyListeners();
-      }
-    });
-    _hubConnection!.on('AllowMessage', (arguments) {
-      onAllowMessage?.call();
-      notifyListeners();
-    });
-    _hubConnection!.on('ReceiveMessages', (arguments) {
-      if (arguments != null) {
-        var chatroomData = arguments[0]['chatroom'];
-        Chatroom chatroom = Chatroom.fromJson(chatroomData);
-        onChatroomUpdate?.call(chatroom);
-      }
-      notifyListeners();
-    });
-
-    _hubConnection!.on('StaffJoined', (arguments) {
-      if (arguments != null) {
-        onStaffJoined?.call(UserDTO.User.fromJson(arguments[0]['user']),
-            Chatroom.fromJson(arguments[0]['chatroom']));
-        notifyListeners();
-      }
-    });
-
-    _hubConnection!.on('RatingReceived', (arguments) {
-      if (arguments != null) {
-        onRatingUpdate?.call(Rating.fromJson(arguments[0]['rating']));
-        notifyListeners();
-      }
-    });
-
-    _hubConnection!.on('APIKeyUpdate', (arguments) {
-      if (arguments != null) {
-        onAPIKeyUpdate?.call(ApiKey.fromJson(arguments[0]['apikey']));
-        notifyListeners();
-      }
-    });
-
-    _hubConnection!.on('RatingsReceived', (arguments) {
-      if (arguments != null) {
-        List<Rating> updatedRatings = (arguments[0]['ratings'] as List)
-            .map((rating) => Rating.fromJson(rating))
-            .toList();
-
-        onRatingsUpdate?.call(updatedRatings);
-        notifyListeners();
-      }
-    });
-
-    _hubConnection!.on('TicketUpdate', (arguments) {
-      if (arguments != null) {
-        onTicketUpdate?.call(Ticket.fromJson(arguments[0]['ticket']));
-        notifyListeners();
-      }
-    });
-
-    _hubConnection!.on('NotificationListReceived', (arguments) {
-      if (arguments != null) {
-        List<notif.Notification> updatedNotifications = (arguments[0]
-                ['notification'] as List)
-            .map((notification) => notif.Notification.fromJson(notification))
-            .toList();
-        onNotificationsUpdate?.call(updatedNotifications);
-        notifyListeners();
-      }
-    });
-    _hubConnection!.on('TicketClosed', (arguments) {
-      if (arguments != null) {
-        notifyListeners();
-      }
-    });
-
-    _hubConnection!.on('ReceiveMessage', (arguments) {
-      if (arguments != null) {
-        final message = Message.fromJson(arguments[0]['message']);
-        final chatroom = Chatroom.fromJson(arguments[0]['chatroom']);
-
-        _triggerOnReceiveMessage(message, chatroom);
-        notifyListeners();
-      }
-    });
-
-    _hubConnection!.on('ReceiveSupport', (arguments) async {
-      if (arguments != null) {
-        await onChatroomUpdate
-            ?.call(Chatroom.fromJson(arguments[0]['chatroom']));
-        _triggerOnReceiveSupport(Chatroom.fromJson(arguments[0]['chatroom']));
-        notifyListeners();
-      }
-    });
-
-    _hubConnection!.on('FAQUpdate', (arguments) {
-      if (arguments != null) {
-        List<FAQ> updatedFAQs = (arguments[0]['faq'] as List)
-            .map((faq) => FAQ.fromJson(faq))
-            .toList();
-
-        onFAQUpdate?.call(updatedFAQs);
-        notifyListeners();
-      }
-    });
-    _hubConnection!.on('ChatroomUpdate', (arguments) {
-      if (arguments != null) {
-        onChatroomUpdate?.call(Chatroom.fromJson(arguments[0]['chatroom']));
-        notifyListeners();
-      }
-    });
-    _hubConnection!.on('TagUpdate', (arguments) {
-      if (arguments != null) {
-        List<MainTag> updatedTags = (arguments[0]['tags'] as List)
-            .map((tag) => MainTag.fromJson(tag))
-            .toList();
-        logger.i("🔹 Updated Tags: ${updatedTags.length}");
-
-        onTagUpdate?.call(updatedTags);
-      }
-    });
-
-    _hubConnection!.on('UserUpdate', (arguments) {
-      if (arguments != null) {
-        UserDTO.User user = UserDTO.User.fromJson(arguments[0]['user']);
-        _triggerUserUpdate(user);
-        var userSession =
-            Hive.box<UserSession.HiveSession>('sessionBox').get('user')!.user;
-
-        if (user.userID == userSession.userID) {
-          userSession.username = user.username;
-          userSession.firstName = user.firstName;
-          userSession.middleName = user.middleName ?? "";
-          userSession.lastName = user.lastName;
-          userSession.role = user.role;
-        }
-
-        notifyListeners();
-      }
-    });
-
-    _hubConnection!.on('NotificationReceived', (arguments) {
-      if (arguments != null) {
-        _triggerNotification(
-            notif.Notification.fromJson(arguments[0]['notification']));
-        notifyListeners();
-      }
-    });
-    _hubConnection!.on('NotificationListRemoved', (arguments) {
-      if (arguments != null) {
-        List<int> deletedNotifications = (arguments[0]['notification'] as List)
-            .map((notif) => int.parse(notif.toString()))
-            .toList();
-        onNotificationDeleted?.call(deletedNotifications);
-        notifyListeners();
-      }
-    });
-    _hubConnection!.on('APIKeyRemoved', (arguments) {
-      if (arguments != null) {
-        onAPIKeyRemoved?.call(arguments[0]['apikey'] as int);
-        notifyListeners();
-      }
-    });
-
-    _hubConnection!.on('Online', (arguments) {
-      logger.i("🔔 SignalR Event: Online Received!");
-
-      if (arguments != null) {
-        List<MainTag> updatedTags = (arguments[0]['tags'] as List)
-            .map((tag) => MainTag.fromJson(tag))
-            .toList();
-
-        List<FAQ> updatedFAQs = (arguments[0]['faq'] as List)
-            .map((faq) => FAQ.fromJson(faq))
-            .toList();
-
-        List<Chatroom> updatedChatrooms = (arguments[0]['chatrooms'] as List)
-            .map((chatroom) => Chatroom.fromJson(chatroom))
-            .toList();
-
-        List<Ticket> updatedTickets = (arguments[0]['tickets'] as List)
-            .map((ticket) => Ticket.fromJson(ticket))
-            .toList();
-
-        List<String> updatedStatus = (arguments[0]['status'] as List)
-            .map((status) => status.toString())
-            .toList();
-
-        List<UserDTO.User> updatedUsers = (arguments[0]['users'] as List)
-            .map((user) => UserDTO.User.fromJson(user))
-            .toList();
-
-        List<String> updatedPriorities = (arguments[0]['priorities'] as List)
-            .map((priority) => priority.toString())
-            .toList();
-
-        List<Rating> updatedRatings = (arguments[0]['ratings'] as List)
-            .map((rating) => Rating.fromJson(rating))
-            .toList();
-
-        List<notif.Notification> updatedNotifications = (arguments[0]
-                ['notifications'] as List)
-            .map((notification) => notif.Notification.fromJson(notification))
-            .toList();
-
-        List<ApiKey> updatedAPIKeys = (arguments[0]['apikeys'] as List)
-            .map((apiKey) => ApiKey.fromJson(apiKey))
-            .toList();
-
-        logger.i("🔹 Updated Tags: ${updatedTags.length}\n"
-            "🔹 Updated FAQs: ${updatedFAQs.length}\n"
-            "🔹 Updated Chatrooms: ${updatedChatrooms.length}\n"
-            "🔹 Updated Tickets: ${updatedTickets.length}\n"
-            "🔹 Updated Notifications: ${updatedNotifications.length}\n"
-            "🔹 Updated Ratings: ${updatedRatings.length}\n"
-            "🔹 Updated Users: ${updatedUsers.length}\n"
-            "🔹 Updated Status: ${updatedStatus.length}\n"
-            "🔹 Updated Priorities: ${updatedPriorities.length}");
-        onTagUpdate?.call(updatedTags);
-        onPriorityUpdate?.call(updatedPriorities);
-        onFAQUpdate?.call(updatedFAQs);
-        onTicketsUpdate?.call(updatedTickets);
-        onStatusUpdate?.call(updatedStatus);
-        onUsersUpdate?.call(updatedUsers);
-        onChatroomsUpdate?.call(updatedChatrooms);
-        onAPIKeysUpdate?.call(updatedAPIKeys);
-        onNotificationsUpdate?.call(updatedNotifications);
-        onRatingsUpdate?.call(updatedRatings);
-      }
-    });
+    _eventHandlers.setupEventHandlers();
   }
 
   /// Attempt to reconnect with exponential backoff
-  Future<void> _attemptReconnect() async {
-    if (!_shouldReconnect || _connectionState == ConnectionType.connected)
+  Future<void> attemptReconnect() async {
+    if (!shouldReconnect || _connectionState == ConnectionType.connected)
       return;
 
-    _retryCount++;
-    if (_retryCount > 3) _shouldReconnect = false;
+    retryCount++;
+    if (retryCount > 3) shouldReconnect = false;
     int delay =
-        (5 * _retryCount).clamp(5, 30); // Delay increases but max 30 sec
-    logger.i("🕐 Retrying in $delay seconds... (Attempt: $_retryCount)");
+        (5 * retryCount).clamp(5, 30); // Delay increases but max 30 sec
+    logger.i("🕐 Retrying in $delay seconds... (Attempt: $retryCount)");
 
     await Future.delayed(Duration(seconds: delay));
     await startConnection();
@@ -697,15 +434,15 @@ class SignalRService with ChangeNotifier {
   /// Manually trigger reconnection
   Future<void> reconnect() async {
     logger.i("🔁 Manual Reconnect Triggered...");
-    _shouldReconnect = true; // ✅ Ensure manual reconnects are allowed
-    _retryCount = 0;
+    shouldReconnect = true; // ✅ Ensure manual reconnects are allowed
+    retryCount = 0;
     await startConnection();
   }
 
   /// Stops the SignalR connection and prevents reconnection
   Future<void> stopConnection() async {
     if (_hubConnection != null) {
-      _shouldReconnect = false;
+      shouldReconnect = false;
       log("SignalR: Stopping connection...");
       await _hubConnection!.stop();
       _hubConnection = null; // Ensure it's fully cleared
@@ -713,7 +450,14 @@ class SignalRService with ChangeNotifier {
   }
 
   /// Updates connection state and notifies listeners
-  void _updateConnectionState(ConnectionType state) {
+  void updateConnectionState(ConnectionType state) {
+    if(state == ConnectionType.disconnected && connectionState == ConnectionType.connected){
+      onDisconnected?.call();
+    }
+
+    if(state == ConnectionType.connected && connectionState == ConnectionType.connecting){
+      onReconnected?.call();
+    }
     _connectionState = state;
     notifyListeners();
   }

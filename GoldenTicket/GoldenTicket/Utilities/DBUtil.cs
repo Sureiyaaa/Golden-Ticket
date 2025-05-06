@@ -1374,5 +1374,20 @@ namespace GoldenTicket.Utilities
                 }
             }
         }
+        #region -   ResetUsage
+        #endregion
+        public async static Task ResetUsage()
+        {
+            using(var context = new ApplicationDbContext())
+            {
+                var apiKeys = context.ApiKeys.ToList();
+                foreach(var apiKey in apiKeys)
+                {
+                    apiKey.Usage = 0;
+                    context.ApiKeys.Update(apiKey);
+                }
+                await context.SaveChangesAsync();
+            }
+        }
     }
 }

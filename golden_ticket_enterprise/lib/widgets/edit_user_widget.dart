@@ -4,6 +4,7 @@ import 'package:golden_ticket_enterprise/models/hive_session.dart';
 import 'package:provider/provider.dart';
 import 'package:golden_ticket_enterprise/entities/user.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
+import 'package:golden_ticket_enterprise/styles/colors.dart';
 
 class EditUserWidget extends StatefulWidget {
   final User user;
@@ -77,15 +78,10 @@ class _EditUserWidgetState extends State<EditUserWidget> {
       _lastNameController.text,
       _selectedRole!,
       selectedTags,
-      _isDisabled, // Make sure your signalRService method accepts this!
+      _isDisabled,
     );
 
     if (mounted) Navigator.pop(context);
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
   }
 
   @override
@@ -98,145 +94,180 @@ class _EditUserWidgetState extends State<EditUserWidget> {
           });
         }
 
-        String _selectedTagsSummary() {
-          int selectedCount = _tagSelectionMap.values.where((v) => v).length;
-          if (selectedCount == 0) return 'Assigned Tags';
-          return 'Assigned Tags: $selectedCount selected';
-        }
-        return AlertDialog(
-          title: const Text("Edit User"),
-          content: SizedBox(
-            width: 500,
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TextField(
-                    controller: _usernameController,
-                    readOnly: true,
-                    decoration: const InputDecoration(labelText: 'Username'),
+        return Dialog(
+          insetPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: 600,
+              maxHeight: MediaQuery.of(context).size.height * 0.85,
+            ),
+            child: Column(
+              children: [
+                // Header
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: kPrimary,
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
                   ),
-                  TextField(
-                    controller: _passwordController,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'New Password (optional, leave empty to keep current)',
-                    ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text("Edit User", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
                   ),
-                  TextField(
-                    controller: _firstNameController,
-                    decoration: const InputDecoration(labelText: 'First Name *'),
-                  ),
-                  TextField(
-                    controller: _middleNameController,
-                    decoration: const InputDecoration(labelText: 'Middle Name (optional)'),
-                  ),
-                  TextField(
-                    controller: _lastNameController,
-                    decoration: const InputDecoration(labelText: 'Last Name *'),
-                  ),
-                  DropdownButtonFormField<String>(
-                    value: _selectedRole,
-                    hint: const Text('Select Role *'),
-                    onChanged: (String? newValue) {
-                      setState(() {
-                        _selectedRole = newValue;
-                      });
-                    },
-                    items: rolesData.map((role) {
-                      return DropdownMenuItem<String>(
-                        value: role,
-                        child: Text(role),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 10),
-                  if (_selectedRole != 'Employee')
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                ),
+
+                // Body
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
                       children: [
-                        const SizedBox(height: 10),
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _isTagsDropdownOpen = !_isTagsDropdownOpen;
-                            });
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey),
-                              borderRadius: BorderRadius.circular(8),
-                              color: Colors.white,
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  _selectedTagsSummary(),
-                                  style: TextStyle(fontSize: 16),
-                                ),
-                                Icon(
-                                  _isTagsDropdownOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                                ),
-                              ],
-                            ),
+                        Text('Account', style: TextStyle(fontWeight: FontWeight.bold)),
+                        _buildTextCard([
+                          _buildReadOnlyField('Username', _usernameController),
+                          _buildPasswordField(),
+                        ]),
+                        const SizedBox(height: 12),
+
+                        Text('User Information', style: TextStyle(fontWeight: FontWeight.bold)),
+                        _buildTextCard([
+                          _buildTextField('First Name *', _firstNameController, 75),
+                          _buildTextField('Middle Name', _middleNameController, 75),
+                          _buildTextField('Last Name *', _lastNameController, 75),
+                        ]),
+                        const SizedBox(height: 12),
+
+                        Text('Account Settings', style: TextStyle(fontWeight: FontWeight.bold)),
+                        _buildTextCard([
+                          DropdownButtonFormField<String>(
+                            value: _selectedRole,
+                            decoration: const InputDecoration(labelText: 'Select Role *'),
+                            onChanged: (value) => setState(() => _selectedRole = value),
+                            items: rolesData.map((role) => DropdownMenuItem(value: role, child: Text(role))).toList(),
                           ),
-                        ),
-                        if (_isTagsDropdownOpen)
-                          Container(
-                            margin: const EdgeInsets.only(top: 4),
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey),
-                              borderRadius: BorderRadius.circular(8),
-                              color: Colors.grey.shade50,
-                            ),
-                            child: Column(
-                              children: dataManager.mainTags.map((tag) {
-                                return CheckboxListTile(
-                                  title: Text(tag.tagName),
-                                  value: _tagSelectionMap[tag.tagName] ?? false,
-                                  onChanged: (bool? value) {
-                                    setState(() {
-                                      _tagSelectionMap[tag.tagName] = value ?? false;
-                                    });
-                                  },
-                                );
-                              }).toList(),
-                            ),
+                          const SizedBox(height: 10),
+                          if(widget.session.user.userID != widget.user.userID && widget.user.userID != superAdmingID) SwitchListTile(
+                            title: const Text("Account Disabled"),
+                            value: _isDisabled,
+                            onChanged: (val) => setState(() => _isDisabled = val),
+                            activeColor: Colors.redAccent,
                           ),
+                          if (_selectedRole != 'Employee') ...[
+                            const SizedBox(height: 12),
+                            _buildTagSelector(dataManager),
+                          ],
+                        ]),
                       ],
                     ),
-                  if(widget.user.userID != widget.session.user.userID && widget.user.userID != 100000000)CheckboxListTile(
-                    title: const Text("Disabled User"),
-                    value: _isDisabled,
-                    onChanged: (bool? value) {
-                      setState(() {
-                        _isDisabled = value ?? false;
-                      });
-                    },
                   ),
-                ],
-              ),
+                ),
+
+                // Footer
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: _isSaving ? null : () => _saveUser(context, dataManager),
+                        style: ElevatedButton.styleFrom(backgroundColor: kPrimary),
+                        child: _isSaving
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Text("Save", style: TextStyle(color: Colors.white)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel"),
-            ),
-            ElevatedButton(
-              onPressed: _isSaving ? null : () => _saveUser(context, dataManager),
-              child: _isSaving
-                  ? const SizedBox(
-                  width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text("Save Changes"),
-            ),
-          ],
         );
       },
     );
   }
 
+  Widget _buildTextCard(List<Widget> children) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(children: children),
+      ),
+    );
+  }
+
+  Widget _buildTextField(String label, TextEditingController controller, int maxLength) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextField(
+        controller: controller,
+        decoration: InputDecoration(labelText: label),
+        maxLength: maxLength,
+      ),
+    );
+  }
+
+  Widget _buildReadOnlyField(String label, TextEditingController controller) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextField(
+        controller: controller,
+        readOnly: true,
+        decoration: InputDecoration(labelText: label),
+      ),
+    );
+  }
+
+  Widget _buildPasswordField() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextField(
+        controller: _passwordController,
+        obscureText: true,
+        decoration: const InputDecoration(labelText: 'New Password (optional)'),
+      ),
+    );
+  }
+
+  Widget _buildTagSelector(DataManager dataManager) {
+    int selectedCount = _tagSelectionMap.values.where((v) => v).length;
+
+    return _buildTextCard([
+      GestureDetector(
+        onTap: () => setState(() => _isTagsDropdownOpen = !_isTagsDropdownOpen),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey),
+            borderRadius: BorderRadius.circular(8),
+            color: Colors.white,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(selectedCount == 0 ? 'Assigned Tags' : 'Assigned Tags: $selectedCount selected'),
+              Icon(_isTagsDropdownOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down),
+            ],
+          ),
+        ),
+      ),
+      if (_isTagsDropdownOpen)
+        ...dataManager.mainTags.map((tag) {
+          return CheckboxListTile(
+            title: Text(tag.tagName),
+            value: _tagSelectionMap[tag.tagName] ?? false,
+            onChanged: (val) => setState(() => _tagSelectionMap[tag.tagName] = val ?? false),
+          );
+        }),
+    ]);
+  }
 }

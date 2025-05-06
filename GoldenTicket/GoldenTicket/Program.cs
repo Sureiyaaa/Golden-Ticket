@@ -73,18 +73,15 @@ if (!app.Environment.IsDevelopment())
 
 // app.UseHttpsRedirection();
 //app.UseStaticFiles();
-// 🔧 Add this BEFORE mapping endpoints
+
 app.UseRouting();
 
-// ✅ NOW move CORS here, AFTER UseRouting
 app.UseCors("GoldenTicket");
 
 app.UseAuthorization();
 
-// 🔧 Now map controllers and SignalR hubs
 app.MapControllers();
-app.MapHub<GTHub>("/GTHub");
-//.RequireCors("GoldenTicket");
+app.MapHub<GTHub>("/GTHub").RequireCors("GoldenTicket");
 
 
 // app.MapControllerRoute(

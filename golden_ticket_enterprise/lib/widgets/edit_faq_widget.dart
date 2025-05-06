@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:golden_ticket_enterprise/entities/faq.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:provider/provider.dart';
 import 'package:golden_ticket_enterprise/models/data_manager.dart';
 
@@ -44,88 +45,128 @@ class _FAQEditWidgetState extends State<FAQEditWidget> {
     final dataManager = Provider.of<DataManager>(context);
 
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Container(
-        width: MediaQuery.of(context).size.width > 600 ? 500 : double.infinity,
-        padding: EdgeInsets.all(20),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Edit FAQ', style: Theme.of(context).textTheme.headlineMedium),
-              SizedBox(height: 10),
-
-              _buildTitleField(),
-              SizedBox(height: 10),
-              _buildTextField("Description", descriptionController, 300),
-              SizedBox(height: 10),
-              _buildTextField("Solution", solutionController, 1200),
-              SizedBox(height: 10),
-
-              // MainTag Dropdown
-              _buildDropdown("Main Tag", dataManager.mainTags.map((tag) => tag.tagName).toList(), (newValue) {
-                setState(() {
-                  mainTag = newValue;
-                  subTag = null;  // Reset subTag when mainTag is changed
-                });
-              }),
-
-              SizedBox(height: 10),
-
-              // SubTag Dropdown
-              _buildDropdown(
-                "Sub Tag",
-                mainTag != null && mainTag != 'None'
-                    ? dataManager.mainTags.firstWhere((m) => m.tagName == mainTag).subTags.map((tag) => tag.subTagName).toList()
-                    : ['None'],
-                    (newValue) {
-                  setState(() {
-                    subTag = newValue;
-                  });
-                },
-              ),
-
-              SizedBox(height: 10),
-
-              Row(
-                children: [
-                  Checkbox(
-                    value: isArchived,
-                    onChanged: (bool? value) {
-                      setState(() {
-                        isArchived = value ?? false;
-                      });
-                    },
+      insetPadding: EdgeInsets.symmetric(horizontal: 20),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.8,
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
+        ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return Column(
+              children: [
+                // Title bar
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: kPrimary,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
                   ),
-                  Text('Is Archived'),
-                ],
-              ),
-              SizedBox(height: 20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Edit FAQ', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            IconButton(
+                              icon: Icon(Icons.close, color: Colors.white),
+                              tooltip: 'Close',
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ],
+                        ),
+                      )
+                    ],
+                  ),
+                ),
 
-              // Save and Cancel buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(context); // Cancel button action
-                    },
-                    child: Text('Cancel'),
+                // Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildTitleField(),
+                        SizedBox(height: 10),
+                        _buildTextField("Description", descriptionController, 300),
+                        SizedBox(height: 10),
+                        _buildTextField("Solution", solutionController, 1200),
+                        SizedBox(height: 10),
+
+                        // MainTag Dropdown
+                        _buildDropdown("Main Tag", dataManager.mainTags.map((tag) => tag.tagName).toList(), (newValue) {
+                          setState(() {
+                            mainTag = newValue;
+                            subTag = null; // Reset subTag when mainTag is changed
+                          });
+                        }),
+
+                        SizedBox(height: 10),
+
+                        // SubTag Dropdown
+                        _buildDropdown(
+                          "Sub Tag",
+                          mainTag != null && mainTag != 'None'
+                              ? dataManager.mainTags.firstWhere((m) => m.tagName == mainTag).subTags.map((tag) => tag.subTagName).toList()
+                              : ['None'],
+                              (newValue) {
+                            setState(() {
+                              subTag = newValue;
+                            });
+                          },
+                        ),
+
+                        SizedBox(height: 10),
+
+                        Row(
+                          children: [
+                            Checkbox(
+                              value: isArchived,
+                              onChanged: (bool? value) {
+                                setState(() {
+                                  isArchived = value ?? false;
+                                });
+                              },
+                            ),
+                            Text('Is Archived'),
+                          ],
+                        ),
+                        SizedBox(height: 20),
+
+                        // Save and Cancel buttons
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: kPrimary,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                              ),
+                              onPressed: () {
+                                if (_validateFields()) {
+                                  dataManager.signalRService.updateFAQ(widget.faq.faqID, titleController.text, descriptionController.text, solutionController.text, mainTag, subTag, isArchived);
+                                  Navigator.pop(context); // Pass updated FAQ back
+                                }
+                              },
+                              child: Text('Save', style: TextStyle(color: Colors.white)),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                  SizedBox(width: 10),
-                  ElevatedButton(
-                    onPressed: () {
-                      if (_validateFields()) {
-                        dataManager.signalRService.updateFAQ(widget.faq.faqID, titleController.text, descriptionController.text, solutionController.text, mainTag, subTag, isArchived);
-                        Navigator.pop(context); // Pass updated FAQ back
-                      }
-                    },
-                    child: Text('Save'),
-                  ),
-                ],
-              ),
-            ],
-          ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );

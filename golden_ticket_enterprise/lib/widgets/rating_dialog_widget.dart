@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:golden_ticket_enterprise/entities/rating.dart';
+import 'package:golden_ticket_enterprise/styles/colors.dart';
 import 'package:golden_ticket_enterprise/widgets/notification_widget.dart';
 
 class RatingDialogWidget extends StatefulWidget {
@@ -37,79 +38,110 @@ class _RatingDialogWidgetState extends State<RatingDialogWidget> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Container(
         width: screenWidth * 0.7,
-        padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Rate This Chat',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            Center(
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: kPrimary,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+              ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(5, (index) {
-                  return IconButton(
-                    icon: Icon(
-                      index < _rating ? Icons.star : Icons.star_border,
-                      color: Colors.amber,
-                      size: 32,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Rating', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.close, color: Colors.white),
+                          tooltip: 'Close',
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
                     ),
-                    onPressed: () {
-                      setState(() {
-                        _rating = index + 1;
-                      });
-                    },
-                  );
-                }),
+                  )
+                ],
               ),
             ),
-            const SizedBox(height: 16),
-            const Text(
-              'Feedback (optional)',
-              style: TextStyle(fontWeight: FontWeight.w500),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _feedbackController,
-              maxLines: 4,
-              minLines: 3,
-              maxLength: _maxChars,
-              decoration: const InputDecoration(
-                hintText: 'Share your thoughts...',
-                border: OutlineInputBorder(),
-              ),
-            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+              child:  Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Rate This Chat',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(5, (index) {
+                        return IconButton(
+                          icon: Icon(
+                            index < _rating ? Icons.star : Icons.star_border,
+                            color: Colors.amber,
+                            size: 32,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _rating = index + 1;
+                            });
+                          },
+                        );
+                      }),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Feedback (optional)',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _feedbackController,
+                    maxLines: 4,
+                    minLines: 3,
+                    maxLength: _maxChars,
+                    decoration: const InputDecoration(
+                      hintText: 'Share your thoughts...',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
 
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: () {
-                    if (_rating == 0) {
-                      TopNotification.show(
-                        context: context,
-                        message: 'Please provide a rating.',
-                        duration: const Duration(seconds: 2),
-                        backgroundColor: Colors.redAccent,
-                      );
-                      return;
-                    }
-                    widget.onSubmit(_rating, _feedbackController.text);
-                    Navigator.of(context).pop();
-                  },
-                  child: const Text('Submit'),
-                ),
-              ],
-            ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: () {
+                          if (_rating == 0) {
+                            TopNotification.show(
+                              context: context,
+                              message: 'Please provide a rating.',
+                              duration: const Duration(seconds: 2),
+                              backgroundColor: Colors.redAccent,
+                            );
+                            return;
+                          }
+                          widget.onSubmit(_rating, _feedbackController.text);
+                          Navigator.of(context).pop();
+                        },
+                        child: const Text('Submit'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            )
+
           ],
         ),
       ),

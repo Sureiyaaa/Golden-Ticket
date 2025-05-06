@@ -886,7 +886,7 @@ namespace GoldenTicket.Hubs
                 {
                     foreach (var connectionId in connectionIds)
                     {
-                        await Clients.Client(connectionId).SendAsync("UpdateAPIKeys", new { apikeys = apiKeyDTOs} );
+                        await Clients.Client(connectionId).SendAsync("APIKeysUpdate", new { apikeys = apiKeyDTOs} );
                     }
                 }
             }

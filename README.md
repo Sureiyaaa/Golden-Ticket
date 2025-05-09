@@ -127,6 +127,9 @@ localhost
 - Publish as Folder
 - Publishing Settings as follows (Don't forget to add your connection string):
 ![image](https://github.com/user-attachments/assets/6edad5ca-7837-4514-b00c-f5750f17093f)
+- Go to IIS and add your published application to the IIS.
+- Setup necessary ip and routing
+- After setup publish and Stop the application if it's running
 
 ❗Check if IIS Websocket Protocol is enabled:
 - Open Server Manager.
@@ -155,7 +158,7 @@ localhost
 
 ![image](https://github.com/user-attachments/assets/49d86848-709d-44cb-bd54-11765a6388a8)
 
-- Once that's done publish your IIS website with the .NET folder built and you're good to go!
+- Once that's done you're good to go and run the application using IIS!
 
 📝 Notes
 ===========

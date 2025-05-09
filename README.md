@@ -128,6 +128,32 @@ localhost
 - Publishing Settings as follows (Don't forget to add your connection string):
 ![image](https://github.com/user-attachments/assets/6edad5ca-7837-4514-b00c-f5750f17093f)
 
+❗Check if IIS Websocket Protocol is enabled:
+- Open Server Manager.
+- Click on Manage > Add Roles and Features.
+- In the wizard, click Next until you reach the Server Roles page.
+- Expand Web Server (IIS) > Web Server > Application Development, and select WebSocket Protocol.
+
+
+❗Configure IIS Websocket Settings
+- Open IIS then go to Configuration Editor.
+
+![image](https://github.com/user-attachments/assets/167faff1-b9dd-4e8d-8cca-07d1350f359c)
+
+- Select on the dropdown list Websocket and set the following settings
+
+![image](https://github.com/user-attachments/assets/747c3c81-ee08-40da-8c10-2feb4ad31ae0)
+
+- Select your application and on the right side click Advanced Settings
+![image](https://github.com/user-attachments/assets/efd24184-1738-43a4-a113-f4f1bcc992a3)
+
+- Follow the settings provided
+![image](https://github.com/user-attachments/assets/dc498605-f0f9-4aef-87d7-c1313ddbe958)
+![image](https://github.com/user-attachments/assets/06050001-c659-431b-ba23-fff2291b675a)
+![image](https://github.com/user-attachments/assets/49d86848-709d-44cb-bd54-11765a6388a8)
+
+- Once that's done publish your IIS website with the .NET folder built and you're good to go!
+
 📝 Notes
 ===========
 - ✅ Make sure you have the correct Flutter and .NET SDK versions installed.

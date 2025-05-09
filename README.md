@@ -148,8 +148,11 @@ localhost
 ![image](https://github.com/user-attachments/assets/efd24184-1738-43a4-a113-f4f1bcc992a3)
 
 - Follow the settings provided
+
 ![image](https://github.com/user-attachments/assets/dc498605-f0f9-4aef-87d7-c1313ddbe958)
+
 ![image](https://github.com/user-attachments/assets/06050001-c659-431b-ba23-fff2291b675a)
+
 ![image](https://github.com/user-attachments/assets/49d86848-709d-44cb-bd54-11765a6388a8)
 
 - Once that's done publish your IIS website with the .NET folder built and you're good to go!
